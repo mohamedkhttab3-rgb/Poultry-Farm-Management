@@ -157,6 +157,16 @@ function hideLegacyFinanceScopes(){
 }
 function init(){
  document.documentElement.classList.add('pfm72-android-native');style();nav();brand();
+ if(window.PFMAndroidExport && typeof window.PFMAndroidExport.printHTML==='function'){
+  const originalPDF=window.PFMAndroidExport.printHTML;
+  if(!originalPDF.__pfm73){
+   function correctedPDF(html,name){
+    const report=String(html).replace(/Poultry Farm Manager(?: · M\.K™)?/g,'Poultry Farm Management M.K™');
+    return originalPDF.call(this,report,name);
+   }
+   correctedPDF.__pfm73=true;window.PFMAndroidExport.printHTML=correctedPDF;
+  }
+ }
  const originalSales=window.renderSales;
  if(typeof originalSales==='function'&&!originalSales.__pfm73){
   function patchedSales(){const out=originalSales.apply(this,arguments);salesControls();salesSummary();return out;}
