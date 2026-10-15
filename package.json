@@ -33,7 +33,8 @@
   "main": "desktop/main.cjs",
   "devDependencies": {
     "electron": "^38.0.0",
-    "electron-builder": "^26.0.0"
+    "electron-builder": "^26.0.0",
+    "typescript": "^5.9.3"
   },
   "build": {
     "appId": "com.poultryfarm.manager",
