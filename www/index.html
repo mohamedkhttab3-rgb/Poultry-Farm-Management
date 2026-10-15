@@ -737,7 +737,7 @@ html[lang="ar"] #printReport .report-meta,html[lang="ar"] #printReport .report-t
 @media(max-width:800px){html body nav#v53-nav.v53-nav{padding-left:7px!important;padding-right:7px!important}}
 @media print{nav#v53-nav{display:none!important}}
 </style><link rel="stylesheet" href="./pfm-v53-reference.css"/><link rel="stylesheet" href="./pfm-v54-interior.css"/><link rel="stylesheet" href="./pfm-v54-restore-original-nav.css"/>
-<link rel="stylesheet" href="./pfm-v55-project-navigation.css"/><link rel="stylesheet" href="./pfm-v56-light-organization.css"/><style id="pfm-v56-perf-style">.pfm-perf-more{display:flex;gap:12px;align-items:center;justify-content:center;padding:10px;color:inherit;font-size:13px}.pfm-perf-more:empty{display:none}</style><link rel="stylesheet" href="./pfm-v65-mobile.css"/>
+<link rel="stylesheet" href="./pfm-v55-project-navigation.css"/><link rel="stylesheet" href="./pfm-v56-light-organization.css"/><style id="pfm-v56-perf-style">.pfm-perf-more{display:flex;gap:12px;align-items:center;justify-content:center;padding:10px;color:inherit;font-size:13px}.pfm-perf-more:empty{display:none}</style><link rel="stylesheet" href="./pfm-v65-mobile.css"/><link rel="stylesheet" href="./pfm-v72-android-login.css"/>
 <style id="pfm-v692-login-rights-css">
 #authOverlay.pfm-v5 #pfmLoginFootText{color:#0d64bf!important}
 #authOverlay.pfm-v5 #pfmLoginRights{color:#0d64bf!important;background:transparent!important;border:0!important;text-decoration:underline;cursor:pointer;pointer-events:auto!important;font:600 14px/22px Arial,sans-serif!important}
@@ -1261,16 +1261,26 @@ function showRecoveryForm(){
 }
 async function resetPassword(){
   const email=normalizeEmail(document.getElementById('loginEmail')?.value);
-  if(!/^\S+@\S+\.\S+$/.test(email)) return authError(uiLanguage()==='en'?'Enter your email first, then click Forgot password.':'اكتب بريدك الإلكتروني أولًا ثم اضغط استعادة كلمة المرور.');
-  if(supabaseClient){
-    const redirect=PFM_SUPABASE_CONFIG.redirectTo || (location.origin + location.pathname);
-    const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:redirect});
-    if(error)return authError(error.message);
-    return authError(uiLanguage()==='en'?'A password reset link has been sent to your email.':'تم إرسال رابط استعادة كلمة المرور إلى بريدك الإلكتروني.');
+  const english=uiLanguage()==='en';
+  if(!/^\S+@\S+\.\S+$/.test(email))return authError(english?'Enter your email first.':'اكتب بريدك الإلكتروني أولًا.');
+  // A local account is stored only on this device. It has no email backend.
+  // Only a genuinely configured Supabase account can request an email reset.
+  if(!supabaseClient&&hasRealSupabaseConfig()){
+    try{await initSupabaseClient()}
+    catch(e){return authError(english?'Cloud connection failed. Check internet and Supabase setup.':'تعذر الاتصال بالحساب السحابي. تحقق من الإنترنت وإعداد Supabase.');}
   }
-  const user=users.find(u=>u.email===email);
-  if(!user)return authError(uiLanguage()==='en'?'No local account was found for this email.':'لا يوجد حساب محلي بهذا البريد.');
-  authError(uiLanguage()==='en'?'The local demo account cannot send email. Use Supabase in V3.3 to enable real email recovery.':'الحساب المحلي التجريبي لا يرسل بريدًا. استخدم Supabase في V3.3 لتفعيل الاستعادة الفعلية عبر البريد.');
+  if(supabaseClient){
+    try{
+      const redirect=String(window.PFM_SUPABASE_CONFIG?.redirectTo||'').trim();
+      const options=redirect&&/^https:\/\//i.test(redirect)?{redirectTo:redirect}:undefined;
+      const {error}=await supabaseClient.auth.resetPasswordForEmail(email,options);
+      if(error)return authError((english?'Could not request recovery email: ':'تعذر طلب رسالة الاستعادة: ')+error.message);
+      return authError(english?'Recovery email requested. Check your inbox and spam folder. The email link needs a configured Supabase redirect.':'تم طلب رسالة الاستعادة. راجع البريد والرسائل غير المرغوبة. يجب ضبط رابط العودة في Supabase لإكمال التغيير.');
+    }catch(e){return authError((english?'Recovery failed: ':'فشل طلب الاستعادة: ')+(e.message||e));}
+  }
+  const found=users.some(u=>u.email===email);
+  if(found)return authError(english?'This is a device-only account. It cannot send password-reset emails. Only a cloud account connected to Supabase supports email recovery.':'هذا حساب محلي محفوظ على الجهاز فقط، ولا يستطيع إرسال بريد لاستعادة كلمة المرور. الاستعادة بالبريد تحتاج حسابًا سحابيًا مربوطًا بـSupabase.');
+  return authError(english?'This account is not saved on this phone. A computer/browser local account does not transfer automatically. Connect your existing cloud account, or create a separate local account and import your JSON backup.':'هذا الحساب غير محفوظ على الهاتف. حساب الكمبيوتر المحلي لا ينتقل تلقائيًا. اربط حسابك السحابي إن كان موجودًا، أو أنشئ حسابًا محليًا على الهاتف واستورد نسخة JSON الاحتياطية.');
 }
 function authError(msg){document.getElementById('authError').textContent=msg||''}
 function importSupabaseConfigFile(input){
@@ -1334,7 +1344,7 @@ async function loginUser(){
     }
     const user=users.find(u=>u.email===email&&u.password===pass);
     if(!user){
-      if(!users.length) return authError('لا يوجد حساب محلي محفوظ. لإتمام تسجيل الدخول السحابي، استورد ملف Supabase الحقيقي من إعداد الاتصال.');
+      if(!users.length) return authError(uiLanguage()==='en'?'No account exists on this phone. Local computer/browser accounts do not sync automatically. Connect an existing Supabase account, or create a local account and restore your JSON backup.':'لا يوجد حساب محفوظ على هذا الهاتف. حساب الكمبيوتر المحلي لا ينتقل تلقائيًا. اربط Supabase لحساب سحابي موجود، أو أنشئ حسابًا محليًا ثم استورد نسخة JSON الاحتياطية.');
       return authError('البريد الإلكتروني أو كلمة المرور غير صحيحة.');
     }
     if(!user)return authError('البريد الإلكتروني أو كلمة المرور غير صحيحة.');
@@ -2737,5 +2747,5 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script><script src="./v410-finance.js"></script><script src="./pfm-v68-sa-training.js"></script><script src="./v52-finance.js"></script><script id="v53-dashboard-logic" src="./pfm-v53-reference.js"></script><script src="./pfm-v54-interior.js"></script>
 <script src="./pfm-v55-project-navigation.js"></script><!-- Demo seed disabled: never overwrite local production data --><script src="./pfm-excel-transfer.js"></script><link rel="stylesheet" href="./pfm-v57-data-controls.css"/><script src="./pfm-v57-data-controls.js"></script><link rel="stylesheet" href="./pfm-v59-print-results.css"/><script src="./pfm-v59-print-results.js"></script>
-<script src="./pfm-v65-mobile.js"></script><script src="./pfm-v72-android-export.js"></script>
+<script src="./pfm-v65-mobile.js"></script><script src="./pfm-v72-android-export.js"></script><script src="./pfm-v72-android-login.js"></script>
 </body></html>
