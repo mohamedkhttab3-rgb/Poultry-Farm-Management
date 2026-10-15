@@ -36,10 +36,25 @@ jobs:
           node-version: '22'
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Build Windows installer and portable executable (unsigned)
-        run: npm run build:win
+      - name: Build Windows installer and portable executable separately (unsigned)
+        shell: pwsh
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          npx electron-builder --win nsis --x64 --publish never
+          if ($LASTEXITCODE -ne 0) { throw 'Windows installer build failed' }
+          $base = 'PoultryFarmManagement-7.1.0-win-x64'
+          $original = Join-Path 'dist-desktop' ($base + '.exe')
+          if (-not (Test-Path $original)) { throw 'Missing installer EXE' }
+          New-Item -ItemType Directory -Force -Path 'build-staging' | Out-Null
+          Move-Item $original (Join-Path 'build-staging' ($base + '-Setup.exe'))
+          npx electron-builder --win portable --x64 --publish never
+          if ($LASTEXITCODE -ne 0) { throw 'Windows portable build failed' }
+          if (-not (Test-Path $original)) { throw 'Missing portable EXE' }
+          Move-Item $original (Join-Path 'dist-desktop' ($base + '-Portable.exe'))
+          Move-Item (Join-Path 'build-staging' ($base + '-Setup.exe')) (Join-Path 'dist-desktop' ($base + '-Setup.exe'))
+          Write-Host 'PASS: Two differently named Windows executables created'
       - name: Check EXE files and generate SHA256
         shell: pwsh
         run: |
@@ -74,9 +89,14 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - uses: android-actions/setup-android@v3
-      - name: Install Android platform and build tools
-        run: sdkmanager --install 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Use preinstalled Android SDK and install platform/build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then echo "Missing preinstalled Android sdkmanager: $SDKMANAGER"; exit 1; fi
+          "$SDKMANAGER" --install 'platforms;android-36' 'build-tools;36.0.0'
+          echo "Android SDK packages installed"
       - name: Install JS dependencies
         run: npm install --no-audit --no-fund
         env:
