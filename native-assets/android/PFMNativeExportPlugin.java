@@ -171,13 +171,13 @@ public class PFMNativeExportPlugin extends Plugin {
              }
              try(FileOutputStream out=new FileOutputStream(pdf)){document.writeTo(out);}
            }finally{document.close();}
-           if(!settled.compareAndSet(false,true))return;
-           cleanup.run();
            if(pdf.length()<800)throw new Exception("PDF is empty");
            try(InputStream in=new FileInputStream(pdf)){
              byte[] magic=new byte[5];
              if(in.read(magic)!=5||!new String(magic,StandardCharsets.US_ASCII).equals("%PDF-"))throw new Exception("Invalid PDF output");
            }
+           if(!settled.compareAndSet(false,true))return;
+           cleanup.run();
            options(call,pdf,filename,PDF);
          }catch(Exception e){error.accept(e);}
        },850);
