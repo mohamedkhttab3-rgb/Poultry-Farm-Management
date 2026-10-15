@@ -70,7 +70,7 @@ jobs:
           }
       - uses: actions/upload-artifact@v4
         with:
-          name: PoultryFarmManagement-V7.1-Windows-unsigned
+          name: PoultryFarmManagement-V7.2-Windows-unsigned
           path: |
             dist-desktop/*.exe
             dist-desktop/SHA256SUMS.txt
@@ -120,7 +120,7 @@ jobs:
           sha256sum android/app/build/outputs/apk/debug/app-debug.apk > android/app/build/outputs/apk/debug/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: PoultryFarmManagement-V7.1-Android-debug
+          name: PoultryFarmManagement-V7.2-Android-debug
           path: |
             android/app/build/outputs/apk/debug/app-debug.apk
             android/app/build/outputs/apk/debug/SHA256SUMS.txt
