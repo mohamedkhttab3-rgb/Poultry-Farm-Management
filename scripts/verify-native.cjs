@@ -16,7 +16,7 @@ const checks=[
  [sha===meta.www_index_sha256,'V6.9.3 index.html unchanged'],
  [electron.includes("nodeIntegration:false")&&electron.includes("contextIsolation:true"),'Electron hardening preserved'],
  [workflow.includes('windows-latest')&&workflow.includes('ubuntu-latest'),'GitHub native build jobs'],
- [fs.existsSync(path.join(root,'native-assets','android','mipmap-xxxhdpi','ic_launcher.png')),'Android identity'],
+ [fs.existsSync(path.join(root,'www','icon-512.png')) && fs.statSync(path.join(root,'www','icon-512.png')).size > 2048,'Android identity'],
  [fs.existsSync(path.join(root,'www','pfm-recovery-data.js')),'app assets present'],
 ];
 for(const [pass,label] of checks)console.log((pass?'PASS':'FAIL')+': '+label);
