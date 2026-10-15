@@ -4,13 +4,17 @@ const fs=require('node:fs'), path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const android=path.join(root,'android','app','src','main','res');
 if(!fs.existsSync(android))throw new Error('Missing Android project. Run npx cap add android first.');
+// Use the existing app icon; the former native-assets/android directory
+// was not included in the safe GitHub source package.
+const sourceIcon=path.join(root,'www','icon-512.png');
+if(!fs.existsSync(sourceIcon)||fs.statSync(sourceIcon).size<2048)
+ throw new Error('Missing or invalid www/icon-512.png');
 let files=0;
 for(const dpi of ['mdpi','hdpi','xhdpi','xxhdpi','xxxhdpi']){
- const src=path.join(root,'native-assets','android','mipmap-'+dpi);
  const dst=path.join(android,'mipmap-'+dpi);
  fs.mkdirSync(dst,{recursive:true});
  for(const name of ['ic_launcher.png','ic_launcher_round.png','ic_launcher_foreground.png']){
-  fs.copyFileSync(path.join(src,name),path.join(dst,name));files++;
+  fs.copyFileSync(sourceIcon,path.join(dst,name));files++;
  }
 }
 const xmlDir=path.join(android,'mipmap-anydpi-v26');fs.mkdirSync(xmlDir,{recursive:true});
