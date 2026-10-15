@@ -220,6 +220,21 @@ let activePrint=null,activeFrame=null;
   if(printPending)return;
   try{
     const root=build(),html=standalone(root);
+    // Electron has no Chromium-style print preview: generate a real multi-page
+    // PDF from this exact result-only snapshot, then show a native Save dialog.
+    // Browser/Chrome continues using the original iframe printing path below.
+    if(typeof window.PFMDesktopPrint?.savePDF==='function'){
+      const screenTitle=root.querySelector('.pfm59-print-brand strong')?.textContent?.trim()||'Report';
+      const fileName='PFM-'+screenTitle+'-'+new Date().toISOString().slice(0,10)+'.pdf';
+      if(activePrint?.isConnected)activePrint.remove();activePrint=null;
+      document.body.classList.remove('pfm59-printing');
+      printPending=true;
+      window.PFMDesktopPrint.savePDF(html,fileName).then(result=>{
+        if(!result?.ok&&!result?.canceled)alert(tr('تعذّر حفظ PDF: ','Could not save PDF: ')+(result?.error||'Unknown error'));
+      }).catch(err=>{console.error('PFM desktop PDF:',err);alert(tr('تعذّر حفظ PDF: ','Could not save PDF: ')+err.message);})
+      .finally(()=>{printPending=false;clean();});
+      return;
+    }
     // This browser document is independent of the application's old @media print
     // directives. It therefore keeps the coloured dashboard, all results and
     // multi-page report layout without opening an extra browser tab.
