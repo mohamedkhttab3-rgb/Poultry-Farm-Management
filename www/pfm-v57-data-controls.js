@@ -309,7 +309,7 @@ function tableRows(table){
   }
   return rows.length?[headers||rows[0].map((_,i)=>t('عمود ','Column ')+(i+1)),...rows]:null;
 }
-function trigger(blob,filename){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),12000);}
+function trigger(blob,filename){if(window.PFMAndroidExport?.isAndroid){window.PFMAndroidExport.saveBlob(blob,filename).catch(e=>alert('تعذر حفظ الملف: '+e.message));return;}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),12000);}
 function appendFullScopeRecords(books,view){
   const d=appData();if(!d)return;
   const map={dash:['cycles'],farms:['farms'],houses:['houses'],cycles:['cycles'],daily:['daily'],weights:['weights'],feed:['feed'],meds:['meds'],inventory:['inventory'],sales:['sales'],finance:['cycles','finance'],performance:['cycles'],standards:['performanceRules'],compare:['cycles'],reports:['cycles','daily','weights','feed','meds','sales'],settings:['performanceRules'],audit:['auditLog'],users:['invitations'],backup:['farms','houses','cycles','daily','weights','feed','meds','inventory','sales']};

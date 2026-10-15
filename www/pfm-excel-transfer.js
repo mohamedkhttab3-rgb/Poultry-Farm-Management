@@ -195,7 +195,7 @@ function parseDb(books){
   validateData(obj);return obj;
 }
 function getDb(){if(typeof db==='undefined')throw Error('افتح البرنامج وسجّل الدخول أولاً');return db;}
-function trigger(blob,filename){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2500);}
+function trigger(blob,filename){if(window.PFMAndroidExport?.isAndroid){window.PFMAndroidExport.saveBlob(blob,filename).catch(e=>alert('تعذر حفظ الملف: '+e.message));return;}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2500);}
 function jsonBackup(d,filename){trigger(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),filename);}
 window.PFMExportExcel=()=>{
   try{

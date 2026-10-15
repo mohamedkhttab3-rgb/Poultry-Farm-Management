@@ -26,3 +26,61 @@
 }
 @media screen and (max-width:430px){#dash .pfm53-kpi-row,#dash .pfm53-second-row,#dash .pfm53-chart-row,#dash .pfm53-bottom-row{grid-template-columns:1fr!important}}
 @media print{#pfm65Menu,#pfm65Veil{display:none!important}}
+
+/* V7.2: compact native-looking Android layout; desktop unchanged. */
+@media screen and (max-width:800px){
+ html body main{padding:12px 12px 76px!important;padding-top:28px!important}
+ body>header{padding:9px 12px 9px 64px!important;min-height:66px!important;background:#f8fbff!important;box-shadow:0 4px 18px #123d6010!important}
+ body>header .pfm-brand{flex:1 1 auto!important;gap:9px!important;align-items:center!important}
+ body>header .pfm-logo{width:44px!important;height:44px!important;flex-basis:44px!important}
+ #pfm65Menu{top:9px!important;left:10px!important;width:44px!important;height:44px!important;border-radius:14px!important;box-shadow:0 5px 14px #16456b24!important}
+ .pfm57-toolbar{padding:13px!important;border-radius:18px!important;margin:10px 0 12px!important;box-shadow:0 6px 22px #18476512!important}
+ .pfm57-fields{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;align-items:end!important}
+ .pfm57-fields>.pfm57-field{min-width:0!important;flex:none!important;width:100%!important}
+ .pfm57-fields>.pfm57-field:nth-child(3),.pfm57-fields>.pfm57-search{grid-column:1/-1!important}
+ .pfm57-field select,.pfm57-field input{height:48px!important;min-height:48px!important;font-size:14px!important;border-radius:12px!important}
+ .pfm57-start-search,.pfm57-pdf,.pfm57-excel{grid-column:auto!important;width:100%!important;min-height:48px!important;height:48px!important;font-size:14px!important;border-radius:12px!important;margin:0!important;padding:0 5px!important;box-shadow:0 4px 12px #083c661b!important}
+ .pfm57-start-search{grid-column:1/-1!important}
+ .pfm57-small{margin-top:9px!important}
+ #dash .pfm53-kpi-row,#dash .pfm53-second-row{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+ #dash .pfm53-chart-row,#dash .pfm53-bottom-row{grid-template-columns:1fr!important;gap:10px!important}
+ #dash .pfm53-kpi,#dash .pfm53-mini{padding:12px!important;min-height:118px!important;border-radius:17px!important;box-shadow:0 5px 15px #123d6210!important}
+ #dash .pfm53-kpi-value,#dash .pfm53-mini-value{font-size:clamp(19px,5vw,25px)!important}
+ #dash .pfm53-kpi-title,#dash .pfm53-mini-title{font-size:12px!important}
+ #dash .pfm53-panel{border-radius:16px!important}
+ #pfm-page-scroll-controls{right:8px!important;bottom:24px!important;gap:5px!important;opacity:.80!important}
+ #pfm-page-scroll-controls button{width:34px!important;height:34px!important;border-radius:12px!important;font-size:18px!important}
+ html[lang=en] #pfm-page-scroll-controls{right:auto!important;left:8px!important}
+ nav#v53-nav{box-shadow:-15px 0 32px #081f3940!important}
+ .view .panel{padding:12px!important;border-radius:16px!important}
+}
+/* Use a true mobile layout rather than stretching a 1672x941 desktop login screenshot. */
+@media screen and (max-width:800px){
+ #authOverlay.pfm-v5,#authOverlay.pfm-v5.authOverlay{overflow-y:auto!important;overflow-x:hidden!important;display:block!important;background:linear-gradient(150deg,#073466 0%,#0761b9 55%,#d7ebfa 100%)!important;padding:0!important;overscroll-behavior:contain!important}
+ #authOverlay.pfm-v5 .pfm-login-stage{position:relative!important;top:auto!important;left:auto!important;inset:auto!important;width:100%!important;min-width:0!important;max-width:none!important;height:auto!important;min-height:100dvh!important;max-height:none!important;transform:none!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;padding:104px 14px 24px!important;overflow:visible!important}
+ #authOverlay.pfm-v5 .pfm-v5-art{position:absolute!important;top:0!important;left:0!important;width:100%!important;height:255px!important;max-width:none!important;object-fit:cover!important;object-position:55% 15%!important;opacity:.63!important;mask-image:linear-gradient(black 25%,transparent 100%)!important}
+ #authOverlay.pfm-v5 .authBox{position:relative!important;inset:auto!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;transform:none!important;width:100%!important;max-width:430px!important;min-width:0!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;border-radius:24px!important;padding:22px 20px 18px!important;box-shadow:0 22px 45px #001b4655!important;background:#fffffffa!important}
+ #authOverlay.pfm-v5 .pfm-login-langline{position:relative!important;inset:auto!important;left:auto!important;top:auto!important;width:100%!important;height:45px!important;display:flex!important;justify-content:flex-start!important}
+ #authOverlay.pfm-v5 #pfmLoginLanguage{height:44px!important;width:145px!important;border-radius:12px!important;font-size:13px!important;padding:0 8px!important}
+ #authOverlay.pfm-v5 .pfm-login-title{position:relative!important;inset:auto!important;top:auto!important;left:auto!important;width:100%!important;height:auto!important;font:800 25px/1.4 Tahoma,Arial,sans-serif!important;margin:13px 0 4px!important}
+ #authOverlay.pfm-v5 .pfm-login-subtitle{position:relative!important;inset:auto!important;top:auto!important;left:auto!important;width:100%!important;max-height:none!important;min-height:0!important;height:auto!important;font:400 12px/1.7 Tahoma,Arial,sans-serif!important;margin:0 0 18px!important}
+ #authOverlay.pfm-v5 #authForm,#authOverlay.pfm-v5 #authForm form{position:relative!important;inset:auto!important;display:flex!important;flex-direction:column!important;gap:11px!important;width:100%!important;min-height:0!important;height:auto!important;pointer-events:auto!important}
+ #authOverlay.pfm-v5 .pfm-v5-field,#authOverlay.pfm-v5 #loginForm .pfm-v5-loginEmail,#authOverlay.pfm-v5 #loginForm .pfm-v5-loginPass,#authOverlay.pfm-v5 #registerForm .pfm-v5-regName,#authOverlay.pfm-v5 #registerForm .pfm-v5-regEmail,#authOverlay.pfm-v5 #registerForm .pfm-v5-regPass,#authOverlay.pfm-v5 #registerForm .pfm-v5-regPass2{position:relative!important;top:auto!important;left:auto!important;inset:auto!important;width:100%!important;min-width:0!important;max-width:none!important;height:53px!important;min-height:53px!important;border-radius:13px!important}
+ #authOverlay.pfm-v5 .pfm-v5-field-icon{flex-basis:46px!important;font-size:23px!important}
+ #authOverlay.pfm-v5 .pfm-v5-field input{font-size:16px!important}
+ #authOverlay.pfm-v5 .pfm-login-options{position:relative!important;inset:auto!important;top:auto!important;left:auto!important;width:100%!important;height:auto!important;min-height:37px!important;margin:0!important;gap:8px!important}
+ #authOverlay.pfm-v5 .pfm-login-remember,#authOverlay.pfm-v5 #forgotPasswordBtn{font-size:12px!important}
+ #authOverlay.pfm-v5 #pfmRememberLoginEmail{width:21px!important;height:21px!important;min-width:21px!important}
+ #authOverlay.pfm-v5 .pfm-v5-main-btn,#authOverlay.pfm-v5 #registerForm #registerSubmit{position:relative!important;inset:auto!important;top:auto!important;left:auto!important;width:100%!important;min-width:0!important;max-width:none!important;height:52px!important;min-height:52px!important;max-height:none!important;font-size:18px!important;line-height:52px!important;border-radius:13px!important}
+ #authOverlay.pfm-v5 .pfm-v5-divider{position:relative!important;inset:auto!important;left:auto!important;top:auto!important;width:100%!important;height:25px!important;font-size:12px!important;margin:9px 0!important}
+ #authOverlay.pfm-v5 .pfm-login-foot{position:relative!important;inset:auto!important;display:flex!important;flex-direction:column!important;align-items:center!important;gap:9px!important;margin:8px 0 0!important;pointer-events:auto!important}
+ #authOverlay.pfm-v5 .pfm-login-foot .pfm-login-create,#authOverlay.pfm-v5 .pfm-login-foot #pfmLoginRegister,#authOverlay.pfm-v5 .pfm-login-foot #pfmLoginBack,#authOverlay.pfm-v5[data-mode=register] #pfmLoginBack{position:relative!important;inset:auto!important;top:auto!important;left:auto!important;width:100%!important;min-width:0!important;max-width:none!important;height:50px!important;line-height:50px!important;font-size:16px!important;border-radius:13px!important}
+ #authOverlay.pfm-v5[data-mode=register] #pfmLoginRegister,#authOverlay.pfm-v5[data-mode=login] #pfmLoginBack{display:none!important}
+ #authOverlay.pfm-v5 #pfmLoginFootText,#authOverlay.pfm-v5 #pfmLoginRights{position:relative!important;inset:auto!important;top:auto!important;left:auto!important;width:100%!important;font-size:11px!important;line-height:18px!important;white-space:normal!important}
+ #authOverlay.pfm-v5 #authError{position:relative!important;top:auto!important;left:auto!important;inset:auto!important;width:100%!important;max-height:none!important;margin:5px 0!important;font-size:12px!important}
+ #authOverlay.pfm-v5[data-mode=register] .pfm-login-title{top:auto!important;font-size:24px!important}
+ #authOverlay.pfm-v5[data-mode=register] .pfm-login-subtitle{top:auto!important}
+ #authOverlay.pfm-v5[data-mode=register] #authError{top:auto!important}
+ #authOverlay.pfm-v5 #pfmRightsDialog{max-width:calc(100vw - 36px)!important}
+}
+@media screen and (max-width:370px){#authOverlay.pfm-v5 .authBox{padding:18px 14px!important}#dash .pfm53-kpi-row,#dash .pfm53-second-row{grid-template-columns:1fr!important}}

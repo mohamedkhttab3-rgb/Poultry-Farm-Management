@@ -1,4 +1,4 @@
-name: Build Poultry Farm Management V7.1 (Windows + Android)
+name: Build Poultry Farm Management V7.2 (Windows + Android)
 on:
   workflow_dispatch:
   push:
@@ -106,6 +106,7 @@ jobs:
           npx cap add android
           npx cap sync android
           npm run android:icons
+          node scripts/install-android-export.cjs
       - name: Set native app version
         run: node scripts/set-android-version.cjs
       - name: Build Android debug APK (not store-signed)

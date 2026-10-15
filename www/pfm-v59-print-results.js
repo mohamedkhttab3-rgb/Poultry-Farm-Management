@@ -223,6 +223,17 @@ let activePrint=null,activeFrame=null;
     // Electron has no Chromium-style print preview: generate a real multi-page
     // PDF from this exact result-only snapshot, then show a native Save dialog.
     // Browser/Chrome continues using the original iframe printing path below.
+    if(window.Capacitor?.isNativePlatform?.() && window.Capacitor.getPlatform()==='android'){
+      if(!window.PFMAndroidExport){clean();throw Error('Android export module unavailable');}
+      const name='PFM-Report-'+new Date().toISOString().slice(0,10)+'.pdf';
+      if(activePrint?.isConnected)activePrint.remove();activePrint=null;
+      document.body.classList.remove('pfm59-printing');
+      printPending=true;
+      window.PFMAndroidExport.printHTML(html,name).catch(err=>{
+        console.error('Android PDF:',err);alert(tr('تعذر إنشاء PDF: ','Cannot create PDF: ')+err.message);
+      }).finally(()=>{printPending=false;clean();});
+      return;
+    }
     if(typeof window.PFMDesktopPrint?.savePDF==='function'){
       const screenTitle=root.querySelector('.pfm59-print-brand strong')?.textContent?.trim()||'Report';
       const fileName='PFM-'+screenTitle+'-'+new Date().toISOString().slice(0,10)+'.pdf';
