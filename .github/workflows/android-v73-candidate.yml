@@ -1,0 +1,72 @@
+name: Android V7.3 Candidate Build
+on:
+  push:
+    branches: [android-v73-ui-export-review-20261016]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pfm-android-v73-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check app files, packaging, offline data safety
+        run: |
+          npm run verify:source
+          npm run verify:public
+          npm run verify:native
+          npm run verify:uploadguard
+          node tests/test_v63_storage.cjs
+  android:
+    needs: verify-android
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install Android platform and build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Install app dependencies without Electron binary
+        run: npm install --no-audit --no-fund
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - name: Prepare Android bridge and local PDF/Excel plugin
+        run: |
+          npx cap add android
+          npx cap sync android
+          npm run android:icons
+          node scripts/install-android-export.cjs
+          node scripts/set-android-version.cjs
+      - name: Build debug APK
+        run: |
+          chmod +x android/gradlew
+          cd android
+          ./gradlew --no-daemon assembleDebug
+      - name: Check APK format and SHA256
+        run: |
+          python3 scripts/check-apk.py android/app/build/outputs/apk/debug/app-debug.apk
+          sha256sum android/app/build/outputs/apk/debug/app-debug.apk > android/app/build/outputs/apk/debug/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PoultryFarmManagement-Android-V7.3-review-debug
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/debug/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
