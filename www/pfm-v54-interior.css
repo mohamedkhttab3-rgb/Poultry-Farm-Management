@@ -1,0 +1,177 @@
+/* Poultry Farm Management V5.4 — independent dashboard and high-contrast interior.
+   Presentation only; no changes to agricultural/financial calculations or data. */
+@media screen {
+  /* V5.3 forced dashboard visibility even while another view was active. */
+  html body main > section.view:not(.active) { display:none!important; visibility:hidden!important; }
+  html body main > #dash.pfm53-reference:not(.active) { display:none!important; visibility:hidden!important; height:0!important; min-height:0!important; }
+  html body main > #dash.pfm53-reference.active { display:block!important;visibility:visible!important;height:auto!important; }
+  html body main > section.view.active:not(#dash) { display:flex!important; flex-direction:column; visibility:visible!important; }
+
+  /* Deep navy sidebar on dashboard and on all internal screens. */
+  html body nav#v53-nav.v53-nav {
+    background:linear-gradient(180deg,#092e56 0%,#0b315a 53%,#082745 100%)!important;
+    border-inline-start:1px solid #274766!important;
+    color:#f0f6ff!important;
+    box-shadow:-6px 0 22px #050f2433!important;
+  }
+  nav#v53-nav .pfm-side-brand {background:linear-gradient(150deg,#104470,#082b50)!important;border-bottom:1px solid #3a5c7d!important}
+  nav#v53-nav .pfm-side-brand strong,nav#v53-nav .pfm-side-brand span {color:#f1f8ff!important}
+  html body nav#v53-nav .v53-nav-single > button,
+  html body nav#v53-nav .v53-nav-group > .v53-nav-toggle {
+    background:#123b63!important;color:#e9f4ff!important;
+    border:1px solid #31516e!important;border-radius:11px!important;
+    text-shadow:none!important;box-shadow:none!important;
+  }
+  html body nav#v53-nav .v53-nav-group > .v53-nav-toggle:hover,
+  html body nav#v53-nav .v53-nav-single > button:hover {background:#23547b!important;border-color:#5181aa!important}
+  html body nav#v53-nav .v53-nav-single > button.active,
+  html body nav#v53-nav .v53-nav-items > button.active {background:#09775a!important;color:#fff!important;border-color:#22b58a!important;box-shadow:inset 3px 0 0 #6af3ba!important}
+  nav#v53-nav .v53-nav-items {background:#0c2a4b!important;border:1px solid #233e5b!important;border-radius:0 0 10px 10px!important}
+  html body nav#v53-nav .v53-nav-items button {color:#dbeafe!important;background:transparent!important;border:1px solid transparent!important;opacity:1!important}
+  html body nav#v53-nav .v53-nav-items button:hover {background:#1a4669!important;color:#fff!important;border-color:#335c7b!important}
+  nav#v53-nav .v53-nav-chevron {color:#8fd9ff!important}
+  nav#v53-nav .pfm-side-language,nav#v53-nav .pfm-sidebar-logout{background:#163d61!important;border:1px solid #385776!important;border-radius:10px!important}
+  nav#v53-nav .pfm-side-language select {background:#1a4267!important;color:#fff!important;border:1px solid #526b84!important}
+  nav#v53-nav .pfm-sidebar-logout button{background:transparent!important;color:#e9f5ff!important}
+  nav#v53-nav .pfm-sidebar-logout :is(button,span,b){color:#f0f7ff!important;text-shadow:none!important}
+  nav#v53-nav .pfm-sidebar-logout button:not(:disabled){opacity:1!important}
+
+  /* Dark interior is deliberately scoped: it cannot recolor the home dashboard. */
+  html body.pfm54-inner {background:#1c354d!important;color:#eaf2fe!important;}
+  html body.pfm54-inner::before {display:none!important;}
+  html body.pfm54-inner > main {
+    background:linear-gradient(150deg,#1e3b56 0%,#24445f 70%,#1b354f 100%)!important;
+    color:#eaf2fe!important;max-width:none!important;
+    min-height:calc(100vh - 78px)!important;padding:20px 25px 90px!important;
+    margin:0!important;border:0!important;box-sizing:border-box!important;
+  }
+  html body.pfm54-inner > header {
+    background:#193c5b!important;color:#eaf3ff!important;
+    border-bottom:1px solid #2e506e!important;box-shadow:0 3px 12px #02081450!important;
+  }
+  html body.pfm54-inner > header :is(.pfm-brand,.brand,.brand-sub,strong,small) {color:#f0f6ff!important}
+  html body.pfm54-inner > header .muted {color:#b2c6df!important}
+  html body.pfm54-inner main > .note.no-print {display:none!important;}
+  html body.pfm54-inner section.view.active:not(#dash) {
+    background:transparent!important;color:#eaf2fe!important;
+    padding:0!important; margin:0!important; width:100%!important;
+    min-height:calc(100vh - 150px)!important;
+  }
+  html body.pfm54-inner section.view.active:not(#dash) > h2 {
+    background:linear-gradient(92deg,#305f7f,#244964)!important;
+    color:#f2f8ff!important;border:1px solid #7294ac!important;
+    border-inline-start:4px solid #34c9a6!important;
+    border-radius:12px!important;padding:14px 18px!important;
+    font-size:23px!important;letter-spacing:0!important;margin:2px 0 14px!important;
+    box-shadow:0 5px 20px #0000001a!important;
+  }
+  html body.pfm54-inner .view.active:not(#dash) :is(h2,h3,h4,h5,strong,b,label) {color:#edf7ff!important;}
+  html body.pfm54-inner .view.active:not(#dash) :is(.muted,small,.help,.helper,.hint,.v52-footnote) {color:#b2c8dd!important;}
+  html body.pfm54-inner .view.active:not(#dash) :is(.panel,.card,.v410-panel,.v52-chart,.v52-cost-section,.v52-quick-panel,.v52-drill) {
+    background:#2d4f6b!important;color:#f0f7ff!important;
+    border:1px solid #597f9e!important;border-radius:13px!important;
+    box-shadow:0 7px 24px #00000020!important;
+  }
+  html body.pfm54-inner .view.active:not(#dash) :is(.panel,.card,.v410-panel,.v52-chart,.v52-cost-section,.v52-quick-panel,.v52-drill) :is(p,span,div,td) {color:inherit;}
+  html body.pfm54-inner .view.active:not(#dash) .note {
+    background:#325c7a!important;color:#deefff!important;border:1px solid #6b98b5!important;
+  }
+  html body.pfm54-inner .view.active:not(#dash) .badge {background:#356582!important;color:#def6ff!important;border:1px solid #336984!important}
+  html body.pfm54-inner .view.active:not(#dash) .danger{color:#ff9ba5!important}
+  html body.pfm54-inner .view.active:not(#dash) .success{color:#7dffd2!important}
+  html body.pfm54-inner .view.active:not(#dash) .warning{color:#ffd58a!important}
+
+  html body.pfm54-inner .view.active:not(#dash) :is(input,select,textarea) {
+    background:#f4f8fe!important;color:#173550!important;border:1px solid #9cb2c9!important;
+    border-radius:9px!important;box-shadow:none!important;
+    caret-color:#153650!important;
+  }
+  html body.pfm54-inner .view.active:not(#dash) :is(input,select,textarea)::placeholder {color:#667f99!important;opacity:1!important}
+  html body.pfm54-inner .view.active:not(#dash) :is(input,select,textarea):focus-visible {
+    border-color:#65c6ff!important;outline:2px solid #3c9ed0!important;outline-offset:1px!important;
+  }
+  html body.pfm54-inner .view.active:not(#dash) :is(input,select,textarea):disabled {opacity:.65!important}
+  html body.pfm54-inner .view.active:not(#dash) select option {background:#f5f9fe!important;color:#173550!important}
+  html body.pfm54-inner .view.active:not(#dash) input[type=checkbox],
+  html body.pfm54-inner .view.active:not(#dash) input[type=radio]{accent-color:#18a886!important}
+  html body.pfm54-inner .view.active:not(#dash) :is(.btn,button):not(.danger):not(.v52-stat):not(.v52-source-list button) {
+    background:#24577b!important;color:#f6fbff!important;
+    border:1px solid #497197!important;border-radius:9px!important;
+    text-shadow:none!important;
+  }
+  html body.pfm54-inner .view.active:not(#dash) :is(.btn,button):hover {background:#33709a!important;border-color:#72a5c6!important}
+  html body.pfm54-inner .view.active:not(#dash) :is(.btn.primary,button.primary,button[type=submit]){background:#086da9!important;color:white!important;border-color:#219bd6!important}
+  html body.pfm54-inner .view.active:not(#dash) .btn.danger,
+  html body.pfm54-inner .view.active:not(#dash) button.danger {background:#8c4254!important;color:#fff!important;border-color:#c15c6c!important}
+
+  html body.pfm54-inner .view.active:not(#dash) table {color:#f1f8ff!important;background:#2d4f6b!important;}
+  html body.pfm54-inner .view.active:not(#dash) :is(thead,th) {background:#396382!important;color:#f5fbff!important;border-color:#476986!important;}
+  html body.pfm54-inner .view.active:not(#dash) td {background:transparent!important;color:#e3f0ff!important;border-color:#35516b!important;}
+  html body.pfm54-inner .view.active:not(#dash) tbody tr:nth-child(even) {background:#315773!important;}
+  html body.pfm54-inner .view.active:not(#dash) tbody tr:nth-child(odd) {background:#294a66!important;}
+  html body.pfm54-inner .view.active:not(#dash) tbody tr:hover{background:#396b8a!important;}
+  html body.pfm54-inner .view.active:not(#dash) :is(.table-scroll,.v410-table-scroll,.v52-table-overflow) {border-radius:10px;scrollbar-color:#527797 #102239}
+  html body.pfm54-inner .view.active:not(#dash) .screen-footer {color:#b3c9df!important;border-color:#365773!important}
+  html body.pfm54-inner .view.active:not(#dash) .screen-footer :is(span,b){color:#cadcf0!important}
+  html body.pfm54-inner .view.active:not(#dash) .report:not(.print-report) {background:#2d4f6b!important;color:#eef6ff!important}
+
+  /* V5.2 finance has its own hard-coded light components. */
+  html body.pfm54-inner #finance #v52-workspace :is(.v52-header h2,.v52-chart h3,.v52-cost-section h3,.v52-drill h3,.v52-pickers h3) {color:#f2f8ff!important}
+  html body.pfm54-inner #finance #v52-workspace :is(.v52-tabs,.v52-status,.v52-empty,.v52-mini-grid>div,.v52-source-list button,.v52-drill-header button,.v52-pie-hole,.v52-stat) {
+    background:#325777!important;color:#ecf7ff!important;border-color:#476989!important;
+  }
+  html body.pfm54-inner #finance #v52-workspace .v52-tabs button {background:#315978!important;color:#d2e6f7!important;border:1px solid #335c7b!important}
+  html body.pfm54-inner #finance #v52-workspace .v52-tabs button.active {background:#087eb6!important;color:#fff!important;border-color:#57b9e2!important}
+  html body.pfm54-inner #finance #v52-workspace :is(.v52-stat small,.v52-status,.v52-header p,.v52-pie-hole small,.v52-legend button,.v52-line-key,.v52-footnote,.v52-mini-grid span,.v52-quick-grid label,.v52-advanced summary,.v52-empty,.v52-bar-col span) {color:#c1d4e6!important}
+  html body.pfm54-inner #finance #v52-workspace .v52-pie-hole b {color:#fff!important}
+  html body.pfm54-inner #finance #v52-workspace .v52-bar-track{border-color:#65809b!important;background:repeating-linear-gradient(to top,#334d66 0,#334d66 1px,transparent 1px,transparent 25%)!important}
+  html body.pfm54-inner #finance #v52-workspace .v52-source-list button:hover{background:#244c6b!important}
+  html body.pfm54-inner #finance #v52-workspace .v52-quick-grid :is(input,select){background:#f3f8ff!important;color:#173550!important;border-color:#6588a5!important}
+  html body.pfm54-inner #finance #v52-workspace .v52-drill-header button {color:#fff!important}
+  html body.pfm54-inner #finance #v52-workspace .v52-table-overflow th {background:#396787!important;color:#fff!important}
+  html body.pfm54-inner #finance #v52-workspace .v52-table-overflow td {border-color:#385b79!important}
+
+
+  /* Correct inherited white-on-white select text in Feed.
+     Legacy #feed #feed* has 2 ID selectors and a white background; it
+     outranked the generic dark-theme color rule. */
+  html body.pfm54-inner #feed #feedFarmFilter,
+  html body.pfm54-inner #feed #feedHouseFilter,
+  html body.pfm54-inner #feed #feedCycle {
+    background:#f4f8fe!important;
+    color:#173550!important;
+    border-color:#9cb2c9!important;
+    -webkit-text-fill-color:#173550!important;
+    font-weight:650!important;
+    color-scheme:light!important;
+  }
+  html body.pfm54-inner #feed :is(#feedFarmFilter,#feedHouseFilter,#feedCycle) option {
+    background:#fff!important;color:#173550!important;-webkit-text-fill-color:#173550!important;
+  }
+  /* High-contrast native select arrows, typed values and date controls. */
+  html body.pfm54-inner .view.active:not(#dash) :is(input:not([type=checkbox]):not([type=radio]),select,textarea) {
+    -webkit-text-fill-color:#173550!important;
+    color-scheme:light!important;
+  }
+  html body.pfm54-inner .view.active:not(#dash) :is(input,select,textarea):focus-visible {
+    outline:2px solid #63b7ee!important;
+    border-color:#1685ba!important;
+  }
+  html body.pfm54-inner #finance #v52-workspace .v52-quick-grid :is(input,select) {
+    -webkit-text-fill-color:#173550!important;color-scheme:light!important;
+  }
+  html body.pfm54-inner .view.active:not(#dash) :is(input,select,textarea):disabled {
+    background:#e4edf5!important;color:#506982!important;-webkit-text-fill-color:#506982!important;
+  }
+
+  /* Accessibility and responsive behavior */
+  html body.pfm54-inner section.view.active:not(#dash) a {color:#86cfff!important}
+  html body.pfm54-inner section.view.active:not(#dash) hr {border-color:#375878!important}
+  html body.pfm54-inner section.view.active:not(#dash) :is(.chart svg,.report-chart-wrap svg) text {fill:#d2e4f4}
+  html body.pfm54-inner .global-brand-footer {display:none!important}
+  @media(max-width:800px){
+    html body.pfm54-inner > main{padding:13px 12px 70px!important}
+    html body.pfm54-inner section.view.active:not(#dash)>h2{font-size:19px!important}
+  }
+}
+/* Printing always keeps the existing white PDF print styles and header/footer behavior. */

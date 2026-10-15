@@ -1,0 +1,87 @@
+{
+  "checks": [
+    {
+      "name": "owner signed in",
+      "pass_": true,
+      "details": ""
+    },
+    {
+      "name": "live = 1000 - 10 - 5 - 100",
+      "pass_": true,
+      "details": "885"
+    },
+    {
+      "name": "official FCR bodyweight basis",
+      "pass_": true,
+      "details": "1.015228426395939"
+    },
+    {
+      "name": "separate gain FCR",
+      "pass_": true,
+      "details": "1.0362694300518134"
+    },
+    {
+      "name": "benchmark 35 days Ross 308",
+      "pass_": true,
+      "details": ""
+    },
+    {
+      "name": "no extrapolation before and after source range",
+      "pass_": true,
+      "details": ""
+    },
+    {
+      "name": "interpolation within range",
+      "pass_": true,
+      "details": ""
+    },
+    {
+      "name": "actual FCR badge uses historical breed",
+      "pass_": true,
+      "details": ""
+    },
+    {
+      "name": "no invented PI/EPEF thresholds",
+      "pass_": true,
+      "details": ""
+    },
+    {
+      "name": "CV missing is unknown",
+      "pass_": true,
+      "details": ""
+    },
+    {
+      "name": "closed cycle age frozen",
+      "pass_": true,
+      "details": "{'a': 27, 'metricDate': '2026-09-28', 'fcr': 1.015228426395939, 'report': 8}"
+    },
+    {
+      "name": "cycle historical standard immutable",
+      "pass_": true,
+      "details": ""
+    },
+    {
+      "name": "closed cycle not reopened during edit",
+      "pass_": true,
+      "details": ""
+    },
+    {
+      "name": "edit preserves catalog snapshot",
+      "pass_": true,
+      "details": ""
+    },
+    {
+      "name": "report shows both FCR formulas",
+      "pass_": true,
+      "details": ""
+    },
+    {
+      "name": "no page exceptions",
+      "pass_": true,
+      "details": "[]"
+    }
+  ],
+  "passed": 16,
+  "total": 16,
+  "errors": []
+}

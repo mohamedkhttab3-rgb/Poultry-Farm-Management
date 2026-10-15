@@ -1,0 +1,26 @@
+{
+  "product": "Poultry Farm Management",
+  "version": "7.1.0",
+  "baseline": "V6.9.3",
+  "repository": "https://github.com/mohamedkhttab3-rgb/Poultry-Farm-Management.git",
+  "github_repository_visibility": "private verified via connector",
+  "web_index_sha256": "c910a21fad4662726f59d3dd677642f7a9b5258ff87f842a7aa4410425b1fd82",
+  "local_tests": {
+    "source_ui": "pass 19 screens",
+    "privacy_guard": "pass (no embedded personal recovery)",
+    "storage": "pass",
+    "sci_broiler_calculations": "pass 16/16",
+    "synth_data": "pass",
+    "bird_vs_kg_sale_modes": "pass",
+    "android_icon_and_version_scripts": "pass",
+    "actual_windows_exe_build": "not run: Windows/Electron dependencies unavailable",
+    "actual_android_apk_build": "not run: Android SDK/Gradle/Capacitor dependencies unavailable",
+    "native_runtime_and_pdf_excel": "not tested on Windows or Android",
+    "cloud_supabase_rls": "not tested on live staging server",
+    "staged_file_filter": "pass: safe backup-format Markdown allowed, personal JSON backup rejected",
+    "source_git_push": "pass to local bare Git repository only, NOT GitHub",
+    "windows_powershell_script": "static review only: Windows PowerShell unavailable here"
+  },
+  "unchanged": "All files under www/ preserved byte-for-byte from V6.9.3",
+  "github_status": "Private repository verified; upload/build status must be checked after source push"
+}

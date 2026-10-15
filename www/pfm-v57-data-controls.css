@@ -1,0 +1,69 @@
+/* PFM V5.7 cycle -> farm -> house hierarchy, safe quick search and XLSX */
+.pfm57-toolbar{direction:rtl!important;position:relative;z-index:5;margin:0 0 16px;padding:14px 16px;border-radius:15px;border:1px solid #cbdde8;background:linear-gradient(120deg,#f6fafe,#edf6f8);box-shadow:0 3px 15px rgba(17,60,94,.055);color:#1b405c}
+.pfm57-fields{display:flex;align-items:end;flex-wrap:wrap;gap:10px}
+.pfm57-field{display:flex;flex:1 1 145px;min-width:135px;flex-direction:column;gap:5px;font-size:12px;font-weight:700;color:#1d4460;text-align:right}
+.pfm57-field span{white-space:nowrap}
+.pfm57-field select,.pfm57-field input{width:100%;height:39px;min-height:39px;box-sizing:border-box;border:1px solid #bcd0dc;border-radius:9px;background:white;color:#19364c;font:inherit;font-weight:500;padding:7px 10px;outline-offset:2px}
+.pfm57-search{flex:2 1 210px}
+.pfm57-excel{height:39px!important;min-height:39px!important;white-space:nowrap;flex:0 0 auto;padding:0 15px!important;margin-bottom:0!important;background:#0c7753!important;border-color:#0c7753!important;color:#fff!important}
+.pfm57-small{font-size:11px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:#51708a;margin-top:8px}
+.pfm57-filtered-out{display:none!important}
+.pfm57-settings-panel{border:1px solid #98c9ca!important;background:#f6fbfa!important;border-radius:14px;margin-top:12px;margin-bottom:16px}
+.pfm57-settings-panel .actions{display:flex;flex-wrap:wrap;gap:9px;margin:10px 0}
+.pfm57-restore-options{margin-top:12px;padding:10px;border-radius:8px;background:#e6f2ee}
+.pfm57-restore-options label{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.pfm57-restore-options select{min-width:240px;max-width:100%;padding:7px 9px;border-radius:8px;border:1px solid #b5d7cd}
+/* The new toolbar is the single project-selection strip on the dashboard. */
+#dash #v53-scope{display:none!important}
+@media(max-width:780px){.pfm57-toolbar{padding:10px}.pfm57-fields{gap:8px}.pfm57-field{min-width:118px;flex:1 1 40%}.pfm57-search{flex:1 1 100%}.pfm57-excel{width:100%;flex:1 1 100%}}
+
+
+.pfm57-pdf{height:39px!important;min-height:39px!important;white-space:nowrap;flex:0 0 auto;padding:0 15px!important;margin-bottom:0!important;background:#1e5d9f!important;border-color:#1e5d9f!important;color:#fff!important}
+#dash #pfm53-topbar{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:18px!important;grid-template-columns:none!important;grid-template-rows:none!important;height:auto!important;padding:10px 0 8px!important;border-bottom:1px solid #dce8f3!important}
+#dash .pfm53-top-scopes{display:none!important}
+#dash .pfm53-datetime{margin-top:0!important;align-self:center!important}
+#dash > .pfm57-toolbar{margin-top:10px!important;margin-bottom:14px!important}
+@media(max-width:980px){
+  #dash #pfm53-topbar{flex-direction:column!important;align-items:stretch!important;gap:8px!important}
+  #dash .pfm53-datetime{justify-content:flex-start!important}
+}
+@media(max-width:780px){.pfm57-pdf{width:100%;flex:1 1 100%}}
+@media print{
+  body.pfm57-print-current header,
+  body.pfm57-print-current nav,
+  body.pfm57-print-current .global-brand-footer,
+  body.pfm57-print-current .pfm57-toolbar,
+  body.pfm57-print-current .screen-footer,
+  body.pfm57-print-current .no-print,
+  body.pfm57-print-current main > section.view:not(.active){display:none!important}
+  body.pfm57-print-current{padding:0!important;background:#fff!important}
+  body.pfm57-print-current main{padding:0!important;margin:0!important;max-width:none!important;width:100%!important;background:#fff!important}
+  body.pfm57-print-current main > section.view.active{display:block!important;padding:0!important;margin:0!important;background:#fff!important;box-shadow:none!important}
+  body.pfm57-print-current #dash #pfm53-topbar{border-bottom:0!important;padding-bottom:8px!important}
+}
+/* V6.3 local archive and durable-write warning */
+.pfm63-local-archive{border-top:1px solid #b6d8d8;margin-top:15px;padding:12px 3px}
+.pfm63-local-archive h4{margin:2px 0 8px;color:#124e63}
+.pfm63-snapshot-label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700}
+.pfm63-snapshot-label select{min-height:40px;border:1px solid #adcbd0;background:white;padding:5px;border-radius:8px;max-width:100%;width:100%}
+#pfm63StorageWarning:not([hidden]){position:fixed;bottom:8px;left:16px;right:calc(var(--pfm-side,240px) + 16px);z-index:99999;direction:rtl;display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:13px 17px;background:#fff1ed;color:#912316;border:2px solid #c04a32;border-radius:12px;box-shadow:0 4px 25px #0003;font-size:13px}
+#pfm63StorageWarning button{background:#912316;color:white;padding:8px 12px;border:0;border-radius:7px;font-weight:700;cursor:pointer}
+html[lang=en] #pfm63StorageWarning{left:calc(var(--pfm-side,240px) + 16px);right:16px;direction:ltr}
+@media print{#pfm63StorageWarning{display:none!important}}
+
+/* V6.9.2 — explicit per-page search over full saved records. */
+.pfm57-start-search{height:39px!important;min-height:39px!important;flex:0 0 auto;white-space:nowrap;padding:0 15px!important;color:#fff!important;background:#1256a3!important;border:1px solid #1256a3!important}
+.pfm57-search-results:not([hidden]){display:block;direction:rtl;margin:-7px 0 16px;padding:13px;background:#fff;border:1px solid #b7d1e9;border-radius:12px;box-shadow:0 3px 12px #133e6510}
+.pfm57-search-heading{display:flex;justify-content:space-between;gap:10px;margin-bottom:9px;font-size:14px;color:#123c71}
+.pfm57-search-table-wrap{overflow-x:auto;max-height:430px;overflow-y:auto}
+.pfm57-search-table{width:100%;border-collapse:collapse;font-size:12px;min-width:720px}
+.pfm57-search-table th,.pfm57-search-table td{border-bottom:1px solid #e3ebf3;padding:8px 10px;text-align:right;vertical-align:top}
+.pfm57-search-table thead th{position:sticky;top:0;background:#eaf4ff;color:#153c6c;z-index:1}
+.pfm57-search-detail{max-width:470px;overflow-wrap:anywhere;line-height:1.6}
+.pfm57-search-empty{color:#526c85;font-size:13px}
+.pfm57-show-more{margin:10px 0 0!important}
+@media(max-width:780px){.pfm57-start-search{flex:1 1 100%;width:100%}}
+@media print{.pfm57-search-results{display:none!important}}
+
+/* V6.9.3: native-screen search only. Never show generic search results table. */
+.pfm57-search-results{display:none!important}

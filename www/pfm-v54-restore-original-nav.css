@@ -1,0 +1,87 @@
+/* V5.4: original navigation restoration; scope only to the right-side navigation.
+   Screen names, destination IDs, onClick commands, permissions and logo remain from V5.1. */
+@media screen {
+  html body nav#v53-nav.v54-original-screens {
+    --restored-nav-width:240px;
+    display:flex!important;
+    flex-direction:column!important;
+    flex-wrap:nowrap!important;
+    grid-template-columns:none!important;
+    grid-auto-flow:unset!important;
+    gap:3px!important;
+    align-items:stretch!important;
+    justify-content:flex-start!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    scrollbar-width:thin!important;
+    scrollbar-color:#537598 #092e56!important;
+    box-sizing:border-box!important;
+    position:fixed!important;
+    top:0!important;bottom:0!important;
+    width:var(--restored-nav-width)!important;
+    min-width:var(--restored-nav-width)!important;
+    max-width:var(--restored-nav-width)!important;
+    height:100vh!important;max-height:100vh!important;
+    padding:104px 11px 15px!important;
+    background:linear-gradient(180deg,#092e56,#0b315a 53%,#082745)!important;
+    color:#eff7ff!important;
+    border:none!important;
+    border-inline-start:1px solid #274766!important;
+    box-shadow:-6px 0 22px #050f2433!important;
+    z-index:90!important;
+  }
+  html[lang="ar"] body nav#v53-nav.v54-original-screens {right:0!important;left:auto!important;direction:rtl!important;}
+  html[lang="en"] body nav#v53-nav.v54-original-screens {left:0!important;right:auto!important;direction:ltr!important;}
+  html body nav#v53-nav.v54-original-screens > button[data-stage] {
+    display:flex!important;
+    flex-direction:row!important;
+    align-items:center!important;
+    justify-content:flex-start!important;
+    grid-column:auto!important;
+    grid-row:auto!important;
+    order:0!important;
+    float:none!important;
+    width:100%!important;min-width:0!important;max-width:100%!important;
+    height:auto!important;min-height:39px!important;
+    margin:0!important;padding:9px 12px!important;
+    flex:0 0 auto!important;
+    font-family:inherit!important;font-size:13px!important;
+    font-weight:700!important;line-height:1.35!important;
+    letter-spacing:normal!important;
+    white-space:normal!important;overflow-wrap:anywhere!important;
+    box-sizing:border-box!important;
+    color:#ebf5ff!important;background:transparent!important;
+    border:1px solid transparent!important;border-radius:9px!important;
+    box-shadow:none!important;text-shadow:none!important;
+    text-align:right!important;cursor:pointer!important;
+  }
+  html[lang="en"] body nav#v53-nav.v54-original-screens > button[data-stage] {text-align:left!important;}
+  html body nav#v53-nav.v54-original-screens > button[data-stage]:hover {
+    color:#fff!important;background:#245378!important;border-color:#3b698c!important;
+  }
+  html body nav#v53-nav.v54-original-screens > button[data-stage].active {
+    color:#fff!important;background:#087b59!important;
+    border-color:#29b18b!important;box-shadow:inset 3px 0 0 #82f6c8!important;
+  }
+  html body nav#v53-nav.v54-original-screens > .pfm-side-brand {
+    order:-10!important;
+    display:flex!important;
+    flex:none!important;
+    width:calc(100% + 22px)!important;
+    min-width:0!important;max-width:none!important;
+    margin:-104px -11px 12px!important;
+    padding:14px 8px!important;
+    min-height:100px!important;
+    background:linear-gradient(145deg,#143e63,#092d52)!important;
+    color:#fff!important;border-bottom:1px solid #3c607d!important;
+    box-sizing:border-box!important;
+  }
+  html body nav#v53-nav.v54-original-screens > .pfm-side-language {
+    order:98!important;flex:0 0 auto!important;
+    width:100%!important;margin-top:10px!important;
+  }
+  html body nav#v53-nav.v54-original-screens > .pfm-sidebar-logout {
+    order:99!important;flex:0 0 auto!important;width:100%!important;
+  }
+}
+@media print {nav#v53-nav.v54-original-screens {display:none!important;}}

@@ -1,0 +1,288 @@
+{
+  "version": "V6.3",
+  "regression": {
+    "exceptions": [],
+    "checks": [
+      {
+        "name": "initial login",
+        "pass": true,
+        "detail": ""
+      },
+      {
+        "name": "local signup",
+        "pass": true,
+        "detail": "owner"
+      },
+      {
+        "name": "startup no seeded example",
+        "pass": true,
+        "detail": ""
+      },
+      {
+        "name": "create farm",
+        "pass": true,
+        "detail": ""
+      },
+      {
+        "name": "create house",
+        "pass": true,
+        "detail": ""
+      },
+      {
+        "name": "create cycle and standard snapshot",
+        "pass": true,
+        "detail": "Ross 308"
+      },
+      {
+        "name": "daily save",
+        "pass": true,
+        "detail": ""
+      },
+      {
+        "name": "live arithmetic 30000-100-25",
+        "pass": true,
+        "detail": "29875"
+      },
+      {
+        "name": "weekly weight sample SD and CV",
+        "pass": true,
+        "detail": "{'n': 1, 'avg': 0.22999999999999998, 'cv': 3.4372583262699754}"
+      },
+      {
+        "name": "duplicate weekly weight safely rejected",
+        "pass": true,
+        "detail": ""
+      },
+      {
+        "name": "completed cycle stays completed on edit",
+        "pass": true,
+        "detail": ""
+      },
+      {
+        "name": "breed standard snapshot preserved on edit",
+        "pass": true,
+        "detail": ""
+      },
+      {
+        "name": "duplicate feed protects previous quantity",
+        "pass": true,
+        "detail": "[{'id': '832fe852-822e-42fc-83b3-0614a3262c4e', 'qty': 250}]"
+      },
+      {
+        "name": "create harvest sale",
+        "pass": true,
+        "detail": ""
+      },
+      {
+        "name": "overselling blocked on existing sale edit",
+        "pass": true,
+        "detail": ""
+      },
+      {
+        "name": "medicine and vaccine record",
+        "pass": true,
+        "detail": ""
+      },
+      {
+        "name": "inventory initial quantity",
+        "pass": true,
+        "detail": ""
+      },
+      {
+        "name": "negative inventory blocked",
+        "pass": true,
+        "detail": ""
+      },
+      {
+        "name": "full-cycle report generated",
+        "pass": true,
+        "detail": ""
+      },
+      {
+        "name": "med cost and sale revenue formulas",
+        "pass": true,
+        "detail": "{'received': 30000, 'live': 29375, 'dead': 100, 'cull': 25, 'meds': 240, 'sales': 8000}"
+      },
+      {
+        "name": "safe merge preserves existing records",
+        "pass": true,
+        "detail": ""
+      },
+      {
+        "name": "screen dash",
+        "pass": true,
+        "detail": "{'bar': True, 'visible': True, 'cycle': True, 'txt': None}"
+      },
+      {
+        "name": "screen farms",
+        "pass": true,
+        "detail": "{'bar': True, 'visible': True, 'cycle': True, 'txt': 'المزارع'}"
+      },
+      {
+        "name": "screen houses",
+        "pass": true,
+        "detail": "{'bar': True, 'visible': True, 'cycle': True, 'txt': 'العنابر'}"
+      },
+      {
+        "name": "screen cycles",
+        "pass": true,
+        "detail": "{'bar': True, 'visible': True, 'cycle': True, 'txt': 'الدورات'}"
+      },
+      {
+        "name": "screen daily",
+        "pass": true,
+        "detail": "{'bar': True, 'visible': True, 'cycle': True, 'txt': 'المتابعة اليومية'}"
+      },
+      {
+        "name": "screen weights",
+        "pass": true,
+        "detail": "{'bar': True, 'visible': True, 'cycle': True, 'txt': 'الأوزان الأسبوعية'}"
+      },
+      {
+        "name": "screen feed",
+        "pass": true,
+        "detail": "{'bar': True, 'visible': True, 'cycle': True, 'txt': 'الأعلاف'}"
+      },
+      {
+        "name": "screen meds",
+        "pass": true,
+        "detail": "{'bar': True, 'visible': True, 'cycle': True, 'txt': 'الأدوية والتحصينات'}"
+      },
+      {
+        "name": "screen inventory",
+        "pass": true,
+        "detail": "{'bar': True, 'visible': True, 'cycle': True, 'txt': 'المخزون'}"
+      },
+      {
+        "name": "screen sales",
+        "pass": true,
+        "detail": "{'bar': True, 'visible': True, 'cycle': True, 'txt': 'المبيعات والحصاد الجزئي'}"
+      },
+      {
+        "name": "screen finance",
+        "pass": true,
+        "detail": "{'bar': True, 'visible': True, 'cycle': True, 'txt': 'التكاليف والأرباح'}"
+      },
+      {
+        "name": "screen performance",
+        "pass": true,
+        "detail": "{'bar': True, 'visible': True, 'cycle': True, 'txt': 'مؤشرات أداء العنابر'}"
+      },
+      {
+        "name": "screen compare",
+        "pass": true,
+        "detail": "{'bar': True, 'visible': True, 'cycle': True, 'txt': 'مقارنة الدورات السابقة'}"
+      },
+      {
+        "name": "screen reports",
+        "pass": true,
+        "detail": "{'bar': True, 'visible': True, 'cycle': True, 'txt': 'تقرير الدورة'}"
+      },
+      {
+        "name": "screen users",
+        "pass": true,
+        "detail": "{'bar': True, 'visible': True, 'cycle': True, 'txt': None}"
+      },
+      {
+        "name": "screen settings",
+        "pass": true,
+        "detail": "{'bar': True, 'visible': True, 'cycle': True, 'txt': 'الإعدادات والمعايير'}"
+      },
+      {
+        "name": "screen audit",
+        "pass": true,
+        "detail": "{'bar': True, 'visible': True, 'cycle': True, 'txt': 'سجل التدقيق Audit Log'}"
+      },
+      {
+        "name": "screen backup",
+        "pass": true,
+        "detail": "{'bar': True, 'visible': True, 'cycle': True, 'txt': 'النسخ الاحتياطي والمزامنة السحابية'}"
+      },
+      {
+        "name": "scope cycle dropdown",
+        "pass": true,
+        "detail": ""
+      },
+      {
+        "name": "scope farm dropdown",
+        "pass": true,
+        "detail": ""
+      },
+      {
+        "name": "search hides unmatched data",
+        "pass": true,
+        "detail": ""
+      },
+      {
+        "name": "JSON backup",
+        "pass": true,
+        "detail": ""
+      },
+      {
+        "name": "Excel workbook valid",
+        "pass": true,
+        "detail": ""
+      },
+      {
+        "name": "local storage round-trip",
+        "pass": true,
+        "detail": "{'before': {'farms': 1, 'houses': 1, 'cycles': 1, 'daily': 1}, 'after': {'farms': 1, 'houses': 1, 'cycles': 1, 'daily': 1}}"
+      },
+      {
+        "name": "historic house protected on deletion",
+        "pass": true,
+        "detail": "{'before': {'h': 1, 'c': 1, 'd': 1, 't': 0}, 'after': {'h': 1, 'c': 1, 'd': 1, 't': 0}}"
+      },
+      {
+        "name": "historic farm protected on deletion",
+        "pass": true,
+        "detail": "{'f': 1, 'h': 1, 'c': 1, 'd': 1}"
+      },
+      {
+        "name": "no runtime errors",
+        "pass": true,
+        "detail": "[]"
+      }
+    ]
+  },
+  "backup_browser": {
+    "results": [
+      {
+        "name": "good",
+        "pass": true
+      },
+      {
+        "name": "legacy",
+        "pass": true
+      },
+      {
+        "name": "tamperRejected",
+        "pass": true
+      },
+      {
+        "name": "failed",
+        "pass": true
+      },
+      {
+        "name": "banner",
+        "pass": true
+      },
+      {
+        "name": "unchanged",
+        "pass": true
+      },
+      {
+        "name": "settingsButtons",
+        "pass": true
+      },
+      {
+        "name": "javascript_exceptions",
+        "pass": true,
+        "detail": []
+      }
+    ],
+    "passed": 8,
+    "total": 8
+  },
+  "node_storage_test": "PASS"
+}

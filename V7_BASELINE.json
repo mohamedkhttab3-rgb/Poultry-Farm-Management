@@ -1,0 +1,8 @@
+{
+  "from": "Poultry Farm Management V6.9.3",
+  "www_index_sha256": "c910a21fad4662726f59d3dd677642f7a9b5258ff87f842a7aa4410425b1fd82",
+  "appName": "Poultry Farm Management",
+  "update_scope": "native packaging and build tooling only",
+  "android_origin_note": "Capacitor webview storage does not automatically import browser localStorage",
+  "windows_origin_note": "Electron custom secure origin; import JSON backup after first install"
+}

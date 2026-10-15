@@ -1,0 +1,76 @@
+{
+  "name": "poultry-farm-manager",
+  "version": "7.1.0",
+  "private": true,
+  "scripts": {
+    "sync": "npx cap sync",
+    "android": "npx cap open android",
+    "ios": "npx cap open ios",
+    "desktop:start": "electron .",
+    "desktop:win": "electron-builder --win nsis portable --x64",
+    "android:init": "npx cap add android",
+    "android:sync": "npx cap sync android",
+    "android:open": "npx cap open android",
+    "ios:init": "npx cap add ios",
+    "ios:sync": "npx cap sync ios",
+    "build:win": "electron-builder --win nsis portable --x64 --publish never",
+    "build:android:prepare": "npx cap sync android && node scripts/apply-android-icons.cjs",
+    "verify:source": "node scripts/verify-source.cjs",
+    "verify:rls": "node scripts/check-supabase-rls.mjs",
+    "verify:public": "node scripts/verify-public.cjs",
+    "verify:native": "node scripts/verify-native.cjs",
+    "android:icons": "node scripts/apply-android-icons.cjs",
+    "verify:staged": "node scripts/check-staged-safe.cjs",
+    "verify:uploadguard": "node tests/test_v71_upload_guard.cjs"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
+    "@capacitor/cli": "^8.0.0"
+  },
+  "description": "Poultry Farm Management V7.1 — safe GitHub upload and Windows/Android build source. Web app V6.9.3 preserved.",
+  "main": "desktop/main.cjs",
+  "devDependencies": {
+    "electron": "^38.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "com.poultryfarm.manager",
+    "productName": "Poultry Farm Management",
+    "asar": true,
+    "files": [
+      "desktop/**/*",
+      "www/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist-desktop"
+    },
+    "win": {
+      "icon": "www/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "artifactName": "PoultryFarmManagement-${version}-${os}-${arch}.${ext}"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

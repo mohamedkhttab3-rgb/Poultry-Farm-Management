@@ -1,0 +1,21 @@
+node_modules/
+android/
+ios/
+dist-desktop/
+build/
+*.log
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.key
+*.pem
+# PERSONAL FARM DATA: never upload these to public repositories
+database/original-recovery-from-V5.6.json
+database/backup-*.json
+backups/*.json
+www/supabase-config.local.js
+**/google-services.json

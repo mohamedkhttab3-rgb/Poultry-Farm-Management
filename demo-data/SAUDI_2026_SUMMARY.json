@@ -1,0 +1,52 @@
+{
+  "assumptions_SAR": {
+    "chicks": 2.65,
+    "feed_starter": 2.42,
+    "feed_grower": 2.24,
+    "feed_finisher": 2.13,
+    "إيجار المشروع": 8500,
+    "تكلفة الديزل": 4300,
+    "كهرباء": 6200,
+    "ماء": 2200,
+    "نشارة": 1800,
+    "عمال": 5800,
+    "تحميل دجاج": 2200,
+    "إيجار معدات": 1300,
+    "مصاريف أخرى": 750,
+    "دواء": 1800,
+    "مطهرات": 750,
+    "تحصينات": 950,
+    "sale_partial_per_live_bird_range": [
+      8.0,
+      8.2
+    ],
+    "sale_final_per_live_bird_range": [
+      8.3,
+      8.5
+    ]
+  },
+  "summary": {
+    "totalBirds": 240000,
+    "cycleGroups": 2,
+    "farms": 2,
+    "houses": 4,
+    "cycleHouseRecords": 8,
+    "dailyRecords": 312,
+    "weightRecords": 48,
+    "feedRecords": 24,
+    "medRecords": 24,
+    "salesRecords": 16,
+    "purchaseLots": 64,
+    "ledgerMovements": 128,
+    "totalRevenue": 1932147.0,
+    "totalCost": 2954624.0,
+    "profit": -1022477.0,
+    "birdsSold": 231736,
+    "salePricingUnit": "SAR/live bird",
+    "salePricingRangeSAR": [
+      8.0,
+      8.5
+    ]
+  },
+  "notice": "All prices are illustrative assumptions, except the live-bird sale range (8–8.5 SAR/bird) supplied by user; not a verified market quote. Older kilogram-priced sales are preserved when opening existing user databases."
+}

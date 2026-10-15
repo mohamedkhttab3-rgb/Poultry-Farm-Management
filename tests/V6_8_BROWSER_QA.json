@@ -1,0 +1,75 @@
+{
+  "before": {
+    "user": "QA Owner",
+    "button": true,
+    "view": "dash"
+  },
+  "data": {
+    "f": 2,
+    "h": 4,
+    "c": 8,
+    "d": 312,
+    "w": 48,
+    "feed": 24,
+    "m": 24,
+    "s": 16,
+    "lots": 64,
+    "snapshots": 8,
+    "totals": {
+      "cost": 2954624,
+      "rev": 3739650.4299999997,
+      "profit": 785026.43,
+      "live": 0
+    },
+    "types": [
+      "كتاكيت",
+      "علف",
+      "إيجار المشروع",
+      "ديزل",
+      "كهرباء",
+      "مياه",
+      "نشارة",
+      "عمال",
+      "تحميل دجاج",
+      "دواء",
+      "مطهرات",
+      "تحصينات",
+      "إيجار معدات",
+      "أخرى"
+    ],
+    "appLatest": {
+      "farms": 2,
+      "houses": 4,
+      "rounds": 2,
+      "houseCycles": 8,
+      "chicks": 240000
+    }
+  },
+  "screen_dash": "ok",
+  "screen_farms": "ok",
+  "screen_houses": "ok",
+  "screen_cycles": "ok",
+  "screen_daily": "ok",
+  "screen_weights": "ok",
+  "screen_feed": "ok",
+  "screen_meds": "ok",
+  "screen_inventory": "ok",
+  "screen_sales": "ok",
+  "screen_finance": "ok",
+  "screen_performance": "ok",
+  "screen_compare": "ok",
+  "screen_reports": "ok",
+  "screen_settings": "ok",
+  "screen_standards": "ok",
+  "expenseAllocation": {
+    "before": 369328,
+    "after": 369448,
+    "charged": 120,
+    "movement": true,
+    "lotBalance": 1
+  },
+  "errors": [
+    "Failed to execute 'write' on 'Document': Unexpected identifier 's'\n"
+  ],
+  "console_errors": []
+}

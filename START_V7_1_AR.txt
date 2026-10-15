@@ -1,0 +1,24 @@
+Poultry Farm Management V7.1 — الإصدار الكامل الآمن للرفع والبناء
+
+اسم التطبيق: Poultry Farm Management
+رابط المستودع الخاص الصحيح:
+https://github.com/mohamedkhttab3-rgb/Poultry-Farm-Management.git
+
+التثبيت من المشروع (ليس EXE أو APK جاهزًا بعد):
+1- احفظ نسخة JSON من بياناتك الفعلية في مكان منفصل وخارج هذا المشروع.
+2- فك ZIP كاملًا في مجلد جديد. لا تنسخ ملفات ZIP القديمة فوق هذا المجلد.
+3- افتح PoultryFarmManager، ثم اضغط مرتين على PUBLISH_GITHUB_PRIVATE.bat.
+4- عند السؤال اكتب YES بأحرف كبيرة ثم Enter.
+5- إذا ظهر تسجيل الدخول إلى GitHub، أكمله ثم انتظر كلمة SUCCESS.
+6- افتح https://github.com/mohamedkhttab3-rgb/Poultry-Farm-Management/actions
+7- بعد نجاح Windows وAndroid، حمّل الملفات من Artifacts.
+
+رسالة الخطأ السابقة database/backup-formats/V6_3_FORMAT_AR.md كانت حظرًا خاطئًا:
+هذه وثيقة Markdown عن تنسيق النسخ الاحتياطية ولا تحتوي نسخة JSON.
+V7.1 تفحص الامتدادات والملفات الفعلية ولا تمنع هذه الوثيقة، لكنها تمنع
+ملفات الاستعادة الشخصية الحقيقية والمفاتيح الخاصة والمخرجات التنفيذية.
+
+ملفات Windows EXE وAndroid APK تُبنى عبر GitHub Actions بعد الرفع وليست داخل ZIP الآن.
+لم تُختبر التطبيقات الأصلية على جهاز Windows أو Android بعد.
+بيانات المتصفح لا تنتقل تلقائيًا للتطبيق الجديد؛ استخدم الاستيراد JSON.
+لا تفعّل Supabase للبيانات الفعلية قبل اختبار صلاحيات RLS على خادم تجريبي.

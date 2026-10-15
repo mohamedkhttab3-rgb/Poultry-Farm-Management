@@ -1,0 +1,25 @@
+{
+  "format": "PFM_BACKUP_V57",
+  "exportedAt": null,
+  "data": {
+    "farms": [],
+    "houses": [],
+    "cycles": [],
+    "daily": [],
+    "weights": [],
+    "feed": [],
+    "meds": [],
+    "inventory": [],
+    "finance": {},
+    "sales": [],
+    "tombstones": [],
+    "auditLog": [],
+    "invitations": [],
+    "performanceRules": [],
+    "settings": {
+      "currency": "SAR",
+      "language": "ar",
+      "globalStandardBreed": "Ross 308"
+    }
+  }
+}

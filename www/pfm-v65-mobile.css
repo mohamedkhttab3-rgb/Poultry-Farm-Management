@@ -1,0 +1,28 @@
+/* Extra small display shell. Desktop V6.4 CSS is preserved. */
+#pfm65Menu,#pfm65Veil{display:none}
+#standards .standard-center-panel{border-inline-start:4px solid #1877bc}
+#standards.pfm65-readonly .standard-center-panel>p:first-of-type:after{content:' • مرجع للعرض فقط؛ التعديل للمالك';color:#9c5800}
+@media screen and (max-width:800px){
+ :root{--pfm-side:0px!important}
+ html body, html[lang=ar] body,html[lang=en] body{padding-left:0!important;padding-right:0!important}
+ html body main,html body:has(#dash.active)>main{max-width:none!important;width:100%!important;padding-top:48px!important;box-sizing:border-box!important}
+ body>header{min-height:72px!important;padding:7px 10px 9px 58px!important;flex-wrap:wrap!important;justify-content:space-between!important;gap:4px 7px!important;box-sizing:border-box!important}
+ body>header .pfm-brand{flex:1 1 100%!important;min-width:0!important;max-width:100%!important;direction:rtl!important;text-align:right!important;gap:7px!important}
+ body>header .pfm-brand .brand{font-size:13px!important;letter-spacing:0!important;white-space:normal!important;line-height:1.2!important}
+ body>header .pfm-brand .brand-sub{display:none!important}
+ body>header .pfm-logo{width:37px!important;height:37px!important;flex-basis:37px!important}
+ body>header #syncStatus,body>header #userArea{font-size:10px!important;line-height:1.25!important;padding:4px 6px!important;min-height:25px!important;max-width:48%!important;box-sizing:border-box!important;overflow-wrap:anywhere!important}
+ #pfm65Menu{position:fixed!important;display:flex!important;align-items:center;justify-content:center;top:7px;left:8px;z-index:200!important;width:42px;height:42px;border:1px solid #adc9df;border-radius:10px;background:#0d365d;color:#fff;font:700 23px sans-serif;cursor:pointer}
+ html body nav#v53-nav,html body nav#v53-nav.v53-nav{position:fixed!important;left:auto!important;right:0!important;top:0!important;bottom:0!important;width:min(82vw,300px)!important;min-width:0!important;max-width:min(82vw,300px)!important;transform:translateX(102%)!important;transition:transform .2s ease!important;z-index:220!important}
+ html[lang=en] body nav#v53-nav,html[lang=en] body nav#v53-nav.v53-nav{left:0!important;right:auto!important;transform:translateX(-102%)!important}
+ html body.pfm65-menu-open nav#v53-nav,html body.pfm65-menu-open nav#v53-nav.v53-nav{transform:translateX(0)!important}
+ #pfm65Veil{position:fixed;inset:0;border:0;background:rgba(5,21,35,.52);z-index:210;cursor:pointer}
+ body.pfm65-menu-open #pfm65Veil{display:block}
+ #dash .pfm53-kpi-row,#dash .pfm53-second-row,#dash .pfm53-chart-row,#dash .pfm53-bottom-row{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))!important}
+ .pfm57-toolbar,.pfm57-fields,.pfm57-field{max-width:100%;box-sizing:border-box}
+ .view table{max-width:100%}
+ .view .panel:has(table){overflow-x:auto}
+ #dash .pfm53-identity strong{white-space:normal!important}
+}
+@media screen and (max-width:430px){#dash .pfm53-kpi-row,#dash .pfm53-second-row,#dash .pfm53-chart-row,#dash .pfm53-bottom-row{grid-template-columns:1fr!important}}
+@media print{#pfm65Menu,#pfm65Veil{display:none!important}}
