@@ -43,9 +43,38 @@ async function saveDesktopPDF(event,html,suggestedFileName){
     })));
     return !!document.getElementById('pfm59PrintRoot');
   })()`);
+  // Restore print/preview choices: do not force saving a PDF before printing.
+  // Chromium-style preview is unavailable in Electron, so use the system PDF viewer.
+  const choice=await dialog.showMessageBox(mainWindow,{
+    type:'question',title:'Poultry Farm Management - PDF',
+    message:'ماذا تريد أن تفعل بالتقرير؟',
+    detail:'يمكنك معاينة التقرير ثم طباعته أو حفظه، أو الطباعة مباشرة من التطبيق.',
+    buttons:['معاينة PDF والطباعة','حفظ PDF على الجهاز','طباعة على الطابعة','إلغاء'],
+    defaultId:0,cancelId:3,noLink:true
+  });
+  if(choice.response===3)return {ok:false,canceled:true};
+  if(choice.response===2){
+    const printed=await new Promise(resolve=>{
+      printWindow.webContents.print({silent:false,printBackground:true,landscape:true,pageSize:'A4'},(success,reason)=>resolve({success,reason}));
+    });
+    if(!printed.success){
+      if(/cancel/i.test(printed.reason||''))return {ok:false,canceled:true};
+      throw new Error(printed.reason||'Failed to print report');
+    }
+    return {ok:true,printed:true};
+  }
   const pdf=await printWindow.webContents.printToPDF({pageSize:'A4',preferCSSPageSize:true,printBackground:true,landscape:true,displayHeaderFooter:false});
   if(!Buffer.isBuffer(pdf)||pdf.length<800||pdf.subarray(0,5).toString()!=='%PDF-')throw new Error('PDF output validation failed');
   const fileName=String(suggestedFileName||'Poultry-Farm-Management-Report.pdf').replace(/[<>:"/\\|?*\u0000-\u001f]/g,'_').slice(0,140);
+  if(choice.response===0){
+    const previewDir=path.join(app.getPath('temp'),'PoultryFarmManagement-PrintPreview');
+    await fs.promises.mkdir(previewDir,{recursive:true});
+    const previewPath=path.join(previewDir,nonce+'.pdf');
+    await fs.promises.writeFile(previewPath,pdf);
+    const viewerError=await shell.openPath(previewPath);
+    if(viewerError)throw new Error('Could not open PDF viewer: '+viewerError+'; file: '+previewPath);
+    return {ok:true,preview:true};
+  }
   const chosen=await dialog.showSaveDialog(mainWindow,{
     title:'حفظ التقرير PDF - Poultry Farm Management',
     defaultPath:path.join(app.getPath('documents'),fileName.toLowerCase().endsWith('.pdf')?fileName:fileName+'.pdf'),
@@ -56,10 +85,13 @@ async function saveDesktopPDF(event,html,suggestedFileName){
   const reply=await dialog.showMessageBox(mainWindow,{
     type:'info',title:'Poultry Farm Management',
     message:'تم حفظ التقرير بصيغة PDF بنجاح',detail:chosen.filePath,
-    buttons:['عرض ملف PDF','إغلاق'],defaultId:0,cancelId:1,noLink:true
+    buttons:['فتح PDF للطباعة','إغلاق'],defaultId:0,cancelId:1,noLink:true
   });
-  if(reply.response===0)await shell.openPath(chosen.filePath);
-  return {ok:true};
+  if(reply.response===0){
+    const viewerError=await shell.openPath(chosen.filePath);
+    if(viewerError)throw new Error('PDF saved, but viewer could not open: '+viewerError);
+  }
+  return {ok:true,saved:true};
  }catch(err){console.error('PFM desktop PDF:',err);return {ok:false,error:String(err.message||err)};}
  finally{
   pendingPrintDocuments.delete(nonce);
