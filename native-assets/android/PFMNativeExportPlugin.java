@@ -5,6 +5,9 @@ import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
+import android.print.PrintManager;
+import android.content.Context;
+import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
 import android.print.PageRange;
@@ -33,6 +36,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @CapacitorPlugin(name = "PFMNativeExport")
@@ -65,7 +70,22 @@ public class PFMNativeExportPlugin extends Plugin {
      try{
        byte[] bytes=android.util.Base64.decode(encoded,android.util.Base64.DEFAULT);
        if(bytes.length<1||bytes.length>32*1024*1024)throw new Exception("File size exceeds limit");
-       if(excel&&(bytes.length<4||bytes[0]!=0x50||bytes[1]!=0x4b))throw new Exception("Invalid XLSX header");
+       if(excel){
+         if(bytes.length<4||bytes[0]!=0x50||bytes[1]!=0x4b)throw new Exception("Invalid XLSX header");
+         boolean workbook=false,types=false,worksheet=false;
+         try(ZipInputStream zip=new ZipInputStream(new ByteArrayInputStream(bytes))){
+           ZipEntry entry;int examined=0;
+           while((entry=zip.getNextEntry())!=null){
+             if(++examined>10000)throw new Exception("Invalid XLSX structure");
+             String entryName=entry.getName();
+             if("[Content_Types].xml".equals(entryName))types=true;
+             if("xl/workbook.xml".equals(entryName))workbook=true;
+             if(entryName.startsWith("xl/worksheets/")&&entryName.endsWith(".xml"))worksheet=true;
+             zip.closeEntry();
+           }
+         }
+         if(!workbook||!types||!worksheet)throw new Exception("Incomplete XLSX workbook");
+       }
        File file=temp(ext);
        try(FileOutputStream out=new FileOutputStream(file)){out.write(bytes);}
        getActivity().runOnUiThread(()->options(call,file,filename,mime));
@@ -86,13 +106,34 @@ public class PFMNativeExportPlugin extends Plugin {
    view.getSettings().setAllowFileAccess(false);
    view.getSettings().setAllowContentAccess(false);
    view.setBackgroundColor(android.graphics.Color.WHITE);
-   view.setAlpha(0f);
-   parent.addView(view,new FrameLayout.LayoutParams(1180,850));
+   // Keep the renderer opaque so direct View.draw() produces real pixels, while
+   // positioning its host outside the visible device viewport.
+   FrameLayout.LayoutParams offscreen=new FrameLayout.LayoutParams(1180,850);
+   offscreen.leftMargin=-1400;
+   view.setAlpha(1f);
+   parent.addView(view,offscreen);
    Runnable cleanup=()->{if(view.getParent()!=null)parent.removeView(view);view.destroy();};
    java.util.function.Consumer<Exception> error=ex->{if(settled.compareAndSet(false,true)){cleanup.run();fail(call,ex);}};
    view.setWebViewClient(new WebViewClient(){
-     @Override public WebResourceResponse shouldInterceptRequest(WebView v,WebResourceRequest request){
+     private WebResourceResponse blocked(){
        return new WebResourceResponse("text/plain","UTF-8",new ByteArrayInputStream(new byte[0]));
+     }
+     @Override public WebResourceResponse shouldInterceptRequest(WebView v,WebResourceRequest request){
+       try {
+         Uri target=request.getUrl();
+         String file=target.getPath();
+         if(file==null||file.contains(".."))return blocked();
+         if(file.startsWith("/"))file=file.substring(1);
+         String mime=null;
+         if(file.endsWith(".css"))mime="text/css";
+         else if(file.endsWith(".png"))mime="image/png";
+         else if(file.endsWith(".svg"))mime="image/svg+xml";
+         else if(file.endsWith(".jpg")||file.endsWith(".jpeg"))mime="image/jpeg";
+         else if(file.endsWith(".webp"))mime="image/webp";
+         if(mime==null||!target.getHost().equals("localhost"))return blocked();
+         InputStream stream=getContext().getAssets().open("public/"+file);
+         return new WebResourceResponse(mime,mime.startsWith("text/")?"UTF-8":null,stream);
+       } catch(Exception ignored){return blocked();}
      }
      @Override public void onPageFinished(WebView v,String url){
        view.postDelayed(()->{
@@ -146,13 +187,53 @@ public class PFMNativeExportPlugin extends Plugin {
    view.postDelayed(()->error.accept(new Exception("PDF export timed out")),45000);
  }
  private Uri uri(File f){return FileProvider.getUriForFile(getContext(),getContext().getPackageName()+".pfmexport",f);}
+ private void printPdf(File pdf,String filename) {
+   PrintManager printer=(PrintManager)getContext().getSystemService(Context.PRINT_SERVICE);
+   if(printer==null)throw new IllegalStateException("Android print service is unavailable");
+   PrintDocumentAdapter adapter=new PrintDocumentAdapter(){
+     @Override public void onLayout(PrintAttributes oldAttributes,PrintAttributes newAttributes,
+         CancellationSignal cancellationSignal,LayoutResultCallback callback,Bundle extras){
+       if(cancellationSignal.isCanceled()){callback.onLayoutCancelled();return;}
+       PrintDocumentInfo info=new PrintDocumentInfo.Builder(filename)
+           .setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
+           .setPageCount(PrintDocumentInfo.PAGE_COUNT_UNKNOWN).build();
+       callback.onLayoutFinished(info,true);
+     }
+     @Override public void onWrite(PageRange[] pages,ParcelFileDescriptor destination,
+         CancellationSignal cancellationSignal,WriteResultCallback callback){
+       new Thread(()->{
+         try(InputStream in=new FileInputStream(pdf);
+             OutputStream out=new FileOutputStream(destination.getFileDescriptor())){
+           byte[] buffer=new byte[64*1024];int n;
+           while((n=in.read(buffer))!=-1){
+             if(cancellationSignal.isCanceled()){
+               getActivity().runOnUiThread(callback::onWriteCancelled);return;
+             }
+             out.write(buffer,0,n);
+           }
+           out.flush();
+           getActivity().runOnUiThread(()->callback.onWriteFinished(new PageRange[]{PageRange.ALL_PAGES}));
+         }catch(Exception ex){
+           getActivity().runOnUiThread(()->callback.onWriteFailed(ex.getMessage()));
+         }
+       }).start();
+     }
+   };
+   PrintAttributes attributes=new PrintAttributes.Builder()
+       .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
+       .setColorMode(PrintAttributes.COLOR_MODE_COLOR).build();
+   printer.print(filename,adapter,attributes);
+ }
  private void options(PluginCall c,File f,String filename,String mime){
    final boolean pdf=mime.equals(PDF);
-   String[] menu={pdf?"فتح PDF / الطباعة":"فتح Excel","حفظ في التنزيلات أو المستندات",pdf?"مشاركة PDF":"مشاركة Excel","إلغاء"};
+   String[] menu=pdf?
+     new String[]{"فتح PDF","طباعة PDF","حفظ في التنزيلات أو المستندات","مشاركة PDF","إلغاء"}:
+     new String[]{"فتح Excel","حفظ في التنزيلات أو المستندات","مشاركة Excel","إلغاء"};
    new AlertDialog.Builder(getActivity())
     .setTitle(pdf?"تقرير PDF جاهز":"ملف Excel جاهز")
     .setItems(menu,(dialog,index)->{
-      if(index==3){JSObject ret=new JSObject();ret.put("canceled",true);c.resolve(ret);return;}
+      int cancelIndex=pdf?4:3;
+      if(index==cancelIndex){JSObject ret=new JSObject();ret.put("canceled",true);c.resolve(ret);return;}
       try{
         if(index==0){
           Intent view=new Intent(Intent.ACTION_VIEW);
@@ -160,7 +241,9 @@ public class PFMNativeExportPlugin extends Plugin {
           view.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
           getActivity().startActivity(Intent.createChooser(view,"فتح الملف"));
           done(c,"open");
-        }else if(index==1){
+        }else if(pdf&&index==1){
+          printPdf(f,filename);done(c,"print");
+        }else if(index==(pdf?2:1)){
           if(pendingSave!=null){c.reject("A file save is already in progress");return;}
           pendingSave=f;
           Intent save=new Intent(Intent.ACTION_CREATE_DOCUMENT);
