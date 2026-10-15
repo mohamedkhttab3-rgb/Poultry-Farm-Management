@@ -13,7 +13,7 @@ function install(){
  const branding=document.createElement('div');
  branding.className='pfm72-mobile-brand';
  branding.setAttribute('aria-label','Poultry Farm Management M.K');
- branding.innerHTML='<img src="./pfm-logo.png" alt="Poultry Farm Management" width="106" height="106"><strong>إدارة مزارع الدواجن</strong><small>Poultry Farm Manager · M.K™</small>';
+ branding.innerHTML='<img src="./pfm-logo.png" alt="Poultry Farm Management" width="106" height="106"><strong>إدارة مزارع الدواجن</strong><small>Poultry Farm Management M.K™</small>';
  stage.insertBefore(branding,box);
  const section=document.createElement('section');
  section.className='pfm72-cloud-area';
@@ -57,4 +57,10 @@ function install(){
  });
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+function installAndroid73(){
+ if(!nativeAndroid()||document.getElementById('pfm73-android-loader'))return;
+ const script=document.createElement('script');script.id='pfm73-android-loader';
+ script.src='./pfm-v73-android.js';document.head.appendChild(script);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installAndroid73,{once:true});else installAndroid73();
 })();
