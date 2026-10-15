@@ -61,7 +61,7 @@ public class PFMNativeExportPlugin extends Plugin {
    if(encoded==null||requested==null||encoded.length()>45_000_000){call.reject("Invalid or oversized file");return;}
    final boolean excel=requested.toLowerCase(java.util.Locale.ROOT).endsWith(".xlsx");
    final String mime=excel?XLSX:"application/json",ext=excel?".xlsx":".json",filename=name(requested,ext);
-   getBridge().executeOnThreadPool(()->{
+   new Thread(()->{
      try{
        byte[] bytes=android.util.Base64.decode(encoded,android.util.Base64.DEFAULT);
        if(bytes.length<1||bytes.length>32*1024*1024)throw new Exception("File size exceeds limit");
@@ -70,7 +70,7 @@ public class PFMNativeExportPlugin extends Plugin {
        try(FileOutputStream out=new FileOutputStream(file)){out.write(bytes);}
        getActivity().runOnUiThread(()->options(call,file,filename,mime));
      }catch(Exception e){fail(call,e);}
-   });
+   }).start();
  }
  @PluginMethod public void printHTML(PluginCall call){
    String html=call.getString("html");
@@ -97,44 +97,49 @@ public class PFMNativeExportPlugin extends Plugin {
      @Override public void onPageFinished(WebView v,String url){
        view.postDelayed(()->{
          if(settled.get())return;
-         PrintDocumentAdapter adapter=view.createPrintDocumentAdapter(filename);
-         PrintAttributes attrs=new PrintAttributes.Builder()
-           .setMediaSize(PrintAttributes.MediaSize.ISO_A4.asLandscape())
-           .setResolution(new PrintAttributes.Resolution("pfm","300 dpi",300,300))
-           .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
-           .setColorMode(PrintAttributes.COLOR_MODE_COLOR).build();
-         adapter.onStart();
-         adapter.onLayout(null,attrs,new CancellationSignal(),new PrintDocumentAdapter.LayoutResultCallback(){
-           @Override public void onLayoutFinished(PrintDocumentInfo info,boolean changed){
-             final File pdf;
-             final ParcelFileDescriptor fd;
-             try{
-               pdf=temp(".pdf");
-               fd=ParcelFileDescriptor.open(pdf,ParcelFileDescriptor.MODE_READ_WRITE|ParcelFileDescriptor.MODE_CREATE|ParcelFileDescriptor.MODE_TRUNCATE);
-             }catch(Exception e){adapter.onFinish();error.accept(e);return;}
-             adapter.onWrite(new PageRange[]{PageRange.ALL_PAGES},fd,new CancellationSignal(),new PrintDocumentAdapter.WriteResultCallback(){
-               void close(){try{fd.close();}catch(Exception ignored){}adapter.onFinish();}
-               @Override public void onWriteFinished(PageRange[] pages){
-                 close();
-                 if(!settled.compareAndSet(false,true))return;
-                 cleanup.run();
-                 try{
-                   if(pdf.length()<800)throw new Exception("PDF output was empty");
-                   try(InputStream in=new FileInputStream(pdf)){
-                     byte[] magic=new byte[5];
-                     if(in.read(magic)!=5||!new String(magic,StandardCharsets.US_ASCII).equals("%PDF-"))throw new Exception("Invalid PDF output");
-                   }
-                   options(call,pdf,filename,PDF);
-                 }catch(Exception e){fail(call,e);}
-               }
-               @Override public void onWriteFailed(CharSequence e){close();error.accept(new Exception("PDF failed: "+e));}
-               @Override public void onWriteCancelled(){close();error.accept(new Exception("PDF canceled"));}
-             });
+         try{
+           // Render this read-only report into a real paginated PDF without Android
+           // PrintDocumentAdapter callbacks (their constructors are package-private).
+           int sourceWidth=1180;
+           int contentHeight=Math.max(850,(int)Math.ceil(view.getContentHeight()*view.getScale()));
+           if(contentHeight>100000)throw new Exception("Report is too long to render safely");
+           view.measure(android.view.View.MeasureSpec.makeMeasureSpec(sourceWidth,android.view.View.MeasureSpec.EXACTLY),
+             android.view.View.MeasureSpec.makeMeasureSpec(contentHeight,android.view.View.MeasureSpec.EXACTLY));
+           view.layout(0,0,sourceWidth,contentHeight);
+           int pageWidth=842,pageHeight=595,margin=23;
+           float factor=(float)(pageWidth-2*margin)/sourceWidth;
+           float slice=(pageHeight-2*margin)/factor;
+           int pages=Math.max(1,(int)Math.ceil(contentHeight/slice));
+           if(pages>160)throw new Exception("Report exceeds the page limit");
+           android.graphics.pdf.PdfDocument document=new android.graphics.pdf.PdfDocument();
+           File pdf=temp(".pdf");
+           try{
+             for(int index=0;index<pages;index++){
+               android.graphics.pdf.PdfDocument.PageInfo pi=
+                 new android.graphics.pdf.PdfDocument.PageInfo.Builder(pageWidth,pageHeight,index+1).create();
+               android.graphics.pdf.PdfDocument.Page page=document.startPage(pi);
+               android.graphics.Canvas canvas=page.getCanvas();
+               canvas.drawColor(android.graphics.Color.WHITE);
+               canvas.save();
+               canvas.clipRect(margin,margin,pageWidth-margin,pageHeight-margin);
+               canvas.translate(margin,margin-index*slice*factor);
+               canvas.scale(factor,factor);
+               view.draw(canvas);
+               canvas.restore();
+               document.finishPage(page);
+             }
+             try(FileOutputStream out=new FileOutputStream(pdf)){document.writeTo(out);}
+           }finally{document.close();}
+           if(!settled.compareAndSet(false,true))return;
+           cleanup.run();
+           if(pdf.length()<800)throw new Exception("PDF is empty");
+           try(InputStream in=new FileInputStream(pdf)){
+             byte[] magic=new byte[5];
+             if(in.read(magic)!=5||!new String(magic,StandardCharsets.US_ASCII).equals("%PDF-"))throw new Exception("Invalid PDF output");
            }
-           @Override public void onLayoutFailed(CharSequence e){adapter.onFinish();error.accept(new Exception("PDF layout failed: "+e));}
-           @Override public void onLayoutCancelled(){adapter.onFinish();error.accept(new Exception("PDF canceled"));}
-         },new android.os.Bundle());
-       },650);
+           options(call,pdf,filename,PDF);
+         }catch(Exception e){error.accept(e);}
+       },850);
      }
    });
    view.loadDataWithBaseURL("https://localhost/",html,"text/html","UTF-8",null);
@@ -183,7 +188,7 @@ public class PFMNativeExportPlugin extends Plugin {
      JSObject ret=new JSObject();ret.put("canceled",true);c.resolve(ret);return;
    }
    Uri target=result.getData().getData();
-   getBridge().executeOnThreadPool(()->{
+   new Thread(()->{
      try(InputStream in=new FileInputStream(f);OutputStream out=getContext().getContentResolver().openOutputStream(target,"w")){
        if(out==null)throw new Exception("Could not write file");
        byte[] buf=new byte[65536];int count;
@@ -191,6 +196,6 @@ public class PFMNativeExportPlugin extends Plugin {
        getActivity().runOnUiThread(()->Toast.makeText(getContext(),"تم حفظ الملف",Toast.LENGTH_SHORT).show());
        done(c,"save");
      }catch(Exception e){fail(c,e);}
-   });
+   }).start();
  }
 }

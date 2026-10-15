@@ -44,7 +44,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           npx electron-builder --win nsis --x64 --publish never
           if ($LASTEXITCODE -ne 0) { throw 'Windows installer build failed' }
-          $base = 'PoultryFarmManagement-7.1.0-win-x64'
+          $base = 'PoultryFarmManagement-7.2.0-win-x64'
           $original = Join-Path 'dist-desktop' ($base + '.exe')
           if (-not (Test-Path $original)) { throw 'Missing installer EXE' }
           New-Item -ItemType Directory -Force -Path 'build-staging' | Out-Null
