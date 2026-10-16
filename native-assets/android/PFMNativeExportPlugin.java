@@ -173,7 +173,7 @@ public class PFMNativeExportPlugin extends Plugin {
                try(InputStream logo=getContext().getAssets().open("public/pfm-logo.png")){
                  emblem=android.graphics.BitmapFactory.decodeStream(logo);
                }catch(Exception ignored){}
-               final String brand="Poultry Farm Management M.K\u2122";
+               final String brand="Poultry Farm Management • Broiler Farm Intelligence";
                android.graphics.Paint ink=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
                ink.setColor(android.graphics.Color.rgb(35,78,117));
                ink.setTypeface(android.graphics.Typeface.create("sans-serif-medium",android.graphics.Typeface.BOLD));
