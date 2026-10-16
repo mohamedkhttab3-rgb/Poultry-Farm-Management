@@ -149,7 +149,7 @@ public class PFMNativeExportPlugin extends Plugin {
            view.layout(0,0,sourceWidth,contentHeight);
            int pageWidth=842,pageHeight=595,margin=23;
            float factor=(float)(pageWidth-2*margin)/sourceWidth;
-           float slice=(pageHeight-2*margin)/factor;
+           float slice=(pageHeight-margin-42)/factor;
            int pages=Math.max(1,(int)Math.ceil(contentHeight/slice));
            if(pages>160)throw new Exception("Report exceeds the page limit");
            android.graphics.pdf.PdfDocument document=new android.graphics.pdf.PdfDocument();
@@ -162,7 +162,7 @@ public class PFMNativeExportPlugin extends Plugin {
                android.graphics.Canvas canvas=page.getCanvas();
                canvas.drawColor(android.graphics.Color.WHITE);
                canvas.save();
-               canvas.clipRect(margin,margin,pageWidth-margin,pageHeight-margin);
+               canvas.clipRect(margin,margin,pageWidth-margin,pageHeight-42);
                canvas.translate(margin,margin-index*slice*factor);
                canvas.scale(factor,factor);
                view.draw(canvas);
