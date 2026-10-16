@@ -42,10 +42,10 @@ function nav(){
 }
 function brand(){
  const login=document.querySelector('.pfm72-mobile-brand small');
- if(login)login.textContent='Poultry Farm Management';
+ if(login)login.textContent='Poultry Farm Management ™M.K';
  const identity=document.querySelector('.pfm53-identity');
- if(identity)for(const small of identity.querySelectorAll('small'))if(/Poultry Farm Manager|Poultry Farm Management/i.test(small.textContent))small.textContent='Poultry Farm Management';
- const foot=byId('pfmLoginFootText');if(foot)foot.textContent='Poultry Farm Management';
+ if(identity)for(const small of identity.querySelectorAll('small'))if(/Poultry Farm Manager|Poultry Farm Management/i.test(small.textContent))small.textContent='Poultry Farm Management ™M.K';
+ const foot=byId('pfmLoginFootText');if(foot)foot.textContent='Poultry Farm Management ™M.K';
 }
 function options(sel,rows,idFn,labelFn,previous){
  if(!sel)return '';
@@ -161,7 +161,7 @@ function init(){
   const originalPDF=window.PFMAndroidExport.printHTML;
   if(!originalPDF.__pfm73){
    function correctedPDF(html,name){
-    const report=String(html).replace(/Poultry Farm Manager(?: · M\.K™)?/g,'Poultry Farm Management').replace(/Poultry Farm Management M\.K™/g,'Poultry Farm Management');
+    const report=String(html).replace(/Poultry Farm Manager(?: · M\.K™)?/g,'Poultry Farm Management ™M.K').replace(/Poultry Farm Management M\.K™/g,'Poultry Farm Management ™M.K');
     return originalPDF.call(this,report,name);
    }
    correctedPDF.__pfm73=true;window.PFMAndroidExport.printHTML=correctedPDF;
