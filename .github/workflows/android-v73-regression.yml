@@ -21,3 +21,4 @@ jobs:
           node scripts/verify-native.cjs
           node tests/test_android_export_bridge.cjs
           node tests/test_v410_vat_contract.cjs
+          node tests/test_poultry_cycle_economics.cjs
