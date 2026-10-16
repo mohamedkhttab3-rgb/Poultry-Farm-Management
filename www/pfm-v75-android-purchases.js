@@ -18,10 +18,10 @@ function html(){
  const nav=document.querySelector('#v53-nav button[onclick*="inventory"]');if(nav){nav.textContent='المشتريات';nav.title='المشتريات — المصروفات والمخزون';}
  const originals=[...inv.children].filter(x=>x.classList?.contains('panel')&&x.id!=='v410-lot-panel');
  const host=document.createElement('section');host.id='pfm75-purchases';
- host.innerHTML='<div class="pfm75-top panel"><h3>المشتريات — الدورة والمزرعة</h3><div class="pfm75-grid"><label>الدورة <select id="pfm75-cycle"></select></label><label>المزرعة <select id="pfm75-farm"></select></label></div><p class="muted">تسجيل الفاتورة مرة واحدة؛ التكلفة تُربط بعنبرها عند الاستهلاك أو استقبال الكتاكيت.</p></div>'+
+ host.innerHTML='<div class="pfm75-top panel"><h3>المشتريات — المزرعة</h3><div class="pfm75-grid"><label>المزرعة <select id="pfm75-farm"></select></label></div><p class="muted">العلف البادي والنامي والناهي يسجل للمزرعة بإجمالي الفاتورة والكميات الواردة مرة واحدة. الصرف الفعلي لكل عنبر يُسجل لاحقًا؛ لا نكرر الكمية أو التكلفة على كل عنبر.</p></div>'+
  '<div class="pfm75-tabs"><button type="button" data-pfm75-tab="expenses">المصروفات</button><button type="button" data-pfm75-tab="stock">المخزون</button></div>'+
  '<div id="pfm75-expenses"><div class="panel"><h3>شراء الكتاكيت واستقبالها — فاتورة واحدة للمزرعة</h3>'+
- '<div class="pfm75-grid">'+field('رقم الفاتورة *','pfm75-chick-invoice')+field('المورد','pfm75-chick-supplier')+
+ '<div class="pfm75-grid"><label>دورة استقبال الكتاكيت<select id="pfm75-cycle"></select></label>'+field('رقم الفاتورة *','pfm75-chick-invoice')+field('المورد','pfm75-chick-supplier')+
  field('تاريخ الاستلام','pfm75-chick-date','date')+field('عدد الكتاكيت المجانية','pfm75-chick-free','number','0')+
  '<label>التسعير<select id="pfm75-chick-pricing"><option value="invoice">إجمالي الفاتورة</option><option value="unit">سعر الكتكوت المدفوع</option></select></label>'+
  field('إجمالي الفاتورة أو سعر الوحدة *','pfm75-chick-amount','number')+
@@ -54,6 +54,15 @@ function html(){
  },true);
  const priceInput=$('v410LotAmount');
  if(priceInput)priceInput.closest('label')?.querySelector('span')?.append(' (إجمالي أو سعر الوحدة حسب الاختيار)');
+ const lotHint=document.createElement('p');lotHint.className='muted';lotHint.id='pfm75-feed-farm-hint';
+ lotHint.textContent='وارد العلف: الكمية الإجمالية لكل عنابر المزرعة. ٣٬٠٠٠ كجم تضاف مرة واحدة إلى رصيد المزرعة؛ لا تضرب في عدد العنابر.';
+ lots.querySelector(':scope > .v410-grid')?.before(lotHint);
+ const feeds=$('v410LotKind');if(feeds)feeds.value='feed';
+ const openIssues=document.createElement('div');openIssues.className='actions';openIssues.id='pfm75-house-consumption';
+ openIssues.innerHTML='<button type="button" class="btn" data-pfm75-usage="feed">تسجيل صرف علف فعلي لعنبر</button><button type="button" class="btn" data-pfm75-usage="meds">تسجيل صرف أدوية أو تحصينات لعنبر</button>';
+ $('pfm75-stock-lots').appendChild(openIssues);
+ openIssues.addEventListener('click',event=>{const btn=event.target.closest('[data-pfm75-usage]');if(!btn)return;const screen=btn.dataset.pfm75Usage;if(typeof show==='function')show(screen);});
+
  host.querySelectorAll('[data-pfm75-tab]').forEach(b=>b.addEventListener('click',()=>selectTab(b.dataset.pfm75Tab)));
  $('pfm75-farm').addEventListener('change',()=>refresh(true));
  $('pfm75-cycle').addEventListener('change',()=>refresh(false));
@@ -65,7 +74,7 @@ function html(){
  });
  for(const id of ['pfm75-chick-free','pfm75-chick-pricing','pfm75-chick-amount','pfm75-chick-rate','pfm75-chick-reclaim','pfm75-chick-discount','pfm75-chick-freight','pfm75-chick-vatmode'])
   $(id)?.addEventListener('input',preview);
- document.addEventListener('click',guardIssues,true);
+ // Purchasing a farm feed lot never selects, charges or locks it to a single house or cycle.
  const css=document.createElement('style');css.id='pfm75-style';css.textContent=[
  'html.pfm72-android-native #inventory #pfm75-purchases{display:block!important}',
  'html.pfm72-android-native #inventory .pfm57-field:has([data-pfm57-role="house"]){display:none!important}',
@@ -167,26 +176,5 @@ function saveChicksInvoice(){
   alert('تم تسجيل فاتورة الكتاكيت مرة واحدة وتوزيع تكلفتها على '+q.cycles.length+' عنبر.');
  }catch(e){alertError('تعذر تسجيل الكتاكيت: '+e.message);}
 }
-function guardIssues(event){
- const t=event.target?.closest?.('#feedSaveBtn,#medSaveBtn,#v410IssueExpense');
- if(!t)return;
- const key=t.id==='feedSaveBtn'?'feed':t.id==='medSaveBtn'?'med':'expense';
- const id=key==='feed'?$('v410FeedLot')?.value:key==='med'?$('v410MedLot')?.value:$('v410IssueLot')?.value;
- if(!id)return;
- const lot=dbNow()?.v410?.lots?.find(l=>l.id===id);if(!lot?.linkedCycleIds?.length)return;
- const cycleId=key==='feed'?$('feedCycle')?.value:key==='med'?$('medCycle')?.value:$('v410IssueCycle')?.value;
- if(lot.linkedCycleIds.includes(cycleId))return;
- event.preventDefault();event.stopImmediatePropagation();alertError('هذه الدفعة مرتبطة بدورة أخرى. اختر الدفعة الصحيحة.');
-}
-function connectLotToCycle(){
- const button=$('v410CreateLot');if(!button)return;
- let before=null;
- button.addEventListener('pointerdown',()=>{before=new Set((dbNow()?.v410?.lots||[]).map(x=>x.id))},true);
- button.addEventListener('click',()=>{const f=$('pfm75-farm')?.value,group=cycleGroup();if(!f||!group.length||!before)return;
-  const ledger=dbNow()?.v410,created=(ledger?.lots||[]).find(l=>l.farmId===f&&!before.has(l.id));
-  if(created){created.linkedCycleIds=group.map(c=>c.id);created.cycleNumber=Number($('pfm75-cycle').value);if(typeof save==='function')save();}
-  before=null;
- },false);
-}
-const iv=setInterval(()=>{if(ready){clearInterval(iv);return}try{ready=html();if(ready){clearInterval(iv);connectLotToCycle();}}catch(e){console.warn('PFM purchases initialization',e);clearInterval(iv)}},350);
+const iv=setInterval(()=>{if(ready){clearInterval(iv);return}try{ready=html();if(ready){clearInterval(iv);}}catch(e){console.warn('PFM purchases initialization',e);clearInterval(iv)}},350);
 })();
