@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict');
+const core=require('../www/pfm-v74-purchase-core.js');
+const one=core.price({quantity:20,unit:'ton',amount:40000,vatRate:15,mode:'excluded',reclaimPercent:100});
+assert.deepEqual([one.quantityBase,one.baseUnit,one.net,one.tax,one.gross,one.recoverable,one.accountingCost,one.unitCost],[20000,'kg',40000,6000,46000,6000,40000,2]);
+const two=core.price({quantity:20000,unit:'kg',amount:46000,vatRate:15,mode:'included',reclaimPercent:0});
+assert.deepEqual([two.net,two.tax,two.gross,two.recoverable,two.accountingCost,two.unitCost],[40000,6000,46000,0,46000,2.3]);
+const split=core.shares(100,[{birds:200},{birds:300},{birds:500}],r=>r.birds);
+assert.deepEqual(split.map(r=>r.amount),[20,30,50]);
+assert.equal(core.shares(0.01,[{birds:1},{birds:1},{birds:1}],r=>r.birds).reduce((a,b)=>a+b.amount,0),0.01);
+const cycles=[{id:'a',farmId:'farm1',sequence:1},{id:'b',farmId:'farm2',sequence:1},{id:'c',farmId:'farm1',sequence:2}];
+assert.deepEqual(core.cycleGroup(cycles,'farm1',1,c=>c.sequence).map(c=>c.id),['a']);
+assert.throws(()=>core.price({quantity:0,amount:100}),/Invalid purchase/);
+assert.throws(()=>core.price({quantity:5,amount:100,vatRate:101}),/Invalid purchase/);
+console.log('PASS: unified purchases accounting, input VAT, kg/ton, stock cost, farm/cycle selection and allocations');
