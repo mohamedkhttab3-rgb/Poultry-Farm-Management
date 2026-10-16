@@ -61,6 +61,13 @@ function installAndroid73(){
  if(!nativeAndroid()||document.getElementById('pfm73-android-loader'))return;
  const script=document.createElement('script');script.id='pfm73-android-loader';
  script.src='./pfm-v73-android.js';document.head.appendChild(script);
+ const core=document.createElement('script');core.src='./pfm-v74-purchase-core.js';
+ core.addEventListener('load',()=>{
+   if(document.getElementById('pfm75-purchases-loader'))return;
+   const purchases=document.createElement('script');purchases.id='pfm75-purchases-loader';
+   purchases.src='./pfm-v75-android-purchases.js';document.head.appendChild(purchases);
+ });
+ document.head.appendChild(core);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installAndroid73,{once:true});else installAndroid73();
 })();
