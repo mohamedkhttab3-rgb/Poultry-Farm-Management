@@ -10,7 +10,7 @@ const helpers=source.match(/const n=x=>Number\(x\)\|\|0, money=x=>Math\.round\(\
 const vatBody=source.match(/function vat\([\s\S]*?(?=\n const lotKinds)/)?.[0];
 assert(helpers && vatBody,'Original V4.10 VAT function or its numeric helpers have changed');
 const ctx=vm.createContext({});
-vm.runInContext(helpers+'\\n'+vatBody+'\\nthis.actualVat=vat;',ctx,{filename:'v410-vat-excerpt.js'});
+vm.runInContext(helpers+String.fromCharCode(10)+vatBody+String.fromCharCode(10)+'this.actualVat=vat;',ctx,{filename:'v410-vat-excerpt.js'});
 const vat=ctx.actualVat;
 assert.equal(typeof vat,'function','V4.10 VAT engine not exposed');
 function check(amount,rate,mode,reclaim,expected){
