@@ -20,3 +20,4 @@ jobs:
           node scripts/verify-public.cjs
           node scripts/verify-native.cjs
           node tests/test_android_export_bridge.cjs
+          node tests/test_v410_vat_contract.cjs
