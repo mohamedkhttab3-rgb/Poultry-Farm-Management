@@ -39,6 +39,19 @@ const read=p=>fs.readFileSync(path.join(root,p),'utf8');
   assert.equal(methods[0][1].name,'report.pdf');
   assert.equal(methods[1][1].name,'report.xlsx');
   assert.equal(Buffer.from(methods[1][1].data,'base64').toString(),'xlsx test payload');
+  // Simulate the global API present on native Android WebView without
+  // registerPlugin; this is the regression that previously broke PDF/XLSX.
+  const fallback=[];
+  context.window.Capacitor={
+    isNativePlatform:()=>true,getPlatform:()=> 'android',
+    nativePromise:async (plugin,method,payload)=>{
+      assert.equal(plugin,'PFMNativeExport');fallback.push([method,payload]);return {ok:true};
+    }
+  };
+  await context.window.PFMAndroidExport.printHTML('<div id="pfm59PrintRoot">report</div>','native.pdf');
+  await context.window.PFMAndroidExport.saveBlob(new Blob(['file']),'native.xlsx');
+  assert.deepEqual(fallback.map(x=>x[0]),['printHTML','saveFile']);
+  assert.equal(fallback[1][1].name,'native.xlsx');
   console.log('PASS: Android export bridge registers lazily, forwards PDF, encodes Excel bytes, and native contract matches.');
   console.log('LIMIT: This does not establish that the XLSX is valid or that a real Android device can print/share.');
 })().catch(err=>{console.error(err);process.exitCode=1});
