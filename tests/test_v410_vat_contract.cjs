@@ -6,23 +6,12 @@ const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'..','www','v410-finance.js'),'utf8');
-const ctx={
- window:{alert:()=>{}},
- document:{readyState:'loading',getElementById:()=>null,addEventListener:()=>{}},
- db:{v410:{},cycles:[],settings:{currency:'SAR'}},
- exportBackup:()=>{},
- currentUser:null,
- getCycleCurrency:()=> 'SAR',
- cyc:()=>null,
- uuid:()=> 'test-id',
- audit:()=>{},
- today:()=> '2026-10-16',
- save:()=>{},
- renderReport:()=>{},
- console
-};
-vm.runInNewContext(source,ctx,{filename:'v410-finance.js'});
-const vat=ctx.window.PFM_V410?.vat;
+const helpers=source.match(/const n=x=>Number\(x\)\|\|0, money=x=>Math\.round\(\(n\(x\)\+Number\.EPSILON\)\*100\)\/100;/)?.[0];
+const vatBody=source.match(/function vat\([\s\S]*?(?=\n const lotKinds)/)?.[0];
+assert(helpers && vatBody,'Original V4.10 VAT function or its numeric helpers have changed');
+const ctx=vm.createContext({});
+vm.runInContext(helpers+'\\n'+vatBody+'\\nthis.actualVat=vat;',ctx,{filename:'v410-vat-excerpt.js'});
+const vat=ctx.actualVat;
 assert.equal(typeof vat,'function','V4.10 VAT engine not exposed');
 function check(amount,rate,mode,reclaim,expected){
  const result=vat(amount,rate,mode,reclaim);
