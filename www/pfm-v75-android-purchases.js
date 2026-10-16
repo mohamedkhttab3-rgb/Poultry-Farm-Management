@@ -58,6 +58,11 @@ function html(){
  $('pfm75-farm').addEventListener('change',()=>refresh(true));
  $('pfm75-cycle').addEventListener('change',()=>refresh(false));
  $('pfm75-chick-save').addEventListener('click',saveChicksInvoice);
+ // The top global strip remains the report/search filter; recording selectors
+ // choose one farm/cycle when 'all' is selected for reports.
+ $('pfm57Toolbar-inventory')?.addEventListener('change',e=>{
+   if(['cycle','farm'].includes(e.target?.dataset?.pfm57Role))setTimeout(()=>refresh(true),0);
+ });
  for(const id of ['pfm75-chick-free','pfm75-chick-pricing','pfm75-chick-amount','pfm75-chick-rate','pfm75-chick-reclaim','pfm75-chick-discount','pfm75-chick-freight','pfm75-chick-vatmode'])
   $(id)?.addEventListener('input',preview);
  document.addEventListener('click',guardIssues,true);
