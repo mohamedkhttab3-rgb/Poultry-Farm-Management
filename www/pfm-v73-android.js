@@ -11,12 +11,12 @@ function style(){
  if(byId('pfm73-mobile-css'))return;
  const sheet=document.createElement('style');sheet.id='pfm73-mobile-css';
  sheet.textContent=[
- 'html.pfm72-android-native .pfm57-toolbar{width:100%;max-width:100%;overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;touch-action:pan-x pan-y}',
- 'html.pfm72-android-native .pfm57-toolbar .pfm57-fields{display:flex!important;flex-wrap:nowrap!important;direction:rtl;min-width:max-content!important;width:max-content!important;gap:9px!important;align-items:flex-end!important;white-space:nowrap}',
- 'html.pfm72-android-native .pfm57-toolbar .pfm57-field{flex:0 0 135px!important;min-width:135px!important;max-width:135px!important}',
- 'html.pfm72-android-native .pfm57-toolbar .pfm57-search{flex-basis:210px!important;min-width:210px!important;max-width:210px!important}',
+ 'html.pfm72-android-native .pfm57-toolbar{box-sizing:border-box!important;width:100%!important;max-width:100%!important;overflow:visible!important;touch-action:auto!important}',
+ 'html.pfm72-android-native .pfm57-toolbar .pfm57-fields{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;direction:rtl!important;min-width:0!important;width:100%!important;gap:8px!important;align-items:end!important;white-space:normal!important}',
+ 'html.pfm72-android-native .pfm57-toolbar .pfm57-field{flex:none!important;min-width:0!important;width:100%!important;max-width:100%!important;overflow:visible!important}',
+ 'html.pfm72-android-native .pfm57-toolbar .pfm57-search{grid-column:1/-1!important;min-width:0!important;max-width:100%!important}',
  'html.pfm72-android-native .pfm57-toolbar select,html.pfm72-android-native .pfm57-toolbar input{width:100%!important;min-width:0!important;max-width:100%!important}',
- 'html.pfm72-android-native .pfm57-toolbar .pfm57-fields>button{flex:0 0 auto!important;min-width:78px!important;max-width:none!important;white-space:nowrap!important}',
+ 'html.pfm72-android-native .pfm57-toolbar .pfm57-fields>button{flex:none!important;min-width:0!important;width:100%!important;max-width:100%!important;white-space:nowrap!important;padding:0 3px!important;font-size:12px!important;min-height:42px!important}',
  'html.pfm72-android-native .view .panel:has(>table),html.pfm72-android-native .table-scroll,html.pfm72-android-native .v52-table-overflow,html.pfm72-android-native .v410-table-scroll{max-width:100%;overflow-x:auto!important;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}',
  'html.pfm72-android-native .view .panel:has(>table)>table,html.pfm72-android-native .table-scroll>table,html.pfm72-android-native .v52-table-overflow>table{width:max-content!important;min-width:100%!important;max-width:none!important}',
  'html.pfm72-android-native .view .panel:has(>table)>table td,html.pfm72-android-native .view .panel:has(>table)>table th{white-space:nowrap}',
@@ -42,10 +42,10 @@ function nav(){
 }
 function brand(){
  const login=document.querySelector('.pfm72-mobile-brand small');
- if(login)login.textContent='Poultry Farm Management M.K™';
+ if(login)login.textContent='Poultry Farm Management';
  const identity=document.querySelector('.pfm53-identity');
- if(identity)for(const small of identity.querySelectorAll('small'))if(small.textContent.includes('Poultry Farm Manager'))small.textContent='Poultry Farm Management M.K™';
- const foot=byId('pfmLoginFootText');if(foot)foot.textContent='Poultry Farm Management M.K™';
+ if(identity)for(const small of identity.querySelectorAll('small'))if(/Poultry Farm Manager|Poultry Farm Management/i.test(small.textContent))small.textContent='Poultry Farm Management';
+ const foot=byId('pfmLoginFootText');if(foot)foot.textContent='Poultry Farm Management';
 }
 function options(sel,rows,idFn,labelFn,previous){
  if(!sel)return '';
@@ -161,7 +161,7 @@ function init(){
   const originalPDF=window.PFMAndroidExport.printHTML;
   if(!originalPDF.__pfm73){
    function correctedPDF(html,name){
-    const report=String(html).replace(/Poultry Farm Manager(?: · M\.K™)?/g,'Poultry Farm Management M.K™');
+    const report=String(html).replace(/Poultry Farm Manager(?: · M\.K™)?/g,'Poultry Farm Management').replace(/Poultry Farm Management M\.K™/g,'Poultry Farm Management');
     return originalPDF.call(this,report,name);
    }
    correctedPDF.__pfm73=true;window.PFMAndroidExport.printHTML=correctedPDF;
