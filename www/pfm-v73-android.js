@@ -34,12 +34,25 @@ function style(){
 function nav(){
  const n=byId('v53-nav'),purchase=n?.querySelector('[data-v55-group="nutrition"]'),daily=n?.querySelector('[data-v55-group="daily"]');
  if(!n||!purchase||!daily)return;
- const purchaseTitle=purchase.querySelector('.v55-group-title');
- const dailyTitle=daily.querySelector('.v55-group-title');
- if(purchaseTitle){purchaseTitle.dataset.v55Ar='المشتريات';purchaseTitle.dataset.v55En='Purchases';purchaseTitle.textContent='المشتريات';}
- if(dailyTitle){dailyTitle.dataset.v55Ar='المتابعة اليومية للدورات';dailyTitle.dataset.v55En='Daily Cycle Monitoring';dailyTitle.textContent='المتابعة اليومية للدورات';}
+ const pt=purchase.querySelector('.v55-group-title'),dt=daily.querySelector('.v55-group-title');
+ if(pt){pt.dataset.v55Ar='المشتريات';pt.dataset.v55En='Purchases';pt.textContent=document.documentElement.lang==='en'?'Purchases':'المشتريات';}
+ if(dt){dt.dataset.v55Ar='المتابعة اليومية للدورات';dt.dataset.v55En='Daily Cycle Monitoring';dt.textContent=document.documentElement.lang==='en'?'Daily Cycle Monitoring':'المتابعة اليومية للدورات';}
+ const items=purchase.querySelector('.v55-nav-items'),dailyItems=daily.querySelector('.v55-nav-items');
+ if(items&&dailyItems){
+   for(const screen of ['feed','meds','inventory']){
+     const button=n.querySelector('button[onclick*="\''+screen+'\'"]');
+     if(button)items.appendChild(button);
+   }
+   for(const screen of ['daily','weights']){
+     const button=n.querySelector('button[onclick*="\''+screen+'\'"]');
+     if(button)dailyItems.appendChild(button);
+   }
+   const order=['feed','meds','inventory'];
+   [...items.querySelectorAll('button')].sort((x,y)=>order.findIndex(k=>x.getAttribute('onclick')?.includes("'"+k+"'"))-order.findIndex(k=>y.getAttribute('onclick')?.includes("'"+k+"'"))).forEach(x=>items.appendChild(x));
+ }
  if(purchase.nextElementSibling!==daily)n.insertBefore(purchase,daily);
 }
+
 function brand(){
  const approved='Poultry Farm Management M.K™';
  const login=document.querySelector('.pfm72-mobile-brand small');
