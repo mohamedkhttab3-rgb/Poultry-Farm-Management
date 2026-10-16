@@ -1,0 +1,22 @@
+name: Android V7.3 regression checks
+on:
+  push:
+    branches: [android-v73-ui-export-review-20261016]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android-only-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify source and Android native export
+        run: |
+          node scripts/verify-source.cjs
+          node scripts/verify-public.cjs
+          node scripts/verify-native.cjs
+          node tests/test_android_export_bridge.cjs
