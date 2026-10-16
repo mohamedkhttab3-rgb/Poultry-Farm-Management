@@ -74,10 +74,20 @@ function salesControls(){
   const houseLabel=document.createElement('label');houseLabel.textContent='العنبر *';
   house=document.createElement('select');house.id='pfm73-sale-house';houseField.append(houseLabel,house);
   fields.append(farmField,houseField);
-  cycle.closest('.field')?.before(fields);
+  // Sales hierarchy follows the approved cycle → farm → house order.
+  cycle.closest('.field')?.after(fields);
   farm.addEventListener('change',()=>refreshSalesCascade(false,true));
   house.addEventListener('change',()=>refreshSalesCascade(false,false));
-  cycle.addEventListener('change',()=>{recordingCycle=cycle.value;},false);
+  cycle.addEventListener('change',()=>{
+   recordingCycle=cycle.value;
+   const chosen=data()?.cycles?.find(c=>c.id===recordingCycle);
+   if(chosen){
+    farm.value=String(chosen.farmId);
+    const d=data();
+    options(house,(d?.houses||[]).filter(h=>h.farmId===farm.value),h=>h.id,h=>h.name,chosen.houseId);
+   }
+   if(typeof updateSaleBirdsFromCycle==='function')updateSaleBirdsFromCycle();
+  },false);
  }
  const selected=recordingCycle||cycle.value;
  const active=d.cycles.find(c=>c.id===selected);
