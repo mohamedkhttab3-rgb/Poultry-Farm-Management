@@ -57,7 +57,35 @@ function html(){
  const lotHint=document.createElement('p');lotHint.className='muted';lotHint.id='pfm75-feed-farm-hint';
  lotHint.textContent='وارد العلف: الكمية الإجمالية لكل عنابر المزرعة. ٣٬٠٠٠ كجم تضاف مرة واحدة إلى رصيد المزرعة؛ لا تضرب في عدد العنابر.';
  lots.querySelector(':scope > .v410-grid')?.before(lotHint);
- const feeds=$('v410LotKind');if(feeds)feeds.value='feed';
+ const feeds=$('v410LotKind');
+ const itemInput=$('v410LotItem'),unitInput=$('v410LotUnit');
+ if(feeds){
+   // A separate real purchase lot/invoice for each incoming feed truck.
+   const feedType=document.createElement('label');feedType.className='pfm75-field';feedType.id='pfm75-feed-type-field';
+   feedType.innerHTML='<span>نوع العلف الوارد (فاتورة مستقلة لكل عربية)</span><select id="pfm75-feed-type"><option value="">اختر نوع العلف</option><option value="بادي">بادي</option><option value="نامي">نامي</option><option value="ناهي">ناهي</option></select>';
+   lots.querySelector(':scope > .v410-grid')?.prepend(feedType);
+   const select=$('pfm75-feed-type');
+   const apply=()=>{
+     if(feeds.value!=='feed'){feedType.hidden=true;return;}
+     feedType.hidden=false;
+     if(select.value&&itemInput)itemInput.value=select.value;
+     if(unitInput)unitInput.value='كجم';
+   };
+   feeds.addEventListener('change',apply);
+   select.addEventListener('change',apply);
+   // Prevent accidental generic "علف" records with no distinct stage.
+   $('v410CreateLot')?.addEventListener('click',event=>{
+     if(feeds.value==='feed'&&!['بادي','نامي','ناهي'].includes(select.value)){
+       event.preventDefault();event.stopImmediatePropagation();
+       alertError('اختر نوع العلف بادي أو نامي أو ناهي قبل تسجيل فاتورة العربية.');
+       return;
+     }
+     if(feeds.value==='feed'&&itemInput)itemInput.value=select.value;
+   },true);
+   if(!feeds.value)feeds.value='feed';
+   apply();
+ }
+
  const openIssues=document.createElement('div');openIssues.className='actions';openIssues.id='pfm75-house-consumption';
  openIssues.innerHTML='<button type="button" class="btn" data-pfm75-usage="feed">تسجيل صرف علف فعلي لعنبر</button><button type="button" class="btn" data-pfm75-usage="meds">تسجيل صرف أدوية أو تحصينات لعنبر</button>';
  $('pfm75-stock-lots').appendChild(openIssues);
