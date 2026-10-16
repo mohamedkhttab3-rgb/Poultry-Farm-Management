@@ -12,7 +12,7 @@ function style(){
  const sheet=document.createElement('style');sheet.id='pfm73-mobile-css';
  sheet.textContent=[
  'html.pfm72-android-native .pfm57-toolbar{box-sizing:border-box!important;width:100%!important;max-width:100%!important;overflow:visible!important;touch-action:auto!important}',
- 'html.pfm72-android-native .pfm57-toolbar .pfm57-fields{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;direction:rtl!important;min-width:0!important;width:100%!important;gap:8px!important;align-items:end!important;white-space:normal!important}',
+ 'html.pfm72-android-native .pfm57-toolbar .pfm57-fields{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;direction:rtl!important;min-width:0!important;width:100%!important;gap:8px!important;align-items:end!important;white-space:normal!important}',
  'html.pfm72-android-native .pfm57-toolbar .pfm57-field{flex:none!important;min-width:0!important;width:100%!important;max-width:100%!important;overflow:visible!important}',
  'html.pfm72-android-native .pfm57-toolbar .pfm57-search{grid-column:1/-1!important;min-width:0!important;max-width:100%!important}',
  'html.pfm72-android-native .pfm57-toolbar select,html.pfm72-android-native .pfm57-toolbar input{width:100%!important;min-width:0!important;max-width:100%!important}',
