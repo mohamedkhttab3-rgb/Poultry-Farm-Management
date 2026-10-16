@@ -167,6 +167,27 @@ public class PFMNativeExportPlugin extends Plugin {
                canvas.scale(factor,factor);
                view.draw(canvas);
                canvas.restore();
+               // Android-only per-page centered footer; draw outside the web content
+               // so pagination cannot leave the brand on only the last page.
+               android.graphics.Bitmap emblem=null;
+               try(InputStream logo=getContext().getAssets().open("public/pfm-logo.png")){
+                 emblem=android.graphics.BitmapFactory.decodeStream(logo);
+               }catch(Exception ignored){}
+               final String brand="Poultry Farm Management M.K\u2122";
+               android.graphics.Paint ink=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+               ink.setColor(android.graphics.Color.rgb(35,78,117));
+               ink.setTypeface(android.graphics.Typeface.create("sans-serif-medium",android.graphics.Typeface.BOLD));
+               ink.setTextSize(13f);
+               float lineWidth=ink.measureText(brand);
+               float logoSize=21f, gap=8f;
+               float total=lineWidth+gap+(emblem!=null?logoSize:0f);
+               float left=(pageWidth-total)/2f;
+               if(emblem!=null){
+                 android.graphics.RectF target=new android.graphics.RectF(left,pageHeight-28, left+logoSize,pageHeight-7);
+                 canvas.drawBitmap(emblem,null,target,new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG|android.graphics.Paint.FILTER_BITMAP_FLAG));
+                 emblem.recycle();
+               }
+               canvas.drawText(brand,left+(emblem!=null?logoSize+gap:0f),pageHeight-12,ink);
                document.finishPage(page);
              }
              try(FileOutputStream out=new FileOutputStream(pdf)){document.writeTo(out);}
