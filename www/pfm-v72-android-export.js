@@ -1,7 +1,13 @@
-/* V7.2 Capacitor Android export bridge: preserve browser/desktop paths. */
+/* Android native export bridge. Resolve Capacitor lazily when invoked. */
 (function(){'use strict';
- const isAndroid=!!(window.Capacitor?.isNativePlatform?.() && window.Capacitor.getPlatform?.()==='android');
- const plugin=isAndroid?window.Capacitor.registerPlugin('PFMNativeExport'):null;
+ let registered=null;
+ function bridge(){
+   const cap=window.Capacitor;
+   if(!cap || typeof cap.registerPlugin!=='function' || !cap.isNativePlatform?.() || cap.getPlatform?.()!=='android')
+     throw Error('Android Capacitor bridge is not ready');
+   if(!registered)registered=cap.registerPlugin('PFMNativeExport');
+   return registered;
+ }
  async function base64(blob){
   const bytes=new Uint8Array(await blob.arrayBuffer());
   const step=0x6000;let out='';
@@ -9,8 +15,8 @@
   return btoa(out);
  }
  window.PFMAndroidExport={
-  isAndroid,
-  async saveBlob(blob,name){if(!plugin)throw Error('Android file export is unavailable');return plugin.saveFile({data:await base64(blob),name});},
-  async printHTML(html,name){if(!plugin)throw Error('Android PDF export is unavailable');return plugin.printHTML({html,name});}
+   get isAndroid(){return !!(window.Capacitor?.isNativePlatform?.() && window.Capacitor.getPlatform?.()==='android');},
+   async saveBlob(blob,name){return bridge().saveFile({data:await base64(blob),name});},
+   async printHTML(html,name){return bridge().printHTML({html,name});}
  };
 })();
