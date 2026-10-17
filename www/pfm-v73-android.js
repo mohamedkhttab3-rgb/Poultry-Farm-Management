@@ -39,16 +39,15 @@ function nav(){
  if(dt){dt.dataset.v55Ar='المتابعة اليومية للدورات';dt.dataset.v55En='Daily Cycle Monitoring';dt.textContent=document.documentElement.lang==='en'?'Daily Cycle Monitoring':'المتابعة اليومية للدورات';}
  const items=purchase.querySelector('.v55-nav-items'),dailyItems=daily.querySelector('.v55-nav-items');
  if(items&&dailyItems){
-   for(const screen of ['feed','meds','inventory']){
-     const button=n.querySelector('button[onclick*="\''+screen+'\'"]');
-     if(button)items.appendChild(button);
-   }
-   for(const screen of ['daily','weights']){
-     const button=n.querySelector('button[onclick*="\''+screen+'\'"]');
-     if(button)dailyItems.appendChild(button);
-   }
-   const order=['feed','meds','inventory'];
-   [...items.querySelectorAll('button')].sort((x,y)=>order.findIndex(k=>x.getAttribute('onclick')?.includes("'"+k+"'"))-order.findIndex(k=>y.getAttribute('onclick')?.includes("'"+k+"'"))).forEach(x=>items.appendChild(x));
+   // Inspect the actual onclick values rather than an escaped CSS attribute
+   // selector, which was silently failing on Android WebView.
+   const buttons=[...n.querySelectorAll('.v55-nav-items > button')];
+   const find=screen=>buttons.find(b=>(b.getAttribute('onclick')||'').includes("show('"+screen+"'"));
+   for(const screen of ['feed','meds','inventory']){const b=find(screen);if(b)items.appendChild(b);}
+   for(const screen of ['daily','weights']){const b=find(screen);if(b)dailyItems.appendChild(b);}
+   // Do not duplicate any screen or move financial/administrative screens.
+   ['feed','meds','inventory'].forEach(screen=>{const b=find(screen);if(b&&b.parentElement===items)items.appendChild(b);});
+   ['daily','weights'].forEach(screen=>{const b=find(screen);if(b&&b.parentElement===dailyItems)dailyItems.appendChild(b);});
  }
  if(purchase.nextElementSibling!==daily)n.insertBefore(purchase,daily);
 }
