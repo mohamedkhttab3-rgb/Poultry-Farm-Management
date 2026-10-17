@@ -1,0 +1,164 @@
+name: Publish Versioned Android Releases
+
+on:
+  push:
+    branches:
+      - fix/android-v733-native-export-rebuild
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: 'Approved Android source branch or commit SHA'
+        required: true
+        type: string
+      version:
+        description: 'Unique approved version, e.g. 7.3.4'
+        required: true
+        type: string
+      confirmed_device_test:
+        description: 'Confirm real-device acceptance before marking FINAL'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  preserve-v733:
+    name: Preserve V7.3.3 APK in a persistent GitHub prerelease
+    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/android-v733-native-export-rebuild'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download and verify existing successful Android build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_SHA="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/39069360922" --jq .head_sha)"
+          test "$SOURCE_SHA" = "9645cb0913c413c117a23658dc8ca392bf0468cf"
+          grep -Fq 'versionName "7.3.3"' scripts/set-android-version.cjs
+          mkdir -p release-files
+          gh run download 39069360922 -R "$GITHUB_REPOSITORY" \
+            --name 'PoultryFarmManagement-Android-V7.3-QA-debug' --dir release-files
+          test -s release-files/app-debug.apk
+          EXPECTED="$(awk '{print $1;exit}' release-files/SHA256SUMS.txt)"
+          ACTUAL="$(sha256sum release-files/app-debug.apk | awk '{print $1}')"
+          test "$EXPECTED" = "$ACTUAL"
+          mv release-files/app-debug.apk release-files/PoultryFarmManagement-v7.3.3-Android-debug.apk
+          (cd release-files && sha256sum PoultryFarmManagement-v7.3.3-Android-debug.apk > SHA256SUMS-v7.3.3.txt)
+      - name: Publish durable downloadable release v7.3.3
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view v7.3.3 -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'v7.3.3 already exists: refusing to modify or replace its files'
+            gh release view v7.3.3 -R "$GITHUB_REPOSITORY"
+            exit 0
+          fi
+          cat > release-notes.md <<'NOTES'
+          Poultry Farm Management Android V7.3.3
+
+          - Fixed Android navigation grouping and brand carried forward from V7.3.2.
+          - Rebuilt Android PDF/Excel export, file saving, printing, opening and sharing.
+          - The APK passed CI source and Android compilation checks; actual phone acceptance has NOT been confirmed.
+          - This is a pre-release debug APK, not a Google Play signed production package.
+          - The release APK and SHA256SUMS are stored in GitHub Releases without an automatic Actions artifact expiration.
+          - Keep existing user data backed up before updating the app.
+          NOTES
+          gh release create v7.3.3 \
+            "release-files/PoultryFarmManagement-v7.3.3-Android-debug.apk" \
+            "release-files/SHA256SUMS-v7.3.3.txt" \
+            --repo "$GITHUB_REPOSITORY" --target 9645cb0913c413c117a23658dc8ca392bf0468cf \
+            --title 'Poultry Farm Management Android V7.3.3 (Pre-release)' \
+            --notes-file release-notes.md --prerelease
+          gh release view v7.3.3 --repo "$GITHUB_REPOSITORY" --json tagName,assets,url
+
+  final-android:
+    name: Build and permanently publish explicitly approved final version
+    if: github.event_name == 'workflow_dispatch' && inputs.confirmed_device_test == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Verify uniqueness and declared Android version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Invalid semantic version'; exit 1; }
+          TAG="v$VERSION"
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists: never overwrite a published version"
+            exit 1
+          fi
+          VERSION="$VERSION" node - <<'NODE'
+          const fs=require('node:fs');
+          const script=fs.readFileSync('scripts/set-android-version.cjs','utf8');
+          if (!script.includes('versionName "'+process.env.VERSION+'"')) {
+            throw Error('Android versionName and requested release version do not match');
+          }
+          NODE
+          node scripts/verify-source.cjs
+          node scripts/verify-public.cjs
+          node scripts/verify-native.cjs
+          node tests/test_android_export_bridge.cjs
+          if [ -f tests/test_android_v732_navigation.cjs ]; then node tests/test_android_v732_navigation.cjs; fi
+      - name: Install Android SDK and app dependencies
+        run: |
+          set -euo pipefail
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install 'platforms;android-36' 'build-tools;36.0.0'
+          npm install --no-audit --no-fund
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - name: Generate native Android app and build
+        run: |
+          set -euo pipefail
+          npx cap add android
+          npx cap sync android
+          npm run android:icons
+          node scripts/install-android-export.cjs
+          node scripts/set-android-version.cjs
+          chmod +x android/gradlew
+          (cd android && ./gradlew --no-daemon assembleDebug)
+      - name: Verify APK, checksum and publish uniquely named release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE="android/app/build/outputs/apk/debug/app-debug.apk"
+          python3 scripts/check-apk.py "$FILE"
+          TAG="v$VERSION"
+          NAME="PoultryFarmManagement-$TAG-Android-debug.apk"
+          mkdir -p release-files
+          cp "$FILE" "release-files/$NAME"
+          (cd release-files && sha256sum "$NAME" > "SHA256SUMS-$TAG.txt")
+          cat > release-notes.md <<NOTES
+          Poultry Farm Management Android $VERSION
+
+          Final version explicitly approved for publication after device acceptance.
+          APK is a debug build; it is not a Play Store signed production package.
+          SHA256 checksum is attached. Release assets are not subject to the 14-day Actions retention.
+          NOTES
+          gh release create "$TAG" "release-files/$NAME" "release-files/SHA256SUMS-$TAG.txt" \
+            -R "$GITHUB_REPOSITORY" --target "$(git rev-parse HEAD)" \
+            --title "Poultry Farm Management Android $VERSION" --notes-file release-notes.md
+          gh release view "$TAG" -R "$GITHUB_REPOSITORY" --json tagName,assets,url
