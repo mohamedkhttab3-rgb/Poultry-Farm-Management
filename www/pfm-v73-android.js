@@ -28,41 +28,69 @@ function style(){
  'html.pfm72-android-native .pfm73-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}',
  'html.pfm72-android-native .pfm73-cards>div{border:1px solid #e0eaf1;border-radius:9px;padding:10px;min-width:0}',
  'html.pfm72-android-native .pfm73-cards b{display:block;margin-top:6px;font-size:16px;overflow-wrap:anywhere}',
- 'html.pfm72-android-native #pfm73-sale-selectors{display:contents}'
+ 'html.pfm72-android-native #pfm73-sale-selectors{display:contents}',
+ 'html.pfm72-android-native #v53-nav .pfm-side-brand small{direction:ltr!important;unicode-bidi:isolate!important;display:inline-block!important;white-space:nowrap!important;text-align:left!important;letter-spacing:.03em!important}',
+ 'html.pfm72-android-native #v53-nav .v55-nav-items>button[data-stage]{font-size:14px!important;line-height:1.5!important;min-height:38px!important;text-align:start!important}',
+ 'html.pfm72-android-native #v53-nav .v55-group-title{font-size:15px!important;line-height:1.45!important}'
  ].join('\n');document.head.appendChild(sheet);
 }
+// One deterministic source of truth for Android-only menu grouping.
+// Move the ORIGINAL buttons (and their click handlers); never clone a view.
 function nav(){
- const n=byId('v53-nav'),purchase=n?.querySelector('[data-v55-group="nutrition"]'),daily=n?.querySelector('[data-v55-group="daily"]');
- if(!n||!purchase||!daily)return;
- const pt=purchase.querySelector('.v55-group-title'),dt=daily.querySelector('.v55-group-title');
- if(pt){pt.dataset.v55Ar='المشتريات';pt.dataset.v55En='Purchases';pt.textContent=document.documentElement.lang==='en'?'Purchases':'المشتريات';}
- if(dt){dt.dataset.v55Ar='المتابعة اليومية للدورات';dt.dataset.v55En='Daily Cycle Monitoring';dt.textContent=document.documentElement.lang==='en'?'Daily Cycle Monitoring':'المتابعة اليومية للدورات';}
- const items=purchase.querySelector('.v55-nav-items'),dailyItems=daily.querySelector('.v55-nav-items');
- if(items&&dailyItems){
-   // Inspect the actual onclick values rather than an escaped CSS attribute
-   // selector, which was silently failing on Android WebView.
-   const buttons=[...n.querySelectorAll('.v55-nav-items > button')];
-   const find=screen=>buttons.find(b=>(b.getAttribute('onclick')||'').includes("show('"+screen+"'"));
-   for(const screen of ['feed','meds','inventory']){const b=find(screen);if(b)items.appendChild(b);}
-   for(const screen of ['daily','weights']){const b=find(screen);if(b)dailyItems.appendChild(b);}
-   // Do not duplicate any screen or move financial/administrative screens.
-   ['feed','meds','inventory'].forEach(screen=>{const b=find(screen);if(b&&b.parentElement===items)items.appendChild(b);});
-   ['daily','weights'].forEach(screen=>{const b=find(screen);if(b&&b.parentElement===dailyItems)dailyItems.appendChild(b);});
+ const n=byId('v53-nav');
+ if(!n)return false;
+ const layout=[
+  {group:'project',ar:'مدخلات المشاريع',en:'Project Setup',screens:['farms','houses','cycles']},
+  {group:'nutrition',ar:'المشتريات',en:'Purchases',screens:['feed','meds','inventory']},
+  {group:'daily',ar:'المتابعة اليومية للدورات',en:'Daily Cycle Monitoring',screens:['daily','weights']},
+  {group:'finance',ar:'المبيعات والمالية',en:'Sales & Finance',screens:['sales','finance']}
+ ];
+ const groups=new Map([...n.querySelectorAll('.v55-nav-group[data-v55-group]')]
+   .map(el=>[el.dataset.v55Group,el]));
+ if(layout.some(x=>!groups.get(x.group)?.querySelector('.v55-nav-items')))return false;
+ const buttons=new Map();
+ for(const btn of n.querySelectorAll('.v55-nav-items > button[data-stage]')){
+  const match=(btn.getAttribute('onclick')||'').match(/(?:^|[\s;])show\(\s*['"]([^'"]+)['"]/);
+  if(match&&!buttons.has(match[1]))buttons.set(match[1],btn);
  }
+ // Do not partially mutate the sidebar if a required button is missing.
+ if(layout.some(x=>x.screens.some(screen=>!buttons.has(screen))))return false;
+ for(const config of layout){
+  const group=groups.get(config.group),items=group.querySelector('.v55-nav-items');
+  const title=group.querySelector('.v55-group-title');
+  if(title){
+   title.dataset.v55Ar=config.ar;title.dataset.v55En=config.en;
+   title.textContent=document.documentElement.lang==='en'?config.en:config.ar;
+  }
+  // Reordering by appendChild preserves existing handlers and active state.
+  for(const screen of config.screens)items.appendChild(buttons.get(screen));
+ }
+ // The intended workflow is Project Setup -> Purchases -> Daily -> Sales.
+ const purchase=groups.get('nutrition'),daily=groups.get('daily');
  if(purchase.nextElementSibling!==daily)n.insertBefore(purchase,daily);
+ const passes=layout.every(config=>{
+  const actual=[...groups.get(config.group).querySelectorAll('.v55-nav-items > button[data-stage]')]
+   .map(btn=>(btn.getAttribute('onclick')||'').match(/show\(\s*['"]([^'"]+)['"]/)?.[1]);
+  return actual.length===config.screens.length && config.screens.every((v,i)=>actual[i]===v);
+ });
+ if(!passes)console.error('Android sidebar menu validation failed');
+ return passes;
 }
+window.PFMAndroidRepairNavigation=nav;
 
 function brand(){
  const approved='Poultry Farm Management M.K™';
  const login=document.querySelector('.pfm72-mobile-brand small');
- if(login)login.textContent=approved;
+ if(login){login.textContent=approved;login.dir='ltr';}
+ const side=document.querySelector('#v53-nav .pfm-side-brand small');
+ if(side){side.textContent='M.K™';side.dir='ltr';side.style.unicodeBidi='isolate';}
  const identity=document.querySelector('.pfm53-identity');
  if(identity){
-   const smalls=[...identity.querySelectorAll('small')];
-   if(smalls[0])smalls[0].textContent=approved;
-   for(const extra of smalls.slice(1))if(/^\s*M\.K™\s*$/.test(extra.textContent))extra.remove();
+  const smalls=[...identity.querySelectorAll('small')];
+  if(smalls[0]){smalls[0].textContent=approved;smalls[0].dir='ltr';}
+  for(const extra of smalls.slice(1))if(/^\s*M\.K™\s*$/.test(extra.textContent))extra.remove();
  }
- const foot=byId('pfmLoginFootText');if(foot)foot.textContent=approved;
+ const foot=byId('pfmLoginFootText');if(foot){foot.textContent=approved;foot.dir='ltr';}
 }
 
 function options(sel,rows,idFn,labelFn,previous){
