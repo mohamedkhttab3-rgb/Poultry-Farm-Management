@@ -17,7 +17,8 @@ const read=p=>fs.readFileSync(path.join(root,p),'utf8');
   assert(installer.includes('registerPlugin(PFMNativeExportPlugin.class)'),'Android plugin registration missing');
   assert(native.includes("newRawUri(filename,sharedUri)"),'Missing ClipData URI access for external apps');
   assert(native.includes('Intent.FLAG_GRANT_READ_URI_PERMISSION'),'Missing external read grant');
-  assert(native.includes('getElementById(\'pfm59PrintRoot\')'),'Pagination must measure report root');
+  assert(native.includes('view.getContentHeight()*view.getScale()'),'PDF pagination must use WebView content dimensions');
+  assert(!native.includes('measured.replace('),'PDF must not depend on JavaScript measurement with JS disabled');
   assert(native.includes('contentHeight-2.0f'),'Pagination must avoid trailing blank pages');
 
   assert(html.includes('pfm-v72-android-export.js'),'Android export JS not linked');
