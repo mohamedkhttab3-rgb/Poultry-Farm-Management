@@ -7,6 +7,19 @@ import android.content.Intent;
 import android.net.Uri;
 import android.print.PrintManager;
 import android.content.Context;
+import android.content.ContentValues;
+import android.os.Build;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.text.Html;
+import android.text.Layout;
+import android.text.StaticLayout;
+import android.text.TextDirectionHeuristics;
+import android.text.TextPaint;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.pdf.PdfDocument;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
@@ -88,7 +101,7 @@ public class PFMNativeExportPlugin extends Plugin {
        }
        File file=temp(ext);
        try(FileOutputStream out=new FileOutputStream(file)){out.write(bytes);}
-       getActivity().runOnUiThread(()->options(call,file,filename,mime));
+       finishExport(call,file,filename,mime);
      }catch(Exception e){fail(call,e);}
    }).start();
  }
@@ -144,6 +157,12 @@ public class PFMNativeExportPlugin extends Plugin {
          try{
            int sourceWidth=1180;
            int contentHeight=Math.max(1,(int)Math.ceil(view.getContentHeight()*view.getScale()));
+           if(contentHeight<850)contentHeight=850;
+           if(!hasVisibleContent(view,sourceWidth,contentHeight)){
+             File fallback=textPdf(html);
+             if(!settled.compareAndSet(false,true))return;
+             cleanup.run();finishExport(call,fallback,filename,PDF);return;
+           }
            // The page is A4 landscape and the footer is drawn natively.
            if(contentHeight>100000)throw new Exception("Report is too long to render safely");
            view.measure(android.view.View.MeasureSpec.makeMeasureSpec(sourceWidth,android.view.View.MeasureSpec.EXACTLY),
@@ -201,7 +220,7 @@ public class PFMNativeExportPlugin extends Plugin {
            }
            if(!settled.compareAndSet(false,true))return;
            cleanup.run();
-           options(call,pdf,filename,PDF);
+           finishExport(call,pdf,filename,PDF);
          }catch(Exception e){error.accept(e);}
        },850);
      }
@@ -209,6 +228,132 @@ public class PFMNativeExportPlugin extends Plugin {
    view.loadDataWithBaseURL("https://localhost/",html,"text/html","UTF-8",null);
    view.postDelayed(()->error.accept(new Exception("PDF export timed out")),45000);
  }
+
+ // Android 10+: write an actual user-visible file to Downloads, not only an app cache.
+ // Older Android releases use the system's Create Document action instead of broad storage rights.
+ private Uri saveToDownloads(File source,String filename,String mime) throws Exception {
+   if(Build.VERSION.SDK_INT<Build.VERSION_CODES.Q)return null;
+   ContentValues values=new ContentValues();
+   values.put(MediaStore.MediaColumns.DISPLAY_NAME,filename);
+   values.put(MediaStore.MediaColumns.MIME_TYPE,mime);
+   values.put(MediaStore.MediaColumns.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS+"/PoultryFarmManagement/");
+   values.put(MediaStore.MediaColumns.IS_PENDING,1);
+   Uri destination=getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);
+   if(destination==null)throw new Exception("Could not create a file in Downloads");
+   boolean completed=false;
+   try {
+     try(InputStream in=new FileInputStream(source);
+         OutputStream out=getContext().getContentResolver().openOutputStream(destination,"w")){
+       if(out==null)throw new Exception("Cannot write file to Downloads");
+       byte[] block=new byte[65536];int n;
+       while((n=in.read(block))!=-1)out.write(block,0,n);
+       out.flush();
+     }
+     values.clear();values.put(MediaStore.MediaColumns.IS_PENDING,0);
+     getContext().getContentResolver().update(destination,values,null,null);
+     completed=true;return destination;
+   }finally{
+     if(!completed)getContext().getContentResolver().delete(destination,null,null);
+   }
+ }
+ private String downloadName(String filename) {
+   int pos=filename.lastIndexOf('.');
+   String base=pos<0?filename:filename.substring(0,pos);
+   String ext=pos<0?"":filename.substring(pos);
+   String stamp=new java.text.SimpleDateFormat("yyyyMMdd_HHmmss_SSS",java.util.Locale.ROOT).format(new java.util.Date());
+   return base+"_"+stamp+ext;
+ }
+ private void finishExport(PluginCall call,File file,String filename,String mime) {
+   new Thread(()->{
+     try {
+       // Saving failures must never prevent a valid report from being opened,
+       // manually saved with SAF, printed, or shared.
+       String warning=null;Uri downloaded=null;
+       try{downloaded=saveToDownloads(file,downloadName(filename),mime);}
+       catch(Exception error){warning=error.getMessage();}
+       final Uri location=downloaded;final String notice=warning;
+       getActivity().runOnUiThread(()->options(call,file,filename,mime,location,notice));
+     }catch(Exception e){fail(call,e);}
+   },"PFM-file-export").start();
+ }
+ // Detect off-screen WebView renderer failures *before* saving white PDF pages.
+ private boolean hasVisibleContent(WebView view,int sourceWidth,int contentHeight) {
+   Bitmap bitmap=null;
+   try {
+     int w=394,h=260;
+     bitmap=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);
+     Canvas sample=new Canvas(bitmap);sample.drawColor(Color.WHITE);
+     sample.scale((float)w/sourceWidth,(float)w/sourceWidth);
+     view.draw(sample);
+     int ink=0;
+     for(int y=3;y<h-3;y+=4)for(int x=3;x<w-3;x+=4){
+       int pixel=bitmap.getPixel(x,y);
+       if(Color.alpha(pixel)>120 &&
+         (Color.red(pixel)<225||Color.green(pixel)<225||Color.blue(pixel)<225))ink++;
+     }
+     return ink>50;
+   }catch(Exception ex){return false;}
+   finally{if(bitmap!=null)bitmap.recycle();}
+ }
+ // Guaranteed readable fallback for Android WebViews that cannot paint while
+ // detached/offscreen. Uses Android text shaping so Arabic stays legible.
+ private File textPdf(String html) throws Exception {
+   String body=html.replaceFirst("(?is)<head\\b[^>]*>.*?</head>","")
+       .replaceAll("(?is)<script\\b[^>]*>.*?</script>","")
+       .replaceAll("(?is)<style\\b[^>]*>.*?</style>","")
+       .replaceAll("(?i)</tr\\s*>","</tr><br>")
+       .replaceAll("(?i)</t[dh]\\s*>"," | </td>");
+   CharSequence formatted=Html.fromHtml(body,Html.FROM_HTML_MODE_COMPACT);
+   String plain=formatted.toString().replaceAll("[ \\t]+"," ").replaceAll("\\n{3,}","\\n\\n").trim();
+   if(plain.length()<25)plain="Poultry Farm Management\\nلا توجد نتائج قابلة للطباعة في النطاق المحدد.";
+   if(plain.length()>900000)throw new Exception("Report text is too long");
+   PdfDocument holder=new PdfDocument();
+   int pw=842,ph=595,margin=30,number=0,y=0;
+   PdfDocument.Page page=null;
+   Canvas canvas=null;
+   TextPaint ink=new TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+   ink.setColor(Color.rgb(31,52,74));
+   ink.setTypeface(android.graphics.Typeface.create("sans-serif",android.graphics.Typeface.NORMAL));
+   ink.setTextSize(14f);
+   try{
+     String[] lines=plain.split("\\n",-1);
+     for(String line:lines){
+       if(line.trim().isEmpty()){y+=12;continue;}
+       // A single unbroken cell may be enormous: chunk before StaticLayout.
+       for(int off=0;off<line.length();off+=650){
+         String chunk=line.substring(off,Math.min(line.length(),off+650));
+         StaticLayout block=StaticLayout.Builder.obtain(chunk,0,chunk.length(),ink,pw-margin*2)
+             .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+             .setTextDirection(TextDirectionHeuristics.FIRSTSTRONG_LTR)
+             .setIncludePad(true).build();
+         if(page==null || y+block.getHeight()>ph-50){
+           if(page!=null){drawFooter(canvas,pw,ph,number);holder.finishPage(page);}
+           if(++number>160)throw new Exception("Report exceeds 160 pages");
+           page=holder.startPage(new PdfDocument.PageInfo.Builder(pw,ph,number).create());
+           canvas=page.getCanvas();canvas.drawColor(Color.WHITE);y=margin;
+         }
+         canvas.save();canvas.translate(margin,y);block.draw(canvas);canvas.restore();
+         y+=block.getHeight()+7;
+       }
+     }
+     if(page==null){
+       number=1;page=holder.startPage(new PdfDocument.PageInfo.Builder(pw,ph,number).create());
+       canvas=page.getCanvas();canvas.drawColor(Color.WHITE);
+     }
+     drawFooter(canvas,pw,ph,number);holder.finishPage(page);
+     File output=temp(".pdf");
+     try(OutputStream stream=new FileOutputStream(output)){holder.writeTo(stream);}
+     return output;
+   }finally{holder.close();}
+ }
+ private void drawFooter(Canvas canvas,int width,int height,int page) {
+   android.graphics.Paint paint=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+   paint.setColor(Color.rgb(35,78,117));paint.setTextSize(11);
+   paint.setTypeface(android.graphics.Typeface.create("sans-serif-medium",android.graphics.Typeface.BOLD));
+   String footer="Poultry Farm Management  |  M.K™  |  "+page;
+   canvas.drawText(footer,(width-paint.measureText(footer))/2f,height-15,paint);
+ }
+
  private Uri uri(File f){return FileProvider.getUriForFile(getContext(),getContext().getPackageName()+".pfmexport",f);}
  private void printPdf(File pdf,String filename) {
    PrintManager printer=(PrintManager)getContext().getSystemService(Context.PRINT_SERVICE);
@@ -247,13 +392,16 @@ public class PFMNativeExportPlugin extends Plugin {
        .setColorMode(PrintAttributes.COLOR_MODE_COLOR).build();
    printer.print(filename,adapter,attributes);
  }
- private void options(PluginCall c,File f,String filename,String mime){
+ private void options(PluginCall c,File f,String filename,String mime,Uri downloaded,String notice){
    final boolean pdf=mime.equals(PDF);
    String[] menu=pdf?
-     new String[]{"فتح PDF","طباعة PDF","حفظ في التنزيلات أو المستندات","مشاركة PDF","إلغاء"}:
-     new String[]{"فتح Excel","حفظ في التنزيلات أو المستندات","مشاركة Excel","إلغاء"};
+     new String[]{"فتح PDF","طباعة PDF","حفظ نسخة في المجلد الذي تختاره","مشاركة PDF","إلغاء"}:
+     new String[]{"فتح Excel / الطباعة من تطبيق Excel","حفظ نسخة في المجلد الذي تختاره","مشاركة Excel","إلغاء"};
+   String title=pdf?"تقرير PDF جاهز":"ملف Excel جاهز";
+   if(downloaded!=null)title+=" — محفوظ في Downloads/PoultryFarmManagement";
+   else if(notice!=null)title+=" — استخدم حفظ في المستندات";
    new AlertDialog.Builder(getActivity())
-    .setTitle(pdf?"تقرير PDF جاهز":"ملف Excel جاهز")
+    .setTitle(title)
     .setItems(menu,(dialog,index)->{
       int cancelIndex=pdf?4:3;
       if(index==cancelIndex){JSObject ret=new JSObject();ret.put("canceled",true);c.resolve(ret);return;}

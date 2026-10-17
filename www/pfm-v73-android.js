@@ -28,41 +28,29 @@ function style(){
  'html.pfm72-android-native .pfm73-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}',
  'html.pfm72-android-native .pfm73-cards>div{border:1px solid #e0eaf1;border-radius:9px;padding:10px;min-width:0}',
  'html.pfm72-android-native .pfm73-cards b{display:block;margin-top:6px;font-size:16px;overflow-wrap:anywhere}',
- 'html.pfm72-android-native #pfm73-sale-selectors{display:contents}'
+ 'html.pfm72-android-native #pfm73-sale-selectors{display:contents}',
+ 'html.pfm72-android-native #v53-nav .pfm-side-brand small{direction:ltr!important;unicode-bidi:isolate!important;display:inline-block!important;white-space:nowrap!important;text-align:left!important;letter-spacing:.03em!important}',
+ 'html.pfm72-android-native #v53-nav .v55-nav-items>button[data-stage]{font-size:14px!important;line-height:1.5!important;min-height:38px!important;text-align:start!important}',
+ 'html.pfm72-android-native #v53-nav .v55-group-title{font-size:15px!important;line-height:1.45!important}'
  ].join('\n');document.head.appendChild(sheet);
 }
-function nav(){
- const n=byId('v53-nav'),purchase=n?.querySelector('[data-v55-group="nutrition"]'),daily=n?.querySelector('[data-v55-group="daily"]');
- if(!n||!purchase||!daily)return;
- const pt=purchase.querySelector('.v55-group-title'),dt=daily.querySelector('.v55-group-title');
- if(pt){pt.dataset.v55Ar='المشتريات';pt.dataset.v55En='Purchases';pt.textContent=document.documentElement.lang==='en'?'Purchases':'المشتريات';}
- if(dt){dt.dataset.v55Ar='المتابعة اليومية للدورات';dt.dataset.v55En='Daily Cycle Monitoring';dt.textContent=document.documentElement.lang==='en'?'Daily Cycle Monitoring':'المتابعة اليومية للدورات';}
- const items=purchase.querySelector('.v55-nav-items'),dailyItems=daily.querySelector('.v55-nav-items');
- if(items&&dailyItems){
-   // Inspect the actual onclick values rather than an escaped CSS attribute
-   // selector, which was silently failing on Android WebView.
-   const buttons=[...n.querySelectorAll('.v55-nav-items > button')];
-   const find=screen=>buttons.find(b=>(b.getAttribute('onclick')||'').includes("show('"+screen+"'"));
-   for(const screen of ['feed','meds','inventory']){const b=find(screen);if(b)items.appendChild(b);}
-   for(const screen of ['daily','weights']){const b=find(screen);if(b)dailyItems.appendChild(b);}
-   // Do not duplicate any screen or move financial/administrative screens.
-   ['feed','meds','inventory'].forEach(screen=>{const b=find(screen);if(b&&b.parentElement===items)items.appendChild(b);});
-   ['daily','weights'].forEach(screen=>{const b=find(screen);if(b&&b.parentElement===dailyItems)dailyItems.appendChild(b);});
- }
- if(purchase.nextElementSibling!==daily)n.insertBefore(purchase,daily);
-}
+// One deterministic source of truth for Android-only menu grouping.
+// Move the ORIGINAL buttons (and their click handlers); never clone a view.
+// Android V7.3.2 sidebar/branding is owned exclusively by pfm-v732-android-navigation.js.
 
 function brand(){
  const approved='Poultry Farm Management M.K™';
  const login=document.querySelector('.pfm72-mobile-brand small');
- if(login)login.textContent=approved;
+ if(login){login.textContent=approved;login.dir='ltr';}
+ const side=document.querySelector('#v53-nav .pfm-side-brand small');
+ if(side){side.textContent='M.K™';side.dir='ltr';side.style.unicodeBidi='isolate';}
  const identity=document.querySelector('.pfm53-identity');
  if(identity){
-   const smalls=[...identity.querySelectorAll('small')];
-   if(smalls[0])smalls[0].textContent=approved;
-   for(const extra of smalls.slice(1))if(/^\s*M\.K™\s*$/.test(extra.textContent))extra.remove();
+  const smalls=[...identity.querySelectorAll('small')];
+  if(smalls[0]){smalls[0].textContent=approved;smalls[0].dir='ltr';}
+  for(const extra of smalls.slice(1))if(/^\s*M\.K™\s*$/.test(extra.textContent))extra.remove();
  }
- const foot=byId('pfmLoginFootText');if(foot)foot.textContent=approved;
+ const foot=byId('pfmLoginFootText');if(foot){foot.textContent=approved;foot.dir='ltr';}
 }
 
 function options(sel,rows,idFn,labelFn,previous){
@@ -209,7 +197,7 @@ function prepareAndroidPDF(html){
 window.PFMAndroidPrintLayout=prepareAndroidPDF;
 
 function init(){
- document.documentElement.classList.add('pfm72-android-native');style();nav();brand();
+ document.documentElement.classList.add('pfm72-android-native');style();
  if(window.PFMAndroidExport && typeof window.PFMAndroidExport.printHTML==='function'){
   const originalPDF=window.PFMAndroidExport.printHTML;
   if(!originalPDF.__pfm73){
@@ -235,7 +223,7 @@ function init(){
    setTimeout(()=>{salesSummary();financeSummary();},0);
   }
  });
- setInterval(brand,3000);
+ // V7.3.2: no legacy brand polling or competing navigation mutation.
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
