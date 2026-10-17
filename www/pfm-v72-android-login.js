@@ -61,6 +61,7 @@ function installAndroid73(){
  if(!nativeAndroid()||document.getElementById('pfm73-android-loader'))return;
  const script=document.createElement('script');script.id='pfm73-android-loader';
  script.src='./pfm-v73-android.js';document.head.appendChild(script);
+ const sidebar=document.createElement('script');sidebar.src='./pfm-v732-android-navigation.js';sidebar.id='pfm-v732-nav-loader';document.head.appendChild(sidebar);
  const core=document.createElement('script');core.src='./pfm-v74-purchase-core.js';
  core.addEventListener('load',()=>{
    if(document.getElementById('pfm75-purchases-loader'))return;
