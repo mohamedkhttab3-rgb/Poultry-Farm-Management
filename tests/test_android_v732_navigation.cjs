@@ -11,8 +11,8 @@ new vm.Script(nav,{filename:'pfm-v732-android-navigation.js'});
 assert.match(loader,/sidebar\.src='\.\x2fpfm-v732-android-navigation\.js'/);
 assert.doesNotMatch(old,/function nav\(\)/);
 assert.doesNotMatch(old,/setInterval\(brand,3000\)/);
-assert.match(version,/versionName "7\.3\.2"/);
-assert.match(version,/versionCode 732/);
+assert.match(version,/versionName "7\.3\.[23]"/);
+assert.match(version,/versionCode 73[23]/);
 const order=[
  "id:'project',ar:'مدخلات المشاريع'",
  "id:'nutrition',ar:'المشتريات'",

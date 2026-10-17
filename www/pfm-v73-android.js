@@ -171,42 +171,11 @@ function hideLegacyFinanceScopes(){
  }
  const hint=byId('financeScopeHint');if(hint)hint.style.display='none';
 }
-/* Android PDF draws a WebView with SCREEN media, unlike Chrome's print engine.
-   Re-target print-only styles to screen for this one, isolated HTML export.
-   Without this, the full-size source logo appears across pages and report
-   tables/charts lose their layout. Windows and browser output stay unchanged. */
-function prepareAndroidPDF(html){
- let report=String(html)
-   .replace(/Poultry Farm Manager(?: · M\.K™)?/g,'Poultry Farm Management M.K™')
-   .replace(/@media\s+print\b/gi,'@media screen');
- const override='<style id="pfm-android-pdf-layout">'+
-  'html,body{margin:0!important;padding:0!important;background:#fff!important;height:auto!important;overflow:visible!important}'+
-  'body.pfm59-printing #pfm59PrintRoot{display:block!important;position:static!important;visibility:visible!important;width:100%!important;height:auto!important;max-height:none!important;overflow:visible!important;font-family:Tahoma,Arial,sans-serif!important;color:#18314e!important}'+
-  '#pfm59PrintRoot .pfm59-print-head{display:flex!important;align-items:center!important;gap:14px!important;padding:0 0 10px!important;border-bottom:2px solid #173a63!important}'+
-  '#pfm59PrintRoot .pfm59-print-brand{display:flex!important;align-items:center!important;gap:12px!important}'+
-  '#pfm59PrintRoot .pfm59-print-brand img{display:block!important;flex:none!important;width:48px!important;height:48px!important;max-width:48px!important;max-height:48px!important;object-fit:contain!important}'+
-  '#pfm59PrintRoot .pfm59-print-footer{display:none!important}'+
-  '#pfm59PrintRoot table{width:100%!important;border-collapse:collapse!important}'+
-  '#pfm59PrintRoot th,#pfm59PrintRoot td{border:1px solid #dae4ed!important;padding:5px!important;font-size:10px!important;vertical-align:top!important;overflow-wrap:anywhere!important}'+
-  '#pfm59PrintRoot .pfm59-print-scopes{display:flex!important;flex-wrap:wrap!important;gap:12px!important;margin:0 0 13px!important}'+
-  '#pfm59PrintRoot img:not(.pfm59-print-brand img){max-width:100%!important;height:auto!important}'+
-  '</style>';
- if(!/<\/head>/i.test(report))throw Error('Invalid printable document: head is missing');
- return report.replace(/<\/head>/i,override+'</head>');
-}
-window.PFMAndroidPrintLayout=prepareAndroidPDF;
+// V7.3.3: native PDF uses Android's print media; do not rewrite @media print to screen.
 
 function init(){
  document.documentElement.classList.add('pfm72-android-native');style();
- if(window.PFMAndroidExport && typeof window.PFMAndroidExport.printHTML==='function'){
-  const originalPDF=window.PFMAndroidExport.printHTML;
-  if(!originalPDF.__pfm73){
-   function correctedPDF(html,name){
-    return originalPDF.call(this,prepareAndroidPDF(html),name);
-   }
-   correctedPDF.__pfm73=true;window.PFMAndroidExport.printHTML=correctedPDF;
-  }
- }
+
  const originalSales=window.renderSales;
  if(typeof originalSales==='function'&&!originalSales.__pfm73){
   function patchedSales(){const out=originalSales.apply(this,arguments);salesControls();salesSummary();return out;}

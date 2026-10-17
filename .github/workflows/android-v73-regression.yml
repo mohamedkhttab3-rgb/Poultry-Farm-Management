@@ -1,7 +1,7 @@
 name: Android V7.3 regression checks
 on:
   push:
-    branches: [android-v73-ui-export-review-20261016, 'fix/android-reliable-exports-20261017', 'fix/android-v732-navigation-brand']
+    branches: [android-v73-ui-export-review-20261016, 'fix/android-reliable-exports-20261017', 'fix/android-v732-navigation-brand', 'fix/android-v733-native-export-rebuild']
   workflow_dispatch:
 permissions:
   contents: read
