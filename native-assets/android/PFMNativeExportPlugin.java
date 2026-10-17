@@ -136,20 +136,15 @@ public class PFMNativeExportPlugin extends Plugin {
        } catch(Exception ignored){return blocked();}
      }
      @Override public void onPageFinished(WebView v,String url){
-       // Measure the actual result root, not body/viewport height. A stale CSS
-       // min-height previously created a second empty PDF sheet.
-       view.postDelayed(()->view.evaluateJavascript(
-         "(function(){var r=document.getElementById('pfm59PrintRoot');if(!r)return 0;"+
-         "var b=r.getBoundingClientRect();return Math.ceil(Math.max(0,b.bottom)+window.scrollY);})()",
-         measured->{
+       // JavaScript is intentionally disabled in the isolated export WebView.
+       // evaluateJavascript() is not a reliable source of content height here.
+       // Use WebView layout dimensions, rather than rejecting real reports as empty.
+       view.postDelayed(()->{
          if(settled.get())return;
          try{
-           // Render this read-only report into a real paginated PDF without Android
-           // PrintDocumentAdapter callbacks (their constructors are package-private).
            int sourceWidth=1180;
-           int contentHeight;
-           try{contentHeight=(int)Math.ceil(Double.parseDouble(measured.replace("\\\"","")));}catch(Exception ignore){contentHeight=0;}
-           if(contentHeight<=0)throw new Exception("Printable report is empty");
+           int contentHeight=Math.max(1,(int)Math.ceil(view.getContentHeight()*view.getScale()));
+           // The page is A4 landscape and the footer is drawn natively.
            if(contentHeight>100000)throw new Exception("Report is too long to render safely");
            view.measure(android.view.View.MeasureSpec.makeMeasureSpec(sourceWidth,android.view.View.MeasureSpec.EXACTLY),
              android.view.View.MeasureSpec.makeMeasureSpec(contentHeight,android.view.View.MeasureSpec.EXACTLY));
@@ -208,7 +203,7 @@ public class PFMNativeExportPlugin extends Plugin {
            cleanup.run();
            options(call,pdf,filename,PDF);
          }catch(Exception e){error.accept(e);}
-       }),850);
+       },850);
      }
    });
    view.loadDataWithBaseURL("https://localhost/",html,"text/html","UTF-8",null);
