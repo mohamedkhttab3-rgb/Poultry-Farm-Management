@@ -102,7 +102,7 @@ public class PFMNativeExportPlugin extends Plugin {
    AtomicBoolean settled=new AtomicBoolean(false);
    FrameLayout parent=getActivity().findViewById(android.R.id.content);
    WebView view=new WebView(getActivity());
-   view.getSettings().setJavaScriptEnabled(false);
+   view.getSettings().setJavaScriptEnabled(true);
    view.getSettings().setAllowFileAccess(false);
    view.getSettings().setAllowContentAccess(false);
    view.setBackgroundColor(android.graphics.Color.WHITE);
@@ -136,13 +136,20 @@ public class PFMNativeExportPlugin extends Plugin {
        } catch(Exception ignored){return blocked();}
      }
      @Override public void onPageFinished(WebView v,String url){
-       view.postDelayed(()->{
+       // Measure the actual result root, not body/viewport height. A stale CSS
+       // min-height previously created a second empty PDF sheet.
+       view.postDelayed(()->view.evaluateJavascript(
+         "(function(){var r=document.getElementById('pfm59PrintRoot');if(!r)return 0;"+
+         "var b=r.getBoundingClientRect();return Math.ceil(Math.max(0,b.bottom)+window.scrollY);})()",
+         measured->{
          if(settled.get())return;
          try{
            // Render this read-only report into a real paginated PDF without Android
            // PrintDocumentAdapter callbacks (their constructors are package-private).
            int sourceWidth=1180;
-           int contentHeight=Math.max(850,(int)Math.ceil(view.getContentHeight()*view.getScale()));
+           int contentHeight;
+           try{contentHeight=(int)Math.ceil(Double.parseDouble(measured.replace("\\\"","")));}catch(Exception ignore){contentHeight=0;}
+           if(contentHeight<=0)throw new Exception("Printable report is empty");
            if(contentHeight>100000)throw new Exception("Report is too long to render safely");
            view.measure(android.view.View.MeasureSpec.makeMeasureSpec(sourceWidth,android.view.View.MeasureSpec.EXACTLY),
              android.view.View.MeasureSpec.makeMeasureSpec(contentHeight,android.view.View.MeasureSpec.EXACTLY));
@@ -150,7 +157,7 @@ public class PFMNativeExportPlugin extends Plugin {
            int pageWidth=842,pageHeight=595,margin=23;
            float factor=(float)(pageWidth-2*margin)/sourceWidth;
            float slice=(pageHeight-margin-42)/factor;
-           int pages=Math.max(1,(int)Math.ceil(contentHeight/slice));
+           int pages=Math.max(1,(int)Math.ceil((contentHeight-2.0f)/slice));
            if(pages>160)throw new Exception("Report exceeds the page limit");
            android.graphics.pdf.PdfDocument document=new android.graphics.pdf.PdfDocument();
            File pdf=temp(".pdf");
@@ -201,7 +208,7 @@ public class PFMNativeExportPlugin extends Plugin {
            cleanup.run();
            options(call,pdf,filename,PDF);
          }catch(Exception e){error.accept(e);}
-       },850);
+       }),850);
      }
    });
    view.loadDataWithBaseURL("https://localhost/",html,"text/html","UTF-8",null);
@@ -258,9 +265,13 @@ public class PFMNativeExportPlugin extends Plugin {
       try{
         if(index==0){
           Intent view=new Intent(Intent.ACTION_VIEW);
-          view.setDataAndType(uri(f),mime);
+          Uri sharedUri=uri(f);
+          view.setDataAndType(sharedUri,mime);
+          view.setClipData(android.content.ClipData.newRawUri(filename,sharedUri));
           view.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-          getActivity().startActivity(Intent.createChooser(view,"فتح الملف"));
+          Intent chooser=Intent.createChooser(view,"فتح الملف");
+          chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+          getActivity().startActivity(chooser);
           done(c,"open");
         }else if(pdf&&index==1){
           printPdf(f,filename);done(c,"print");
@@ -272,10 +283,15 @@ public class PFMNativeExportPlugin extends Plugin {
           save.putExtra(Intent.EXTRA_TITLE,filename);
           startActivityForResult(c,save,"onSaved");
         }else{
-          Intent share=new Intent(Intent.ACTION_SEND);share.setType(mime);
-          share.putExtra(Intent.EXTRA_STREAM,uri(f));
+          Uri sharedUri=uri(f);
+          Intent share=new Intent(Intent.ACTION_SEND);
+          share.setType(mime);
+          share.putExtra(Intent.EXTRA_STREAM,sharedUri);
+          share.setClipData(android.content.ClipData.newRawUri(filename,sharedUri));
           share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-          getActivity().startActivity(Intent.createChooser(share,"مشاركة الملف"));
+          Intent chooser=Intent.createChooser(share,"مشاركة الملف");
+          chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+          getActivity().startActivity(chooser);
           done(c,"share");
         }
       }catch(ActivityNotFoundException e){fail(c,new Exception("No compatible app; use Save or Share"));}
