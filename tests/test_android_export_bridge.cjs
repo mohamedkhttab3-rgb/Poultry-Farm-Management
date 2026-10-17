@@ -52,6 +52,31 @@ const read=p=>fs.readFileSync(path.join(root,p),'utf8');
   await context.window.PFMAndroidExport.saveBlob(new Blob(['file']),'native.xlsx');
   assert.deepEqual(fallback.map(x=>x[0]),['printHTML','saveFile']);
   assert.equal(fallback[1][1].name,'native.xlsx');
+  // Actual PDF regression: the Android offscreen WebView paints SCREEN media.
+  // The printable result must have its tables, headings and bounded header logo.
+  const pageContext={
+    window:{Capacitor:{isNativePlatform:()=>true,getPlatform:()=> 'android'}},
+    document:{readyState:'loading',addEventListener:()=>{}},
+    console
+  };
+  vm.runInNewContext(ui,pageContext,{filename:'pfm-v73-android.js'});
+  const testPage='<!DOCTYPE html><html><head><style>'+
+    '@media screen{#pfm59PrintRoot{display:none!important}}'+
+    '@media print{#pfm59PrintRoot{display:block!important}'+
+    '#pfm59PrintRoot .pfm59-print-brand img{width:52px!important;height:52px!important}}'+
+    '</style></head><body class="pfm59-printing"><article id="pfm59PrintRoot">'+
+    '<div class="pfm59-print-brand"><img src="./pfm-logo.png"></div>'+
+    '<table><tr><td>Number of chicks 30000</td></tr></table></article></body></html>';
+  const fixed=pageContext.window.PFMAndroidPrintLayout(testPage);
+  assert.match(fixed,/@media screen\{#pfm59PrintRoot\{display:block!important\}/);
+  assert.doesNotMatch(fixed,/@media print/);
+  assert.match(fixed,/id="pfm-android-pdf-layout"/);
+  assert.match(fixed,/width:48px!important/);
+  assert.match(fixed,/Number of chicks 30000/);
+  assert.match(fixed,/<table>/);
+  assert.equal((fixed.match(/<\/article>/g)||[]).length,1);
+  assert.throws(()=>pageContext.window.PFMAndroidPrintLayout('<html>missing head</html>'),/head is missing/);
+  console.log('PASS: Android PDF screen renderer receives print layout, full report rows, and a bounded logo.');
   console.log('PASS: Android export bridge registers lazily, forwards PDF, encodes Excel bytes, and native contract matches.');
   console.log('LIMIT: This does not establish that the XLSX is valid or that a real Android device can print/share.');
 })().catch(err=>{console.error(err);process.exitCode=1});
