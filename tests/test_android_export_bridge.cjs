@@ -20,6 +20,19 @@ const read=p=>fs.readFileSync(path.join(root,p),'utf8');
   assert(native.includes('view.getContentHeight()*view.getScale()'),'PDF pagination must use WebView content dimensions');
   assert(!native.includes('measured.replace('),'PDF must not depend on JavaScript measurement with JS disabled');
   assert(native.includes('contentHeight-2.0f'),'Pagination must avoid trailing blank pages');
+  // Files have to exist in the user's Downloads, not just cache.
+  assert(native.includes('MediaStore.Downloads.EXTERNAL_CONTENT_URI'),'No real Downloads destination');
+  assert(native.includes('MediaStore.MediaColumns.IS_PENDING'),'Downloads write must be atomic');
+  assert(native.includes('saveToDownloads(file,downloadName(filename),mime)'),'PDF/XLSX must save automatically');
+  assert(native.includes('finishExport(call,pdf,filename,PDF)'),'PDF must use verified file delivery');
+  assert(native.includes('finishExport(call,file,filename,mime)'),'Excel must use verified file delivery');
+  assert(native.includes('PdfDocument holder=new PdfDocument()'),'Missing fallback PDF generator');
+  assert(native.includes('Html.fromHtml(body,Html.FROM_HTML_MODE_COMPACT)'),'Arabic report text fallback missing');
+  assert(native.includes('hasVisibleContent(view,sourceWidth,contentHeight)'),'Empty offscreen WebView must not be accepted');
+  assert(native.includes('PrintManager printer='),'PDF must support native Android printing');
+  assert(native.includes('Intent.ACTION_CREATE_DOCUMENT'),'Manual document save missing');
+  assert(native.includes('Intent.ACTION_SEND'),'Android document sharing missing');
+
 
   assert(html.includes('pfm-v72-android-export.js'),'Android export JS not linked');
   assert(ui.includes('Poultry Farm Management M.K™'),'Approved identity missing');
