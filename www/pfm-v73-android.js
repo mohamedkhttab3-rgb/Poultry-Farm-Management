@@ -36,47 +36,7 @@ function style(){
 }
 // One deterministic source of truth for Android-only menu grouping.
 // Move the ORIGINAL buttons (and their click handlers); never clone a view.
-function nav(){
- const n=byId('v53-nav');
- if(!n)return false;
- const layout=[
-  {group:'project',ar:'مدخلات المشاريع',en:'Project Setup',screens:['farms','houses','cycles']},
-  {group:'nutrition',ar:'المشتريات',en:'Purchases',screens:['feed','meds','inventory']},
-  {group:'daily',ar:'المتابعة اليومية للدورات',en:'Daily Cycle Monitoring',screens:['daily','weights']},
-  {group:'finance',ar:'المبيعات والمالية',en:'Sales & Finance',screens:['sales','finance']}
- ];
- const groups=new Map([...n.querySelectorAll('.v55-nav-group[data-v55-group]')]
-   .map(el=>[el.dataset.v55Group,el]));
- if(layout.some(x=>!groups.get(x.group)?.querySelector('.v55-nav-items')))return false;
- const buttons=new Map();
- for(const btn of n.querySelectorAll('.v55-nav-items > button[data-stage]')){
-  const match=(btn.getAttribute('onclick')||'').match(/(?:^|[\s;])show\(\s*['"]([^'"]+)['"]/);
-  if(match&&!buttons.has(match[1]))buttons.set(match[1],btn);
- }
- // Do not partially mutate the sidebar if a required button is missing.
- if(layout.some(x=>x.screens.some(screen=>!buttons.has(screen))))return false;
- for(const config of layout){
-  const group=groups.get(config.group),items=group.querySelector('.v55-nav-items');
-  const title=group.querySelector('.v55-group-title');
-  if(title){
-   title.dataset.v55Ar=config.ar;title.dataset.v55En=config.en;
-   title.textContent=document.documentElement.lang==='en'?config.en:config.ar;
-  }
-  // Reordering by appendChild preserves existing handlers and active state.
-  for(const screen of config.screens)items.appendChild(buttons.get(screen));
- }
- // The intended workflow is Project Setup -> Purchases -> Daily -> Sales.
- const purchase=groups.get('nutrition'),daily=groups.get('daily');
- if(purchase.nextElementSibling!==daily)n.insertBefore(purchase,daily);
- const passes=layout.every(config=>{
-  const actual=[...groups.get(config.group).querySelectorAll('.v55-nav-items > button[data-stage]')]
-   .map(btn=>(btn.getAttribute('onclick')||'').match(/show\(\s*['"]([^'"]+)['"]/)?.[1]);
-  return actual.length===config.screens.length && config.screens.every((v,i)=>actual[i]===v);
- });
- if(!passes)console.error('Android sidebar menu validation failed');
- return passes;
-}
-window.PFMAndroidRepairNavigation=nav;
+// Android V7.3.2 sidebar/branding is owned exclusively by pfm-v732-android-navigation.js.
 
 function brand(){
  const approved='Poultry Farm Management M.K™';
@@ -237,7 +197,7 @@ function prepareAndroidPDF(html){
 window.PFMAndroidPrintLayout=prepareAndroidPDF;
 
 function init(){
- document.documentElement.classList.add('pfm72-android-native');style();nav();brand();
+ document.documentElement.classList.add('pfm72-android-native');style();
  if(window.PFMAndroidExport && typeof window.PFMAndroidExport.printHTML==='function'){
   const originalPDF=window.PFMAndroidExport.printHTML;
   if(!originalPDF.__pfm73){
@@ -263,7 +223,7 @@ function init(){
    setTimeout(()=>{salesSummary();financeSummary();},0);
   }
  });
- setInterval(brand,3000);
+ // V7.3.2: no legacy brand polling or competing navigation mutation.
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
