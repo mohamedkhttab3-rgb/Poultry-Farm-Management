@@ -102,7 +102,7 @@ public class PFMNativeExportPlugin extends Plugin {
    AtomicBoolean settled=new AtomicBoolean(false);
    FrameLayout parent=getActivity().findViewById(android.R.id.content);
    WebView view=new WebView(getActivity());
-   view.getSettings().setJavaScriptEnabled(true);
+   view.getSettings().setJavaScriptEnabled(false);
    view.getSettings().setAllowFileAccess(false);
    view.getSettings().setAllowContentAccess(false);
    view.setBackgroundColor(android.graphics.Color.WHITE);
