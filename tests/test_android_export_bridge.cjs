@@ -15,6 +15,11 @@ const read=p=>fs.readFileSync(path.join(root,p),'utf8');
   for(const token of ['@CapacitorPlugin(name = "PFMNativeExport")','void saveFile(PluginCall call)','void printHTML(PluginCall call)'])
     assert(native.includes(token),'Missing native export contract: '+token);
   assert(installer.includes('registerPlugin(PFMNativeExportPlugin.class)'),'Android plugin registration missing');
+  assert(native.includes("newRawUri(filename,sharedUri)"),'Missing ClipData URI access for external apps');
+  assert(native.includes('Intent.FLAG_GRANT_READ_URI_PERMISSION'),'Missing external read grant');
+  assert(native.includes('getElementById(\'pfm59PrintRoot\')'),'Pagination must measure report root');
+  assert(native.includes('contentHeight-2.0f'),'Pagination must avoid trailing blank pages');
+
   assert(html.includes('pfm-v72-android-export.js'),'Android export JS not linked');
   assert(ui.includes('Poultry Farm Management M.K™'),'Approved identity missing');
   const methods=[];
