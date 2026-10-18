@@ -1,7 +1,7 @@
 name: Android V7.3 regression checks
 on:
   push:
-    branches: [android-v73-ui-export-review-20261016, 'fix/android-reliable-exports-20261017', 'fix/android-v732-navigation-brand', 'fix/android-v733-native-export-rebuild', 'fix/android-v734-direct-print-excel-save', 'fix/android-v735-pdf-print-save-share', 'fix/android-v736-pdf-page-renderer', 'fix/android-v737-paged-pdf', 'fix/android-v738-pdf-null-layout', 'fix/android-v739-native-chromium-pdf', 'fix/android-v7310-pdf-layout']
+    branches: [android-v73-ui-export-review-20261016, 'fix/android-reliable-exports-20261017', 'fix/android-v732-navigation-brand', 'fix/android-v733-native-export-rebuild', 'fix/android-v734-direct-print-excel-save', 'fix/android-v735-pdf-print-save-share', 'fix/android-v736-pdf-page-renderer', 'fix/android-v737-paged-pdf', 'fix/android-v738-pdf-null-layout', 'fix/android-v739-native-chromium-pdf', 'fix/android-v7310-pdf-layout', 'fix/android-v7311-pdf-structural-pages']
   workflow_dispatch:
 permissions:
   contents: write
@@ -65,32 +65,32 @@ jobs:
           sha256sum android/app/build/outputs/apk/debug/app-debug.apk > android/app/build/outputs/apk/debug/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: PoultryFarmManagement-Android-V7.3.10-QA-debug
+          name: PoultryFarmManagement-Android-V7.3.11-QA-debug
           path: |
             android/app/build/outputs/apk/debug/app-debug.apk
             android/app/build/outputs/apk/debug/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 14
 
-      - name: Publish direct-download Android V7.3.10 QA APK
-        if: github.ref == 'refs/heads/fix/android-v7310-pdf-layout'
+      - name: Publish direct-download Android V7.3.11 QA APK
+        if: github.ref == 'refs/heads/fix/android-v7311-pdf-structural-pages'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          TAG="v7.3.10-pdf-layout-qa"
-          FILE="PoultryFarmManagement-v7.3.10-Android-debug.apk"
+          TAG="v7.3.11-pdf-structure-qa"
+          FILE="PoultryFarmManagement-v7.3.11-Android-debug.apk"
           if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Release tag already exists; refusing to overwrite existing APK"
             exit 1
           fi
           mkdir -p release-files
           cp android/app/build/outputs/apk/debug/app-debug.apk "release-files/$FILE"
-          (cd release-files && sha256sum "$FILE" > SHA256SUMS-v7.3.10.txt)
+          (cd release-files && sha256sum "$FILE" > SHA256SUMS-v7.3.11.txt)
           gh release create "$TAG" \
-            "release-files/$FILE" "release-files/SHA256SUMS-v7.3.10.txt" \
+            "release-files/$FILE" "release-files/SHA256SUMS-v7.3.11.txt" \
             -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "Poultry Farm Management Android V7.3.10 PDF QA" \
+            --title "Poultry Farm Management Android V7.3.11 PDF QA" \
             --notes "QA debug APK. Rebuilt Android PDF generator, preserved native print/save/share and Excel XLSX. Automatic source/Android build checks completed, but actual phone PDF test is still required." \
             --prerelease
