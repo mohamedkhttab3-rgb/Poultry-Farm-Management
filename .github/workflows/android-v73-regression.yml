@@ -1,7 +1,7 @@
 name: Android V7.3 regression checks
 on:
   push:
-    branches: [android-v73-ui-export-review-20261016, 'fix/android-reliable-exports-20261017', 'fix/android-v732-navigation-brand', 'fix/android-v733-native-export-rebuild', 'fix/android-v734-direct-print-excel-save', 'fix/android-v735-pdf-print-save-share', 'fix/android-v736-pdf-page-renderer', 'fix/android-v737-paged-pdf']
+    branches: [android-v73-ui-export-review-20261016, 'fix/android-reliable-exports-20261017', 'fix/android-v732-navigation-brand', 'fix/android-v733-native-export-rebuild', 'fix/android-v734-direct-print-excel-save', 'fix/android-v735-pdf-print-save-share', 'fix/android-v736-pdf-page-renderer', 'fix/android-v737-paged-pdf', 'fix/android-v738-pdf-null-layout']
   workflow_dispatch:
 permissions:
   contents: read
