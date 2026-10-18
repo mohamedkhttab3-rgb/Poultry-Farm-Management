@@ -4,7 +4,7 @@ on:
     branches: [android-v73-ui-export-review-20261016, 'fix/android-reliable-exports-20261017', 'fix/android-v732-navigation-brand', 'fix/android-v733-native-export-rebuild', 'fix/android-v734-direct-print-excel-save', 'fix/android-v735-pdf-print-save-share', 'fix/android-v736-pdf-page-renderer', 'fix/android-v737-paged-pdf', 'fix/android-v738-pdf-null-layout']
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   android-only-checks:
     runs-on: ubuntu-latest
@@ -65,9 +65,32 @@ jobs:
           sha256sum android/app/build/outputs/apk/debug/app-debug.apk > android/app/build/outputs/apk/debug/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: PoultryFarmManagement-Android-V7.3.7-QA-debug
+          name: PoultryFarmManagement-Android-V7.3.8-QA-debug
           path: |
             android/app/build/outputs/apk/debug/app-debug.apk
             android/app/build/outputs/apk/debug/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish direct-download Android V7.3.8 QA APK
+        if: github.ref == 'refs/heads/fix/android-v738-pdf-null-layout'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="v7.3.8-pdf-qa"
+          FILE="PoultryFarmManagement-v7.3.8-Android-debug.apk"
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release tag already exists; refusing to overwrite existing APK"
+            exit 1
+          fi
+          mkdir -p release-files
+          cp android/app/build/outputs/apk/debug/app-debug.apk "release-files/$FILE"
+          (cd release-files && sha256sum "$FILE" > SHA256SUMS-v7.3.8.txt)
+          gh release create "$TAG" \
+            "release-files/$FILE" "release-files/SHA256SUMS-v7.3.8.txt" \
+            -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "Poultry Farm Management Android V7.3.8 PDF QA" \
+            --notes "QA debug APK. Fix PDF layout null error; retain native PDF save/print/share and Excel XLSX. Automatic source/Android build checks completed, but actual phone PDF test is still required." \
+            --prerelease
