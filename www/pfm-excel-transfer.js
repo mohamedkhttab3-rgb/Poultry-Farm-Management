@@ -195,7 +195,7 @@ function parseDb(books){
   validateData(obj);return obj;
 }
 function getDb(){if(typeof db==='undefined')throw Error('افتح البرنامج وسجّل الدخول أولاً');return db;}
-function trigger(blob,filename){if(window.PFMAndroidExport?.isAndroid){window.PFMAndroidExport.saveBlob(blob,filename).catch(e=>alert('تعذر حفظ الملف: '+e.message));return;}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2500);}
+function trigger(blob,filename){if(window.PFMAndroidExport?.isAndroid){window.PFMAndroidExport.saveBlob(blob,filename).then(r=>{if(r?.ok){const status=document.getElementById('pfmExcelStatus');if(status)status.textContent='تم حفظ الملف بنجاح: '+filename;}}).catch(e=>alert('تعذر حفظ الملف: '+e.message));return;}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2500);}
 function jsonBackup(d,filename){trigger(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),filename);}
 window.PFMExportExcel=()=>{
   try{
@@ -203,7 +203,7 @@ window.PFMExportExcel=()=>{
     const d=getDb();const books=buildBooks(d);const file=workbookFile(books);
     const now=new Date().toISOString().slice(0,10);
     trigger(file,`poultry-farm-data-${now}.xlsx`);
-    const status=document.getElementById('pfmExcelStatus');if(status)status.textContent=`تم إنشاء Excel من ${d.farms?.length||0} مزرعة و${d.houses?.length||0} عنبر و${d.cycles?.length||0} سجل دورة، مع بقية بيانات البرنامج.`;
+    // Native Android confirms saving only after the document picker writes all bytes.
   }catch(e){console.error('Excel export:',e);alert('تعذر تصدير Excel: '+e.message);}
 };
 window.PFMImportExcel=async input=>{
