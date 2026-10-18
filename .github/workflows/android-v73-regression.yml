@@ -1,7 +1,7 @@
 name: Android V7.3 regression checks
 on:
   push:
-    branches: [android-v73-ui-export-review-20261016, 'fix/android-reliable-exports-20261017', 'fix/android-v732-navigation-brand', 'fix/android-v733-native-export-rebuild', 'fix/android-v734-direct-print-excel-save', 'fix/android-v735-pdf-print-save-share', 'fix/android-v736-pdf-page-renderer']
+    branches: [android-v73-ui-export-review-20261016, 'fix/android-reliable-exports-20261017', 'fix/android-v732-navigation-brand', 'fix/android-v733-native-export-rebuild', 'fix/android-v734-direct-print-excel-save', 'fix/android-v735-pdf-print-save-share', 'fix/android-v736-pdf-page-renderer', 'fix/android-v737-paged-pdf']
   workflow_dispatch:
 permissions:
   contents: read
@@ -21,6 +21,7 @@ jobs:
           node scripts/verify-native.cjs
           node tests/test_android_export_bridge.cjs
           node tests/test_android_v736_pdf_pages.cjs
+          node tests/test_android_v737_paged_pdf.cjs
           node tests/test_android_v732_navigation.cjs
           node tests/test_v410_vat_contract.cjs
           node tests/test_pfm74_purchase_core.cjs
@@ -64,7 +65,7 @@ jobs:
           sha256sum android/app/build/outputs/apk/debug/app-debug.apk > android/app/build/outputs/apk/debug/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: PoultryFarmManagement-Android-V7.3.6-QA-debug
+          name: PoultryFarmManagement-Android-V7.3.7-QA-debug
           path: |
             android/app/build/outputs/apk/debug/app-debug.apk
             android/app/build/outputs/apk/debug/SHA256SUMS.txt
