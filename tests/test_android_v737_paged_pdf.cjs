@@ -13,6 +13,12 @@ for(const expected of ['window.PFMPages={prepare,show}',"flush();","appendTable(
 }
 assert(java.includes("pfm-v737-pdf-pages.js"),'Missing native composer load');
 assert(java.includes('window.PFMPages.prepare(695)'),'No precomposition');
+assert(java.includes('else if("pfm-v737-pdf-pages.js".equals(relative))type="text/javascript"'), 'Android WebView must explicitly serve the bundled page composer');
+assert(java.includes('setBlockNetworkLoads(false)'), 'Interception of https://localhost assets must be enabled');
+assert(java.includes("JSON.stringify({ok:false,error:'PDF page composer did not load'})"), 'Missing explicit page composer failure diagnostic');
+assert(java.includes('new JSONTokener(encoded==null?"null":encoded)'), 'PDF JS callback must be safely decoded');
+assert(!java.includes('Double.parseDouble(encoded)'), 'Raw null must never be converted to a PDF page count');
+
 assert(java.includes('window.PFMPages.show('),'Missing page selection');
 assert(!java.includes('web.scrollTo('),'Legacy scrolling-based rendering persists');
 assert(!java.includes('PAGE_MARGIN-segment[0]*scale'),'Legacy clipping persists');
