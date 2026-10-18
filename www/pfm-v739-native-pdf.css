@@ -1,0 +1,41 @@
+/* V7.3.9 Android PDF only: Chromium native paginated print.
+ * A4 landscape, high quality, reserved footer with centered logo. */
+@page { size: A4 landscape; margin: 11mm 11mm 24mm; }
+html,body,body.pfm59-printing {
+  margin:0!important;padding:0!important;background:#fff!important;
+  width:auto!important;min-width:0!important;max-width:none!important;
+  height:auto!important;overflow:visible!important;
+  -webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;
+}
+body.pfm59-printing > :not(#pfm59PrintRoot):not(.pfm739-footer) {display:none!important}
+html body.pfm59-printing #pfm59PrintRoot {
+  display:block!important;position:static!important;visibility:visible!important;
+  float:none!important;transform:none!important;overflow:visible!important;
+  width:100%!important;min-width:0!important;max-width:100%!important;
+  height:auto!important;max-height:none!important;box-sizing:border-box!important;
+  padding:0!important;margin:0!important;background:#fff!important;
+  font-family:Tahoma,Arial,sans-serif!important;
+}
+#pfm59PrintRoot * {box-sizing:border-box!important}
+#pfm59PrintRoot .pfm59-print-footer {display:none!important}
+#pfm59PrintRoot table {width:100%!important;max-width:100%!important;border-collapse:collapse!important;table-layout:auto!important}
+#pfm59PrintRoot thead {display:table-header-group!important}
+#pfm59PrintRoot tr {break-inside:avoid!important;page-break-inside:avoid!important}
+#pfm59PrintRoot svg,#pfm59PrintRoot img,#pfm59PrintRoot canvas,#pfm59PrintRoot figure,
+#pfm59PrintRoot .pfm53-panel,#pfm59PrintRoot .report-chart-wrap,
+#pfm59PrintRoot .pfm53-kpi,#pfm59PrintRoot .pfm53-mini {
+  max-width:100%!important;break-inside:avoid!important;page-break-inside:avoid!important;
+}
+#pfm59PrintRoot .pfm59-table-section {break-inside:auto!important;overflow:visible!important}
+#pfm59PrintRoot .pfm53-chart-row,#pfm59PrintRoot .pfm53-bottom-row {break-inside:auto!important}
+#pfm59PrintRoot .pfm53-chartsvg {max-height:175px!important;height:auto!important}
+#pfm59PrintRoot .pfm59-print-brand img {display:none!important}
+#pfm59PrintRoot .no-print,#pfm59PrintRoot button,#pfm59PrintRoot input,
+#pfm59PrintRoot select,#pfm59PrintRoot textarea {display:none!important}
+.pfm739-footer {
+  position:fixed!important;left:0!important;right:0!important;
+  bottom:-18mm!important;height:17mm!important;
+  display:flex!important;justify-content:center!important;align-items:center!important;
+  background:#fff!important;break-inside:avoid!important;
+}
+.pfm739-footer img {display:block!important;width:15mm!important;height:15mm!important;object-fit:contain!important}
