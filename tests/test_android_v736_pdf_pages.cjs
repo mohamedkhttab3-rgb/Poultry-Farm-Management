@@ -9,7 +9,7 @@ const excel=fs.readFileSync('www/pfm-excel-transfer.js','utf8');
 assert.match(java,/void printHTML\(PluginCall call\)/);
 assert.match(java,/void savePDF\(PluginCall call\)/);
 assert.match(java,/void sharePDF\(PluginCall call\)/);
-assert.match(java,/canvas\.drawBitmap\(logo,null,rect/);
+assert.match(java,/paper\.drawBitmap\(logo,null,rect,paint\)/);
 assert.match(java,/void writeSingleA4\(/);
 assert.doesNotMatch(java,/window\.PFM739Pages/);
 assert.match(java,/web\.layout\(0,0,RENDER_WIDTH,height\)/);
