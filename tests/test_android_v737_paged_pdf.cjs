@@ -7,12 +7,12 @@ const version=fs.readFileSync('scripts/set-android-version.cjs','utf8');
 for(const token of [
  'void writeSingleA4(',
  'void measureFullScreen(',
- 'Bitmap.createBitmap(pixelsWide,pixelsHigh,Bitmap.Config.ARGB_8888)',
- 'float ratio=Math.min(1f,Math.min(printableWidth/RENDER_WIDTH,',
- 'web.draw(capture)',
- 'paper.drawBitmap(image,null,new RectF(',
+ 'paper.scale(scale,scale)',
+ 'final float scale=Math.min(1f,Math.min(availableWidth/width,',
+ 'web.draw(paper)',
+ 'paper.clipRect(x,y,x+fittedWidth,y+fittedHeight)',
  'new PdfDocument.PageInfo.Builder(PAGE_W,PAGE_H,1)',
- 'paper.drawBitmap(logo,null,rect,paint)',
+ 'paper.drawBitmap(logo,null,rect,',
  'new PdfRenderer(fd)',
  'Intent.ACTION_SEND',
  'Intent.EXTRA_STREAM',
@@ -30,7 +30,7 @@ for(const method of ['printHTML','savePDF','sharePDF'])
  assert(bridge.includes('async '+method+'(html,name)'),method+' missing');
 assert(report.includes("action==='save'?'savePDF':action==='share'?'sharePDF':'printHTML'"),
  'Original print/save/share picker flow altered');
-assert(version.includes('versionName "7.3.12"'));
-assert(version.includes('versionCode 7312'));
-console.log('PASS: One A4 image, no magnification/cropping, M.K footer, native share/save/print and Excel unchanged');
+assert(version.includes('versionName "7.3.13"'));
+assert(version.includes('versionCode 7313'));
+console.log('PASS: One A4 screen drawing, no magnification/cropping, M.K footer, native share/save/print and Excel unchanged');
 console.log('LIMIT: Actual phone print preview and readability still require device test');
