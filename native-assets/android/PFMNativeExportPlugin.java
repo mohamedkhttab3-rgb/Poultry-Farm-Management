@@ -58,9 +58,9 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 /**
- * Android V7.3.10 - measured, independently painted PDF pages.
- * PDF: create one verified paginated file with unbroken chart panels, stamp
- * a centered footer logo on EVERY page, then Print / Save / Share.
+ * Android V7.3.12 - one A4 full-screen image PDF, no pagination.
+ * PDF: capture one complete screen, fit it inside one A4 sheet without
+ * clipping or enlargement, stamp centered logo, then Print / Save / Share.
  * Excel: validate real XLSX and use Android's normal Save As picker.
  * No custom multi-choice export menus, no cached-file-only fake save,
  * no application data or desktop code changes.
@@ -139,9 +139,9 @@ public final class PFMNativeExportPlugin extends Plugin {
   }
 
 
-  // V7.3.9: standalone PDF generator using Android PdfDocument, not the
-  // inaccessible framework-only PrintDocumentAdapter result constructors.
-  // A dedicated local page composer keeps complete charts/images on one page.
+  // Android V7.3.12: capture the ENTIRE printable screen as one A4 image.
+  // No pagination, scroll slices, CSS zoom or per-chart/page grouping.
+  // Native print, Save As, Share and XLSX remain separate, unchanged methods.
   private void prepareReport(PluginCall call,String html,String filename,String action){
     FrameLayout host=getActivity().findViewById(android.R.id.content);
     if(host==null){reject(call,"Cannot attach PDF renderer");return;}
@@ -153,6 +153,7 @@ public final class PFMNativeExportPlugin extends Plugin {
       web.getSettings().setAllowFileAccess(false);
       web.getSettings().setAllowContentAccess(false);
       web.getSettings().setBlockNetworkLoads(false);
+      web.getSettings().setUseWideViewPort(false);
       web.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE,null);
       web.setBackgroundColor(Color.WHITE);
       FrameLayout.LayoutParams frame=new FrameLayout.LayoutParams(RENDER_WIDTH,800);
@@ -169,8 +170,7 @@ public final class PFMNativeExportPlugin extends Plugin {
             String path=uri.getPath();
             if(path==null||!path.matches("/[A-Za-z0-9_./-]+")||path.contains(".."))return block();
             String file=path.substring(1),type;
-            if(file.equals("pfm-v739-native-pdf-pages.js"))type="text/javascript";
-            else if(file.endsWith(".css"))type="text/css";
+            if(file.endsWith(".css"))type="text/css";
             else if(file.endsWith(".png"))type="image/png";
             else if(file.endsWith(".svg"))type="image/svg+xml";
             else if(file.endsWith(".jpeg")||file.endsWith(".jpg"))type="image/jpeg";
@@ -182,134 +182,168 @@ public final class PFMNativeExportPlugin extends Plugin {
         }
         @Override public void onPageFinished(WebView target,String url){
           if(!loaded.compareAndSet(false,true))return;
-          main.postDelayed(()->composePages(call,web,filename,action),1800);
+          main.postDelayed(()->measureFullScreen(call,web,filename,action),900);
         }
         @Override public void onReceivedError(WebView target,int code,String reason,String failed){
           if("https://localhost/".equals(failed)&&loaded.compareAndSet(false,true)){
-            finishWeb();reject(call,"Unable to open report HTML: "+reason);
+            finishWeb();reject(call,"Unable to open report screen: "+reason);
           }
         }
       });
       String safe=html.replaceAll("(?is)<script\\b[^>]*>.*?</script>","")
         .replaceAll("(?is)<script\\b[^>]*>","")
         .replaceAll("(?is)<base\\b[^>]*>","");
-      if(!safe.matches("(?s).*?</head>.*"))throw new Exception("Invalid PDF report document");
+      if(!safe.matches("(?s).*?</head>.*"))throw new Exception("Invalid PDF screen HTML");
+      // The original results and colours are retained. Override only the
+      // offscreen page-size/overflow rules so the whole screen is measurable.
+      String oneImageCss="<style>"
+        +"html,body,body.pfm59-printing{margin:0!important;padding:0!important;"
+        +"width:1120px!important;min-width:1120px!important;max-width:1120px!important;"
+        +"height:auto!important;min-height:0!important;max-height:none!important;"
+        +"overflow:visible!important;background:white!important;}"
+        +"html body.pfm59-printing #pfm59PrintRoot{display:block!important;"
+        +"position:static!important;visibility:visible!important;transform:none!important;"
+        +"width:1100px!important;min-width:1100px!important;max-width:1100px!important;"
+        +"height:auto!important;max-height:none!important;overflow:visible!important;"
+        +"margin:0!important;box-sizing:border-box!important;}"
+        +"#pfm59PrintRoot .pfm59-print-footer{display:none!important;}"
+        +"#pfm59PrintRoot .pfm59-report,#pfm59PrintRoot .report,"
+        +"#pfm59PrintRoot .pfm59-dashboard,#pfm59PrintRoot .pfm59-table-section"
+        +"{height:auto!important;max-height:none!important;overflow:visible!important;}"
+        +"</style>";
       safe=safe.replaceFirst("(?i)</head>",
-        "<base href=\"https://localhost/\"/><link rel=\"stylesheet\" href=\"./pfm-v739-native-pdf.css\"/></head>");
-      safe=safe.replaceFirst("(?i)</body>",
-        "<script src=\"./pfm-v739-native-pdf-pages.js\"></script></body>");
+        "<base href=\"https://localhost/\"/>"+oneImageCss+"</head>");
       web.loadDataWithBaseURL("https://localhost/",safe,"text/html","UTF-8",null);
       main.postDelayed(()->{
         if(reportView==web&&!loaded.get()){
-          finishWeb();reject(call,"Timed out loading PDF report");
+          finishWeb();reject(call,"Timed out loading PDF screen");
         }
       },45000);
     }catch(Exception e){finishWeb();reject(call,e.getMessage());}
   }
-  private void composePages(PluginCall call,WebView web,String filename,String action){
+
+  private void measureFullScreen(PluginCall call,WebView web,String filename,String action){
     if(reportView!=web)return;
     final String js="(function(){try{"+
-      "if(!window.PFM739Pages||typeof window.PFM739Pages.prepare!=='function')"+
-      "return JSON.stringify({error:'PDF page engine unavailable'});"+
-      "return JSON.stringify({pages:window.PFM739Pages.prepare(695)});"+
+      "var root=document.getElementById('pfm59PrintRoot');"+
+      "if(!root)throw Error('Printable screen was not found');"+
+      "var top=root.getBoundingClientRect().top;"+
+      "var max=Math.max(document.body.scrollHeight,document.documentElement.scrollHeight,"+
+      "root.scrollHeight,root.getBoundingClientRect().height);"+
+      "var els=root.querySelectorAll('*');"+
+      "for(var i=0;i<els.length;i++){var r=els[i].getBoundingClientRect();"+
+      "if(r.height>0&&r.bottom-top>max)max=r.bottom-top;}"+
+      "var pending=0;var imgs=root.querySelectorAll('img');"+
+      "for(var k=0;k<imgs.length;k++)if(!imgs[k].complete)pending++;"+
+      "return JSON.stringify({height:Math.ceil(max+8),"+
+      "text:(root.textContent||'').trim().length,pending:pending});"+
       "}catch(e){return JSON.stringify({error:String(e&&e.message||e)});}})()";
-    web.evaluateJavascript(js,value->{
+    web.evaluateJavascript(js,result->{
       try{
-        Object raw=new JSONTokener(value==null?"null":value).nextValue();
-        if(!(raw instanceof String))throw new Exception("PDF page engine did not return its result");
-        JSONObject state=new JSONObject((String)raw);
-        if(state.has("error"))throw new Exception(state.optString("error","Unknown page error"));
-        int pageCount=state.getInt("pages");
-        if(pageCount<1||pageCount>160)throw new Exception("Invalid PDF page count");
-        drawPages(call,web,filename,action,pageCount);
-      }catch(Exception e){finishWeb();reject(call,"PDF layout failed: "+e.getMessage());}
+        Object raw=new JSONTokener(result==null?"null":result).nextValue();
+        if(!(raw instanceof String))throw new Exception("PDF screen dimensions are missing");
+        JSONObject info=new JSONObject((String)raw);
+        if(info.has("error"))throw new Exception(info.getString("error"));
+        if(info.getInt("pending")>0){
+          // Wait for logos/embedded report images, with a finite limit.
+          int attempts=web.getTag() instanceof Integer?(Integer)web.getTag():0;
+          if(attempts<8){
+            web.setTag(attempts+1);
+            main.postDelayed(()->measureFullScreen(call,web,filename,action),500);
+            return;
+          }
+        }
+        int height=info.getInt("height");
+        if(height<60||height>24000||info.getInt("text")<2)
+          throw new Exception("Printable screen size is invalid");
+        FrameLayout.LayoutParams params=(FrameLayout.LayoutParams)web.getLayoutParams();
+        params.width=RENDER_WIDTH;
+        params.height=height;
+        web.setLayoutParams(params);
+        web.measure(android.view.View.MeasureSpec.makeMeasureSpec(RENDER_WIDTH,
+            android.view.View.MeasureSpec.EXACTLY),
+          android.view.View.MeasureSpec.makeMeasureSpec(height,
+            android.view.View.MeasureSpec.EXACTLY));
+        web.layout(0,0,RENDER_WIDTH,height);
+        web.scrollTo(0,0);
+        web.invalidate();
+        // Let Chromium paint the resized, full-height view before snapshotting.
+        main.postDelayed(()->writeSingleA4(call,web,filename,action,height),700);
+      }catch(Exception e){finishWeb();reject(call,"PDF screen preparation failed: "+e.getMessage());}
     });
   }
-  // Render one COMPLETE, independently composed A4 page after WebView paints
-  // the newly selected DOM. Drawing immediately in evaluateJavascript's callback
-  // captured the previous frame, duplicating dashboard tiles on the next sheet.
-  private void drawPages(PluginCall call,WebView web,String filename,String action,int count){
-    final PdfDocument pdf=new PdfDocument();
-    final File output;
-    try{output=temp(".pdf");}
-    catch(Exception e){pdf.close();finishWeb();reject(call,e.getMessage());return;}
-    final Bitmap logo;
-    try(InputStream in=getContext().getAssets().open("public/pfm-logo.png")){
-      logo=BitmapFactory.decodeStream(in);
-    }catch(Exception e){pdf.close();finishWeb();reject(call,"Report logo unavailable");return;}
-    if(logo==null){pdf.close();finishWeb();reject(call,"Report logo is invalid");return;}
-    new Runnable(){
-      int pageIndex=0;
-      boolean stopped=false;
-      void close(){try{pdf.close();}catch(Exception ignored){}logo.recycle();}
-      void fail(String reason){
-        if(stopped)return;
-        stopped=true;close();finishWeb();output.delete();reject(call,reason);
+
+  private void writeSingleA4(PluginCall call,WebView web,String filename,
+      String action,int height){
+    if(reportView!=web)return;
+    PdfDocument pdf=new PdfDocument();
+    Bitmap image=null,logo=null;
+    File output=null;
+    try{
+      output=temp(".pdf");
+      try(InputStream in=getContext().getAssets().open("public/pfm-logo.png")){
+        logo=BitmapFactory.decodeStream(in);
       }
-      @Override public void run(){
-        if(stopped)return;
-        if(reportView!=web){fail("PDF renderer interrupted");return;}
-        final int expected=pageIndex;
-        final String script="(function(){try{return JSON.stringify(window.PFM739Pages.show("+
-          expected+"));}catch(e){return JSON.stringify({error:String(e&&e.message||e)});}})()";
-        web.evaluateJavascript(script,value->{
-          try{
-            Object raw=new JSONTokener(value==null?"null":value).nextValue();
-            if(!(raw instanceof String))throw new Exception("Page layout returned no state");
-            JSONObject state=new JSONObject((String)raw);
-            if(state.has("error"))throw new Exception(state.getString("error"));
-            if(state.getInt("index")!=expected||
-               state.getInt("height")>685||state.getInt("text")<2)
-              throw new Exception("PDF page exceeds safe printing area");
-            web.invalidate();
-            // Wait for at least one Android view frame AFTER show() sets page HTML.
-            // Each page will then be painted from its own DOM snapshot.
-            main.postDelayed(()->{
-              if(stopped)return;
-              if(reportView!=web){fail("PDF page changed before drawing");return;}
-              try{
-                PdfDocument.Page page=pdf.startPage(
-                  new PdfDocument.PageInfo.Builder(PAGE_W,PAGE_H,expected+1).create());
-                Canvas canvas=page.getCanvas();
-                canvas.drawColor(Color.WHITE);
-                canvas.save();
-                canvas.clipRect(PAGE_MARGIN,PAGE_MARGIN,
-                  PAGE_W-PAGE_MARGIN,PAGE_H-FOOTER_RESERVED);
-                canvas.translate(PAGE_MARGIN,PAGE_MARGIN);
-                float scale=(PAGE_W-2f*PAGE_MARGIN)/RENDER_WIDTH;
-                canvas.scale(scale,scale);
-                web.draw(canvas);
-                canvas.restore();
-                // Footer is placed after the body clip: no report content can
-                // overlap the logo, and the same centered mark is on every page.
-                float logoSize=50f;
-                RectF rect=new RectF((PAGE_W-logoSize)/2f,PAGE_H-64,
-                  (PAGE_W+logoSize)/2f,PAGE_H-14);
-                canvas.drawBitmap(logo,null,rect,
-                  new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG|
-                    android.graphics.Paint.FILTER_BITMAP_FLAG));
-                pdf.finishPage(page);
-                pageIndex++;
-                if(pageIndex<count){main.postDelayed(this,50);return;}
-                try(OutputStream destination=new FileOutputStream(output)){
-                  pdf.writeTo(destination);
-                }
-                stopped=true;close();finishWeb();
-                new Thread(()->{
-                  try{
-                    verifyPdf(output);
-                    main.post(()->deliverPdf(call,output,filename,action));
-                  }catch(Exception e){
-                    output.delete();
-                    main.post(()->reject(call,"PDF file verification failed: "+e.getMessage()));
-                  }
-                },"PFM-PDF-verify").start();
-              }catch(Exception e){fail("PDF page "+(expected+1)+": "+e.getMessage());}
-            },200);
-          }catch(Exception e){fail("PDF layout page "+(expected+1)+": "+e.getMessage());}
-        });
+      if(logo==null)throw new Exception("PDF footer logo is missing");
+      if(web.getWidth()!=RENDER_WIDTH||web.getHeight()!=height)
+        throw new Exception("Full screen did not finish layout");
+      final float printableWidth=PAGE_W-2f*PAGE_MARGIN;
+      final float printableHeight=PAGE_H-PAGE_MARGIN-FOOTER_RESERVED;
+      // FIT CENTER: no cropping and never enlarge the original screen.
+      final float ratio=Math.min(1f,Math.min(printableWidth/RENDER_WIDTH,
+        printableHeight/height));
+      final float imageWidth=RENDER_WIDTH*ratio;
+      final float imageHeight=height*ratio;
+      // Raster at 3x A4 PDF coordinates (~216dpi), independent of screen height.
+      final float quality=3f;
+      int pixelsWide=Math.max(1,Math.round(imageWidth*quality));
+      int pixelsHigh=Math.max(1,Math.round(imageHeight*quality));
+      image=Bitmap.createBitmap(pixelsWide,pixelsHigh,Bitmap.Config.ARGB_8888);
+      Canvas capture=new Canvas(image);
+      capture.drawColor(Color.WHITE);
+      capture.scale(pixelsWide/(float)RENDER_WIDTH,pixelsHigh/(float)height);
+      web.draw(capture);
+      PdfDocument.Page page=pdf.startPage(
+        new PdfDocument.PageInfo.Builder(PAGE_W,PAGE_H,1).create());
+      Canvas paper=page.getCanvas();
+      paper.drawColor(Color.WHITE);
+      android.graphics.Paint paint=new android.graphics.Paint(
+        android.graphics.Paint.ANTI_ALIAS_FLAG|android.graphics.Paint.FILTER_BITMAP_FLAG);
+      float left=(PAGE_W-imageWidth)/2f;
+      float top=PAGE_MARGIN+(printableHeight-imageHeight)/2f;
+      paper.drawBitmap(image,null,new RectF(left,top,left+imageWidth,top+imageHeight),paint);
+      // Keep the approved M.K footer centred, outside the screen image.
+      float logoSize=50f;
+      RectF rect=new RectF((PAGE_W-logoSize)/2f,PAGE_H-64,
+        (PAGE_W+logoSize)/2f,PAGE_H-14);
+      paper.drawBitmap(logo,null,rect,paint);
+      pdf.finishPage(page);
+      try(OutputStream destination=new FileOutputStream(output)){
+        pdf.writeTo(destination);
       }
-    }.run();
+      image.recycle();image=null;
+      logo.recycle();logo=null;
+      pdf.close();pdf=null;
+      finishWeb();
+      final File verified=output;
+      new Thread(()->{
+        try{
+          verifyPdf(verified);
+          main.post(()->deliverPdf(call,verified,filename,action));
+        }catch(Exception e){
+          verified.delete();
+          main.post(()->reject(call,"PDF file verification failed: "+e.getMessage()));
+        }
+      },"PFM-A4-PDF-verify").start();
+    }catch(Exception e){
+      if(output!=null)output.delete();
+      finishWeb();
+      reject(call,"PDF screen capture failed: "+e.getMessage());
+    }finally{
+      if(image!=null)image.recycle();
+      if(logo!=null)logo.recycle();
+      if(pdf!=null)pdf.close();
+    }
   }
   private void verifyPdf(File file)throws Exception{
     if(!file.isFile()||file.length()<1300)throw new Exception("PDF file is empty");
