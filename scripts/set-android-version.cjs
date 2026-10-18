@@ -7,6 +7,6 @@ let body=fs.readFileSync(target,'utf8');
 if(!/versionName\s+"[^"]+"/.test(body))throw Error('Android versionName was not found');
 body=body.replace(/versionName\s+"[^"]+"/,'versionName "7.3.10"');
 if(!/versionCode\s+\d+/.test(body))throw Error('Android versionCode was not found');
-body=body.replace(/versionCode\s+\d+/,'versionCode 740');
+body=body.replace(/versionCode\s+\d+/,'versionCode 7310');
 fs.writeFileSync(target,body);
-console.log('PASS: Android versionCode 740 and versionName 7.3.10');
+console.log('PASS: Android versionCode 7310 and versionName 7.3.10');
