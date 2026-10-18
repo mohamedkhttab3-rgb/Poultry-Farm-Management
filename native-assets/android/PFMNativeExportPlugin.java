@@ -148,7 +148,9 @@ public final class PFMNativeExportPlugin extends Plugin {
       view.getSettings().setJavaScriptEnabled(true); // Only bundled, trusted page composer
       view.getSettings().setAllowFileAccess(false);
       view.getSettings().setAllowContentAccess(false);
-      view.getSettings().setBlockNetworkLoads(true);
+      // The standalone document uses only packaged https://localhost/ assets.
+      // Allow requests to reach shouldInterceptRequest, which denies every other host.
+      view.getSettings().setBlockNetworkLoads(false);
       view.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE,null);
       view.setBackgroundColor(Color.WHITE);
       FrameLayout.LayoutParams frame=new FrameLayout.LayoutParams(RENDER_WIDTH,800);
@@ -172,6 +174,7 @@ public final class PFMNativeExportPlugin extends Plugin {
             else if(relative.endsWith(".svg"))type="image/svg+xml";
             else if(relative.endsWith(".jpeg")||relative.endsWith(".jpg"))type="image/jpeg";
             else if(relative.endsWith(".webp"))type="image/webp";
+            else if("pfm-v737-pdf-pages.js".equals(relative))type="text/javascript";
             else return blocked();
             return new WebResourceResponse(type,type.startsWith("text/")?"UTF-8":null,
               getContext().getAssets().open("public/"+relative));
@@ -206,10 +209,23 @@ public final class PFMNativeExportPlugin extends Plugin {
   }
   private void measureReport(PluginCall call,WebView web,String filename,String action){
     if(reportView!=web)return;
-    web.evaluateJavascript("window.PFMPages.prepare(695)",encoded->{
+    // Evaluate JS inside a guarded envelope. Android evaluateJavascript returns
+    // the literal "null" when a script is missing/throws; never parse that as a number.
+    final String prepareJs="(function(){try{"+
+      "if(!window.PFMPages||typeof window.PFMPages.prepare!=='function')"+
+      "return JSON.stringify({ok:false,error:'PDF page composer did not load'});"+
+      "var count=window.PFMPages.prepare(695);"+
+      "return JSON.stringify({ok:true,count:count});"+
+      "}catch(e){return JSON.stringify({ok:false,error:String(e&&e.message||e)});}})()";
+    web.evaluateJavascript(prepareJs,encoded->{
       try{
-        int count=(int)Double.parseDouble(encoded);
-        if(count<1||count>160)throw new Exception("Invalid page count");
+        Object parsed=new JSONTokener(encoded==null?"null":encoded).nextValue();
+        if(!(parsed instanceof String))throw new Exception("PDF composer returned no result");
+        JSONObject result=new JSONObject((String)parsed);
+        if(!result.optBoolean("ok",false))
+          throw new Exception(result.optString("error","PDF page layout failed"));
+        int count=result.optInt("count",0);
+        if(count<1||count>160)throw new Exception("Invalid PDF page count: "+count);
         renderPages(call,web,filename,action,count);
       }catch(Exception e){finishWeb();reject(call,"PDF layout failed: "+e.getMessage());}
     });
