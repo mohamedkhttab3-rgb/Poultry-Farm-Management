@@ -18,7 +18,7 @@ const read=p=>fs.readFileSync(path.join(root,p),'utf8');
   assert(native.includes('void savePDF(PluginCall call)'), 'Native PDF save missing');
   assert(native.includes('void sharePDF(PluginCall call)'), 'Native PDF sharing missing');
   assert(native.includes('void printHTML(PluginCall call)'), 'PDF print missing');
-  assert(native.includes('canvas.drawBitmap(logo,null,footer,paint)'), 'Logo missing from per-page footer');
+  assert(native.includes('canvas.drawBitmap(logo,null,rect'), 'Logo missing from per-page footer');
   assert(native.includes('calculatePages(height,logicalPage,regions)'), 'Page grouping missing');
   assert(native.includes('PdfRenderer reader=new PdfRenderer(fd)'), 'PDF verification missing');
   assert(native.includes('Intent.ACTION_SEND'), 'PDF share intent missing');
