@@ -18,7 +18,7 @@ const read=p=>fs.readFileSync(path.join(root,p),'utf8');
   assert(native.includes('void savePDF(PluginCall call)'), 'Native PDF save missing');
   assert(native.includes('void sharePDF(PluginCall call)'), 'Native PDF sharing missing');
   assert(native.includes('void printHTML(PluginCall call)'), 'PDF print missing');
-  assert(native.includes('canvas.drawBitmap(logo,null,rect'), 'Logo missing from per-page footer');
+  assert(native.includes('paper.drawBitmap(logo,null,rect,paint)'), 'Centered logo missing from A4 footer');
   assert(native.includes('writeSingleA4('), 'Single A4 screen capture missing');
   assert(!native.includes('window.PFM739Pages'), 'Legacy PDF pagination present');
   assert(native.includes('PdfRenderer renderer=new PdfRenderer(fd)'), 'PDF verification missing');
