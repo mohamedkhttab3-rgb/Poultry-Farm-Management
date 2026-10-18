@@ -58,8 +58,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 /**
- * Android V7.3.12 - one A4 full-screen image PDF, no pagination.
- * PDF: capture one complete screen, fit it inside one A4 sheet without
+ * Android V7.3.13 - one full-screen A4 PDF with safe FileProvider sharing.
+ * PDF: draw the complete screen into one A4 sheet without
  * clipping or enlargement, stamp centered logo, then Print / Save / Share.
  * Excel: validate real XLSX and use Android's normal Save As picker.
  * No custom multi-choice export menus, no cached-file-only fake save,
@@ -273,55 +273,59 @@ public final class PFMNativeExportPlugin extends Plugin {
     });
   }
 
+  // Draw the full Android WebView into one A4 PdfDocument page at source scale.
+  // No intermediate giant bitmap: direct canvas output avoids OutOfMemoryError
+  // on long reports. Width and height are always fitted WITHOUT enlargement.
+  // Android FileProvider/SAF/PrintManager remain in the existing, separate
+  // delivery methods below; no file:// URIs or storage permissions.
   private void writeSingleA4(PluginCall call,WebView web,String filename,
       String action,int height){
     if(reportView!=web)return;
     PdfDocument pdf=new PdfDocument();
-    Bitmap image=null,logo=null;
+    Bitmap logo=null;
     File output=null;
     try{
       output=temp(".pdf");
       try(InputStream in=getContext().getAssets().open("public/pfm-logo.png")){
         logo=BitmapFactory.decodeStream(in);
       }
-      if(logo==null)throw new Exception("PDF footer logo is missing");
-      if(web.getWidth()!=RENDER_WIDTH||web.getHeight()!=height)
-        throw new Exception("Full screen did not finish layout");
-      final float printableWidth=PAGE_W-2f*PAGE_MARGIN;
-      final float printableHeight=PAGE_H-PAGE_MARGIN-FOOTER_RESERVED;
-      // FIT CENTER: no cropping and never enlarge the original screen.
-      final float ratio=Math.min(1f,Math.min(printableWidth/RENDER_WIDTH,
-        printableHeight/height));
-      final float imageWidth=RENDER_WIDTH*ratio;
-      final float imageHeight=height*ratio;
-      // Raster at 3x A4 PDF coordinates (~216dpi), independent of screen height.
-      final float quality=3f;
-      int pixelsWide=Math.max(1,Math.round(imageWidth*quality));
-      int pixelsHigh=Math.max(1,Math.round(imageHeight*quality));
-      image=Bitmap.createBitmap(pixelsWide,pixelsHigh,Bitmap.Config.ARGB_8888);
-      Canvas capture=new Canvas(image);
-      capture.drawColor(Color.WHITE);
-      capture.scale(pixelsWide/(float)RENDER_WIDTH,pixelsHigh/(float)height);
-      web.draw(capture);
+      if(logo==null)throw new Exception("Report footer logo is missing");
+      final int width=web.getWidth();
+      if(width!=RENDER_WIDTH||web.getHeight()!=height)
+        throw new Exception("Screen layout is not ready for PDF export");
+      // Exact A4 landscape in PDF points; 27pt margin and a reserved logo strip.
+      final float availableWidth=PAGE_W-2f*PAGE_MARGIN;
+      final float availableHeight=PAGE_H-PAGE_MARGIN-FOOTER_RESERVED;
+      final float scale=Math.min(1f,Math.min(availableWidth/width,
+        availableHeight/(float)height));
+      if(!(scale>0f)||!Float.isFinite(scale))
+        throw new Exception("Invalid A4 scale");
+      final float fittedWidth=width*scale;
+      final float fittedHeight=height*scale;
+      final float x=PAGE_MARGIN+(availableWidth-fittedWidth)/2f;
+      final float y=PAGE_MARGIN+(availableHeight-fittedHeight)/2f;
       PdfDocument.Page page=pdf.startPage(
         new PdfDocument.PageInfo.Builder(PAGE_W,PAGE_H,1).create());
       Canvas paper=page.getCanvas();
       paper.drawColor(Color.WHITE);
-      android.graphics.Paint paint=new android.graphics.Paint(
-        android.graphics.Paint.ANTI_ALIAS_FLAG|android.graphics.Paint.FILTER_BITMAP_FLAG);
-      float left=(PAGE_W-imageWidth)/2f;
-      float top=PAGE_MARGIN+(printableHeight-imageHeight)/2f;
-      paper.drawBitmap(image,null,new RectF(left,top,left+imageWidth,top+imageHeight),paint);
-      // Keep the approved M.K footer centred, outside the screen image.
+      paper.save();
+      paper.clipRect(x,y,x+fittedWidth,y+fittedHeight);
+      paper.translate(x,y);
+      paper.scale(scale,scale);
+      web.scrollTo(0,0);
+      // Original screen is drawn ONCE; no slicing, duplicate sheets or zoom.
+      web.draw(paper);
+      paper.restore();
       float logoSize=50f;
       RectF rect=new RectF((PAGE_W-logoSize)/2f,PAGE_H-64,
         (PAGE_W+logoSize)/2f,PAGE_H-14);
-      paper.drawBitmap(logo,null,rect,paint);
+      paper.drawBitmap(logo,null,rect,
+        new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG|
+          android.graphics.Paint.FILTER_BITMAP_FLAG));
       pdf.finishPage(page);
       try(OutputStream destination=new FileOutputStream(output)){
         pdf.writeTo(destination);
       }
-      image.recycle();image=null;
       logo.recycle();logo=null;
       pdf.close();pdf=null;
       finishWeb();
@@ -332,15 +336,14 @@ public final class PFMNativeExportPlugin extends Plugin {
           main.post(()->deliverPdf(call,verified,filename,action));
         }catch(Exception e){
           verified.delete();
-          main.post(()->reject(call,"PDF file verification failed: "+e.getMessage()));
+          main.post(()->reject(call,"PDF integrity check failed: "+e.getMessage()));
         }
       },"PFM-A4-PDF-verify").start();
     }catch(Exception e){
       if(output!=null)output.delete();
       finishWeb();
-      reject(call,"PDF screen capture failed: "+e.getMessage());
+      reject(call,"PDF export failed: "+e.getMessage());
     }finally{
-      if(image!=null)image.recycle();
       if(logo!=null)logo.recycle();
       if(pdf!=null)pdf.close();
     }
