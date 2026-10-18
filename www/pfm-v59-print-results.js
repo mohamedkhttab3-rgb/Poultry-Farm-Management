@@ -202,9 +202,12 @@ let activePrint=null,activeFrame=null;
  function standalone(root){
    const base=e(document.baseURI||'about:blank');
    const css=stylesheetText();
+   const android=window.Capacitor?.isNativePlatform?.() && window.Capacitor.getPlatform?.()==='android';
+   const printCopy=android?root.cloneNode(true):root;
+   if(android){const foot=printCopy.querySelector('.pfm59-print-footer');if(foot){foot.replaceChildren();const img=document.createElement('img');img.src='./pfm-logo.png';img.alt='M.K™';foot.appendChild(img);}}
    const cssLink=css?'<style>'+css.replace(/<\/style/gi,'<\\/style')+'</style>':'<link rel="stylesheet" href="./pfm-v59-print-results.css"/>';
    const safeTitle=e(root.querySelector('.pfm59-print-brand strong')?.textContent||'Poultry Farm Manager');
-   return '<!DOCTYPE html><html dir="'+(document.documentElement.dir||'rtl')+'" lang="'+(document.documentElement.lang||'ar')+'"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><base href="'+base+'"/><title>'+safeTitle+'</title>'+cssLink+(root.querySelector('.pfm67-print-all-finance')?'<link rel="stylesheet" href="./v52-finance.css"/><link rel="stylesheet" href="./pfm-v67-finance-print.css"/>':'')+'<style>html,body{background:#fff!important;margin:0!important;padding:0!important;}body.pfm59-printing #pfm59PrintRoot{display:block!important;}@media print{html,body{height:auto!important;overflow:visible!important;}}@media screen{body.pfm59-printing #pfm59PrintRoot{display:block!important;}}</style></head><body class="pfm59-printing">'+root.outerHTML+'</body></html>';
+   return '<!DOCTYPE html><html dir="'+(document.documentElement.dir||'rtl')+'" lang="'+(document.documentElement.lang||'ar')+'"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><base href="'+base+'"/><title>'+safeTitle+'</title>'+cssLink+(root.querySelector('.pfm67-print-all-finance')?'<link rel="stylesheet" href="./v52-finance.css"/><link rel="stylesheet" href="./pfm-v67-finance-print.css"/>':'')+(android?'<link rel="stylesheet" href="./pfm-v735-android-print.css"/>':'')+'<style>html,body{background:#fff!important;margin:0!important;padding:0!important;}body.pfm59-printing #pfm59PrintRoot{display:block!important;}@media print{html,body{height:auto!important;overflow:visible!important;}}@media screen{body.pfm59-printing #pfm59PrintRoot{display:block!important;}}</style></head><body class="pfm59-printing">'+printCopy.outerHTML+'</body></html>';
  }
  // Use a full-sized printable document; a 1px iframe can clip print pages in Chrome.
  function waitForReady(doc){return Promise.all([
@@ -216,7 +219,7 @@ let activePrint=null,activeFrame=null;
  // behind its print dialog. Keep the frame mounted until afterprint so Chrome
  // can complete long-page pagination before the document is released.
  let printPending=false;
- window.PFMPrintResults59=function(){
+ window.PFMPrintResults59=function(action='print'){
   if(printPending)return;
   try{
     const root=build(),html=standalone(root);
@@ -224,13 +227,15 @@ let activePrint=null,activeFrame=null;
     // PDF from this exact result-only snapshot, then show a native Save dialog.
     // Browser/Chrome continues using the original iframe printing path below.
     if(window.Capacitor?.isNativePlatform?.() && window.Capacitor.getPlatform()==='android'){
-      if(!window.PFMAndroidExport){clean();throw Error('Android export module unavailable');}
+      if(!window.PFMAndroidExport)throw Error('Android PDF export module unavailable');
       const name='PFM-Report-'+new Date().toISOString().slice(0,10)+'.pdf';
       if(activePrint?.isConnected)activePrint.remove();activePrint=null;
       document.body.classList.remove('pfm59-printing');
+      const method=action==='save'?'savePDF':action==='share'?'sharePDF':'printHTML';
       printPending=true;
-      window.PFMAndroidExport.printHTML(html,name).catch(err=>{
-        console.error('Android PDF:',err);alert(tr('تعذر إنشاء PDF: ','Cannot create PDF: ')+err.message);
+      window.PFMAndroidExport[method](html,name).catch(err=>{
+        console.error('Android PDF '+method,err);
+        alert(tr('تعذر إعداد PDF: ','Could not create PDF: ')+err.message);
       }).finally(()=>{printPending=false;clean();});
       return;
     }
