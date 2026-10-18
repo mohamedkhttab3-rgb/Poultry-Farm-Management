@@ -8,13 +8,13 @@ new vm.Script(js);
 // 7.3.10 names and safeguards: do not lock this test to deleted 7.3.7 functions.
 for(const token of [
  'window.PFM739Pages={prepare,show,active}',
- 'function dashboard(panel)',
- 'function tableSection(section)',
- 'function store()',
- 'function wrapped(parent,unit)',
+ 'function addPart(node,parents=[],depth=0)',
+ 'function addTable(table,parents)',
+ 'function flush()',
+ 'function chain(el,parents)',
  'function show(index)',
  'root.dataset.pfmPageIndex=String(index)',
- 'if(over())throw Error',
+ 'if(overflow())throw Error',
  'break',
 ])assert(js.includes(token),'New PDF layout missing: '+token);
 for(const token of ['pfm-v739-native-pdf-pages.js','window.PFM739Pages.prepare(695)','window.PFM739Pages.show(','new PdfDocument()','new PdfRenderer(fd)','Intent.ACTION_CREATE_DOCUMENT','Intent.ACTION_SEND','checkWorkbook(bytes)'])assert(java.includes(token),token);
@@ -39,5 +39,5 @@ assert(!java.includes('Double.parseDouble(encoded)'),'Old null parse retained');
 assert(!java.includes('new PrintDocumentAdapter.LayoutResultCallback'),'Inaccessible Android callback retained');
 assert(css.includes('break-inside:avoid'),'Prevent image/charts splits');
 for(const name of ['printHTML','savePDF','sharePDF'])assert(bridge.includes('async '+name+'(html,name)'),name);
-console.log('PASS: V7.3.10 PDF pagination, no-repeat pages, logo, native print/save/share and XLSX preserved');
+console.log('PASS: V7.3.11 PDF pagination, no-repeat pages, logo, native print/save/share and XLSX preserved');
 console.log('LIMIT: Actual Android handset rendering acceptance pending');
