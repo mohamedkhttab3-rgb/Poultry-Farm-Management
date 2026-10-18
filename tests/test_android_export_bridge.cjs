@@ -15,13 +15,17 @@ const read=p=>fs.readFileSync(path.join(root,p),'utf8');
   for(const token of ['@CapacitorPlugin(name = "PFMNativeExport")','void saveFile(PluginCall call)','void printHTML(PluginCall call)'])
     assert(native.includes(token),'Missing native export contract: '+token);
   assert(installer.includes('registerPlugin(PFMNativeExportPlugin.class)'),'Android plugin registration missing');
-  assert(native.includes('web.createPrintDocumentAdapter(title)'), 'PDF must use system print adapter');
-  assert(native.includes('printer.print(title,controlled,config)'), 'Print dialog must open directly');
-  assert(!native.includes('new AlertDialog'), 'No custom PDF choices allowed');
-  assert(!native.includes('PdfDocument'), 'Old PDF renderer must be removed');
-  assert(native.includes('Intent.ACTION_CREATE_DOCUMENT'), 'Excel Save As chooser missing');
+  assert(native.includes('void savePDF(PluginCall call)'), 'Native PDF save missing');
+  assert(native.includes('void sharePDF(PluginCall call)'), 'Native PDF sharing missing');
+  assert(native.includes('void printHTML(PluginCall call)'), 'PDF print missing');
+  assert(native.includes('canvas.drawBitmap(logo,null,footer,paint)'), 'Logo missing from per-page footer');
+  assert(native.includes('calculatePages(height,logicalPage,regions)'), 'Page grouping missing');
+  assert(native.includes('PdfRenderer reader=new PdfRenderer(fd)'), 'PDF verification missing');
+  assert(native.includes('Intent.ACTION_SEND'), 'PDF share intent missing');
+  assert(native.includes('Intent.ACTION_CREATE_DOCUMENT'), 'PDF/Excel Save As missing');
   assert(native.includes('checkWorkbook(bytes)'), 'XLSX validation missing');
-  assert(native.includes('onSaveResult(PluginCall call,ActivityResult callback)'), 'Save result required');
+  assert(!native.includes('new AlertDialog'), 'Obsolete export menu present');
+  assert(android.includes('async savePDF(html,name)') && android.includes('async sharePDF(html,name)'), 'JavaScript bridge missing actions');
 
 
   assert(html.includes('pfm-v72-android-export.js'),'Android export JS not linked');

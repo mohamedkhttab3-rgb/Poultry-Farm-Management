@@ -173,8 +173,20 @@ function hideLegacyFinanceScopes(){
 }
 // V7.3.3: native PDF uses Android's print media; do not rewrite @media print to screen.
 
+function installReportActions(){
+ const existing=document.querySelector('button[onclick*="PFMPrintResults59"]');
+ const parent=existing?.parentElement;
+ if(!parent||parent.querySelector('[data-pfm-android-pdf]'))return;
+ for(const [action,ar,en] of [['save','💾 حفظ PDF','💾 Save PDF'],['share','📤 مشاركة PDF','📤 Share PDF']]){
+  const button=document.createElement('button');button.type='button';button.className='btn';
+  button.dataset.pfmAndroidPdf=action;
+  button.textContent=document.documentElement.lang==='en'?en:ar;
+  button.addEventListener('click',()=>window.PFMPrintResults59?.(action));parent.appendChild(button);
+ }
+}
 function init(){
  document.documentElement.classList.add('pfm72-android-native');style();
+ installReportActions();
 
  const originalSales=window.renderSales;
  if(typeof originalSales==='function'&&!originalSales.__pfm73){

@@ -1,0 +1,45 @@
+/* V7.3.5 Android-only print layout. Applied only to isolated report document.
+   Browser and Windows reporting styles are deliberately left unchanged. */
+@page { size: A4 landscape; margin: 11mm 11mm 23mm; }
+@media print {
+  html, body, body.pfm59-printing { overflow: visible !important; height: auto !important; margin: 0 !important; background: white !important; }
+  body.pfm59-printing #pfm59PrintRoot { display: block !important; position: static !important; overflow: visible !important; width: 100% !important; height: auto !important; }
+  #pfm59PrintRoot .pfm59-print-footer {
+    display: flex !important; position: fixed !important;
+    left: 0 !important; right: 0 !important; bottom: -16mm !important;
+    width: 100% !important; height: 15mm !important;
+    margin: 0 !important; padding: 1mm 0 0 !important;
+    border: none !important; align-items: center !important;
+    justify-content: center !important; background: white !important;
+    break-inside: avoid !important; page-break-inside: avoid !important;
+  }
+  #pfm59PrintRoot .pfm59-print-footer img {
+    width: 12mm !important; height: 12mm !important; display: block !important;
+    max-width: 12mm !important; max-height: 12mm !important;
+    object-fit: contain !important; margin: 0 auto !important;
+  }
+  #pfm59PrintRoot .pfm59-print-brand img { display: none !important; }
+  #pfm59PrintRoot img, #pfm59PrintRoot svg, #pfm59PrintRoot canvas,
+  #pfm59PrintRoot figure, #pfm59PrintRoot .pfm53-panel,
+  #pfm59PrintRoot .pfm53-donut-wrap, #pfm59PrintRoot .pfm53-chartsvg,
+  #pfm59PrintRoot .pfm53-kpi, #pfm59PrintRoot .pfm53-mini,
+  #pfm59PrintRoot .pfm53-chart-row, #pfm59PrintRoot .pfm53-bottom-row,
+  #pfm59PrintRoot tr, #pfm59PrintRoot .pfm59-chart,
+  #pfm59PrintRoot .pfm59-print-head {
+    break-inside: avoid !important; page-break-inside: avoid !important;
+    -webkit-column-break-inside: avoid !important;
+  }
+  #pfm59PrintRoot thead { display: table-header-group !important; }
+  #pfm59PrintRoot tfoot { display: table-footer-group !important; }
+  #pfm59PrintRoot .pfm53-panel,
+  #pfm59PrintRoot .pfm53-chart-row,
+  #pfm59PrintRoot .pfm53-bottom-row { overflow: visible !important; }
+}
+@media screen {
+  body.pfm59-printing #pfm59PrintRoot { display:block!important; overflow:visible!important; }
+  /* PDF export renders the report content to native PDF and stamps the logo
+     separately in the physical footer of every page. */
+  #pfm59PrintRoot .pfm59-print-footer {display:none!important;}
+  #pfm59PrintRoot .pfm59-print-brand img {display:none!important;}
+  #pfm59PrintRoot img, #pfm59PrintRoot svg, #pfm59PrintRoot canvas {max-width:100%!important;}
+}
