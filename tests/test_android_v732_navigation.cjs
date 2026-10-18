@@ -11,8 +11,13 @@ new vm.Script(nav,{filename:'pfm-v732-android-navigation.js'});
 assert.match(loader,/sidebar\.src='\.\x2fpfm-v732-android-navigation\.js'/);
 assert.doesNotMatch(old,/function nav\(\)/);
 assert.doesNotMatch(old,/setInterval\(brand,3000\)/);
-assert.match(version,/versionName "7\.3\.[234567]"/);
-assert.match(version,/versionCode 73[234567]/);
+// Keep the menu contract compatible with future native 7.3.x releases.
+// Require the Android versionCode to agree with the declared versionName.
+const declaredName=version.match(/versionName "(7\.3\.\d+)"/);
+const declaredCode=version.match(/versionCode (\d+)/);
+assert(declaredName && declaredCode,"Missing Android native version declarations");
+assert.equal(Number(declaredCode[1]),Number(declaredName[1].replaceAll(".","")),
+  "Android versionCode/versionName mismatch");
 const order=[
  "id:'project',ar:'مدخلات المشاريع'",
  "id:'nutrition',ar:'المشتريات'",
