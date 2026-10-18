@@ -1,0 +1,42 @@
+name: Preserve Android V7.3.4 Release
+on:
+  workflow_run:
+    workflows: ['Android V7.3 regression checks']
+    types: [completed]
+    branches: ['fix/android-v734-direct-print-excel-save']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  archive:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download passed APK and verify file digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          mkdir -p release-files
+          gh run download "$RUN_ID" -R "$GITHUB_REPOSITORY" --name PoultryFarmManagement-Android-V7.3.4-QA-debug --dir release-files
+          test -s release-files/app-debug.apk
+          (cd release-files && sha256sum -c SHA256SUMS.txt)
+          mv release-files/app-debug.apk release-files/PoultryFarmManagement-v7.3.4-Android-debug.apk
+          (cd release-files && sha256sum PoultryFarmManagement-v7.3.4-Android-debug.apk > SHA256SUMS-v7.3.4.txt)
+      - name: Publish distinct non-expiring prerelease asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          if gh release view v7.3.4 -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'v7.3.4 already published. No release overwrites.';exit 0
+          fi
+          gh release create v7.3.4 \
+            release-files/PoultryFarmManagement-v7.3.4-Android-debug.apk \
+            release-files/SHA256SUMS-v7.3.4.txt \
+            -R "$GITHUB_REPOSITORY" --target "$SOURCE_SHA" \
+            --title 'Poultry Farm Management Android V7.3.4 (Pre-release)' \
+            --notes 'PDF: opens standard Android Print UI directly (Print / Save as PDF). Excel: opens Android Save As dialog for a real XLSX file. No app-level export choice menus. This is a debug APK; device-level acceptance remains unverified.' --prerelease
+          gh release view v7.3.4 -R "$GITHUB_REPOSITORY" --json tagName,assets,url
