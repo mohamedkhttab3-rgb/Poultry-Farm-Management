@@ -30,7 +30,9 @@ for(const method of ['printHTML','savePDF','sharePDF'])
  assert(bridge.includes('async '+method+'(html,name)'),method+' missing');
 assert(report.includes("action==='save'?'savePDF':action==='share'?'sharePDF':'printHTML'"),
  'Original print/save/share picker flow altered');
-assert(version.includes('versionName "7.3.13"'));
-assert(version.includes('versionCode 7313'));
-console.log('PASS: One A4 screen drawing, no magnification/cropping, M.K footer, native share/save/print and Excel unchanged');
+assert(version.includes('versionName "7.3.14"'));
+assert(version.includes('versionCode 7314'));
+for(const token of ['web.createPrintDocumentAdapter(filename)','renderer.onLayout(oldAttrs,newAttrs,signal,callback,extras)','renderer.onWrite(pages,destination,signal,callback)','PrintAttributes.MediaSize.ISO_A4.asLandscape()','prepareNativePrint(call,html,fileName)','pfm-v7314-native-print.css'])assert(java.includes(token),'Native HTML printing missing: '+token);
+assert(java.includes('if("print".equals(action))main.post(()->prepareNativePrint'),'Print must use HTML not PDF screenshot');
+console.log('PASS: Native A4 HTML printing and preserved one-page PDF save/share, no magnification/cropping, M.K footer, native share/save/print and Excel unchanged');
 console.log('LIMIT: Actual phone print preview and readability still require device test');
