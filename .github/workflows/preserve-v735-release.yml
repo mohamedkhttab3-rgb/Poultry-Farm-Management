@@ -1,25 +1,25 @@
 name: Preserve Android V7.3.5 Release
 on:
-  workflow_run:
-    workflows: ['Android V7.3 regression checks']
-    types: [completed]
+  push:
     branches: ['fix/android-v735-pdf-print-save-share']
 permissions:
   contents: write
   actions: read
 jobs:
   archive:
-    if: github.event.workflow_run.conclusion == 'success'
+    if: github.ref == 'refs/heads/fix/android-v735-pdf-print-save-share'
     runs-on: ubuntu-latest
     steps:
       - name: Retrieve successful APK and validate checksum
         env:
           GH_TOKEN: ${{ github.token }}
-          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_ID: 39107003314
         run: |
           set -euo pipefail
           mkdir -p release-files
           gh run download "$RUN_ID" -R "$GITHUB_REPOSITORY" --name PoultryFarmManagement-Android-V7.3.5-QA-debug --dir release-files
+          test "$(gh api repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID --jq .conclusion)" = success
+          test "$(gh api repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID --jq .head_sha)" = dc2fc96bed2eccaab9a1e595e20f55660e47cbb4
           test -s release-files/app-debug.apk
           (cd release-files && sha256sum -c SHA256SUMS.txt)
           mv release-files/app-debug.apk release-files/PoultryFarmManagement-v7.3.5-Android-debug.apk
@@ -27,7 +27,7 @@ jobs:
       - name: Publish version-specific persistent prerelease
         env:
           GH_TOKEN: ${{ github.token }}
-          SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+          SOURCE_SHA: dc2fc96bed2eccaab9a1e595e20f55660e47cbb4
         run: |
           set -euo pipefail
           if gh release view v7.3.5 -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
