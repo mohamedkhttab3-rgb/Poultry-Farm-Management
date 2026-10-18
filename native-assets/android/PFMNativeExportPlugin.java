@@ -207,11 +207,11 @@ public final class PFMNativeExportPlugin extends Plugin {
     if(reportView!=web)return;
     String js="(function(){var root=document.getElementById('pfm59PrintRoot');"+
       "if(!root)return JSON.stringify({height:0,blocks:[]});"+
-      "var selectors='.pfm53-panel,.pfm53-chart-row,.pfm53-bottom-row,.pfm53-kpi,.pfm53-mini,.pfm59-chart,figure,img,svg,canvas,tr';"+
+      "var selectors='.pfm53-panel,.pfm53-kpi,.pfm53-mini,.pfm59-chart,figure,img,svg,canvas,tr';"+
       "var blocks=[].map.call(root.querySelectorAll(selectors),function(e){var r=e.getBoundingClientRect();"+
       "return [Math.max(0,r.top+window.scrollY),Math.max(0,r.bottom+window.scrollY)];})"+
       ".filter(function(r){return r[1]-r[0]>4;});"+
-      "var full=Math.max(document.documentElement.scrollHeight,document.body.scrollHeight,root.getBoundingClientRect().bottom+window.scrollY);"+
+      "var full=root.getBoundingClientRect().bottom+window.scrollY;"+
       "return JSON.stringify({height:Math.ceil(full),blocks:blocks});})()";
     web.evaluateJavascript(js,value->{
       try{
@@ -230,9 +230,13 @@ public final class PFMNativeExportPlugin extends Plugin {
             regions.add(new float[]{(float)coords.optDouble(0),(float)coords.optDouble(1)});
         }
         ArrayList<float[]> slices=calculatePages(height,logicalPage,regions);
+        // Never size the offscreen WebView to the entire document. WebView
+        // tiles are screen/viewport-backed; very tall views paint clipped/blank
+        // areas when drawn into a PDF canvas.
+        final int viewportHeight=(int)Math.ceil(logicalPage);
         web.measure(android.view.View.MeasureSpec.makeMeasureSpec(RENDER_WIDTH,android.view.View.MeasureSpec.EXACTLY),
-          android.view.View.MeasureSpec.makeMeasureSpec(height,android.view.View.MeasureSpec.EXACTLY));
-        web.layout(0,0,RENDER_WIDTH,height);
+          android.view.View.MeasureSpec.makeMeasureSpec(viewportHeight,android.view.View.MeasureSpec.EXACTLY));
+        web.layout(0,0,RENDER_WIDTH,viewportHeight);
         createPages(call,web,filename,action,slices,scale);
       }catch(Exception e){
         finishWeb();reject(call,"Cannot paginate report: "+e.getMessage());
@@ -290,7 +294,10 @@ public final class PFMNativeExportPlugin extends Plugin {
           canvas.drawColor(Color.WHITE);
           canvas.save();
           canvas.clipRect(PAGE_MARGIN,PAGE_MARGIN,PAGE_W-PAGE_MARGIN,PAGE_H-FOOTER_RESERVED);
-          canvas.translate(PAGE_MARGIN,PAGE_MARGIN-segment[0]*scale);
+          // Scroll the actual viewport to this logical page. Drawing the
+          // full-height WebView with a translated PDF canvas clipped images.
+          web.scrollTo(0,(int)Math.floor(segment[0]));
+          canvas.translate(PAGE_MARGIN,PAGE_MARGIN);
           canvas.scale(scale,scale);
           web.draw(canvas);
           canvas.restore();
