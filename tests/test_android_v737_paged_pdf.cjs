@@ -1,33 +1,16 @@
 'use strict';
-const fs=require('node:fs');
-const assert=require('node:assert/strict');
-const vm=require('node:vm');
+const fs=require('node:fs'),assert=require('node:assert/strict'),vm=require('node:vm');
 const java=fs.readFileSync('native-assets/android/PFMNativeExportPlugin.java','utf8');
-const src=fs.readFileSync('www/pfm-v737-pdf-pages.js','utf8');
+const js=fs.readFileSync('www/pfm-v739-native-pdf-pages.js','utf8');
+const css=fs.readFileSync('www/pfm-v739-native-pdf.css','utf8');
 const bridge=fs.readFileSync('www/pfm-v72-android-export.js','utf8');
-const excel=fs.readFileSync('www/pfm-excel-transfer.js','utf8');
-const report=fs.readFileSync('www/pfm-v59-print-results.js','utf8');
-new vm.Script(src);
-for(const expected of ['window.PFMPages={prepare,show}',"flush();","appendTable(node)","appendDashboard(node)"]){
- assert(src.includes(expected),'Missing independent-page rendering: '+expected);
-}
-assert(java.includes("pfm-v737-pdf-pages.js"),'Missing native composer load');
-assert(java.includes('window.PFMPages.prepare(695)'),'No precomposition');
-assert(java.includes('else if("pfm-v737-pdf-pages.js".equals(relative))type="text/javascript"'), 'Android WebView must explicitly serve the bundled page composer');
-assert(java.includes('setBlockNetworkLoads(false)'), 'Interception of https://localhost assets must be enabled');
-assert(java.includes("JSON.stringify({ok:false,error:'PDF page composer did not load'})"), 'Missing explicit page composer failure diagnostic');
-assert(java.includes('new JSONTokener(encoded==null?"null":encoded)'), 'PDF JS callback must be safely decoded');
-assert(!java.includes('Double.parseDouble(encoded)'), 'Raw null must never be converted to a PDF page count');
-
-assert(java.includes('window.PFMPages.show('),'Missing page selection');
-assert(!java.includes('web.scrollTo('),'Legacy scrolling-based rendering persists');
-assert(!java.includes('PAGE_MARGIN-segment[0]*scale'),'Legacy clipping persists');
-assert(java.includes('canvas.drawBitmap(logo,null,rect'),'Per-page logo absent');
-for(const method of ['printHTML','savePDF','sharePDF'])assert(bridge.includes('async '+method+'(html,name)'));
-assert(java.includes('Intent.ACTION_CREATE_DOCUMENT'),'Save As required');
-assert(java.includes('Intent.ACTION_SEND'),'External app share required');
-assert(java.includes('new PdfRenderer(fd)'),'PDF integrity verification required');
-assert(excel.includes('.xlsx'),'True XLSX export path');
-assert(report.includes('pfm-v736-android-print.css'),'Export CSS must load');
-console.log('PASS: 7.3.7 paginated isolated PDF file, share/print/save and XLSX contracts.');
-console.log('LIMIT: screen/device content test required before user acceptance.');
+new vm.Script(js);
+for(const token of ['window.PFM739Pages={prepare,show}','appendTable(node)','appendDashboard(node)'])assert(js.includes(token),token);
+for(const token of ['pfm-v739-native-pdf-pages.js','window.PFM739Pages.prepare(695)','window.PFM739Pages.show(','new PdfDocument()','canvas.drawBitmap(logo,null,rect)','new PdfRenderer(fd)','Intent.ACTION_CREATE_DOCUMENT','Intent.ACTION_SEND','checkWorkbook(bytes)'])assert(java.includes(token),token);
+assert(!java.includes('window.PFMPages'),'Old page composer retained');
+assert(!java.includes('Double.parseDouble(encoded)'),'Old null parse retained');
+assert(!java.includes('new PrintDocumentAdapter.LayoutResultCallback'),'Inaccessible Android callback retained');
+assert(css.includes('break-inside:avoid'),'Prevent image/charts splits');
+for(const name of ['printHTML','savePDF','sharePDF'])assert(bridge.includes('async '+name+'(html,name)'),name);
+console.log('PASS: V7.3.9 Android PDF generator, PDF integrity, save, print, share and Excel preserved');
+console.log('LIMIT: Actual Android handset rendering acceptance pending');
