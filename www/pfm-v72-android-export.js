@@ -31,6 +31,8 @@
  window.PFMAndroidExport={
    get isAndroid(){return native();},
    async saveBlob(blob,name){return invoke('saveFile',{data:await base64(blob),name});},
-   async printHTML(html,name){return invoke('printHTML',{html,name});}
+   async printHTML(html,name){return invoke('printHTML',{html,name});},
+   async savePDF(html,name){return invoke('savePDF',{html,name});},
+   async sharePDF(html,name){return invoke('sharePDF',{html,name});}
  };
 })();
