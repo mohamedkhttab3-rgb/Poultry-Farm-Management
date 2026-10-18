@@ -15,15 +15,13 @@ const read=p=>fs.readFileSync(path.join(root,p),'utf8');
   for(const token of ['@CapacitorPlugin(name = "PFMNativeExport")','void saveFile(PluginCall call)','void printHTML(PluginCall call)'])
     assert(native.includes(token),'Missing native export contract: '+token);
   assert(installer.includes('registerPlugin(PFMNativeExportPlugin.class)'),'Android plugin registration missing');
-  assert(native.includes('ClipData.newRawUri(filename,target)'), 'Missing ClipData URI access for external apps');
-  assert(native.includes('Intent.FLAG_GRANT_READ_URI_PERMISSION'),'Missing external read grant');
-  assert(native.includes('android.graphics.pdf.PdfDocument doc=new android.graphics.pdf.PdfDocument()'), 'PDF document engine missing');
-  assert(native.includes('PdfRenderer renderer=new PdfRenderer(pdf)'), 'PDF verification missing');
-  assert(native.includes('validateXlsx(bytes)'), 'XLSX validation missing');
-  assert(native.includes('MediaStore.Downloads.EXTERNAL_CONTENT_URI'), 'Downloads save missing');
-  assert(native.includes('Intent.ACTION_CREATE_DOCUMENT'), 'Save As missing');
-  assert(native.includes('Intent.ACTION_SEND'), 'Share missing');
-  assert(native.includes('plainReportPdf(html)'), 'Readable fallback for empty PDF missing');
+  assert(native.includes('web.createPrintDocumentAdapter(title)'), 'PDF must use system print adapter');
+  assert(native.includes('printer.print(title,controlled,config)'), 'Print dialog must open directly');
+  assert(!native.includes('new AlertDialog'), 'No custom PDF choices allowed');
+  assert(!native.includes('PdfDocument'), 'Old PDF renderer must be removed');
+  assert(native.includes('Intent.ACTION_CREATE_DOCUMENT'), 'Excel Save As chooser missing');
+  assert(native.includes('checkWorkbook(bytes)'), 'XLSX validation missing');
+  assert(native.includes('onSaveResult(PluginCall call,ActivityResult callback)'), 'Save result required');
 
 
   assert(html.includes('pfm-v72-android-export.js'),'Android export JS not linked');
