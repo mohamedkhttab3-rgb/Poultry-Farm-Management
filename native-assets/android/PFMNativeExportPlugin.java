@@ -58,7 +58,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 /**
- * Android V7.3.13 - one full-screen A4 PDF with safe FileProvider sharing.
+ * Android V7.3.14 - native HTML A4 printing with preserved PDF exports.
  * PDF: draw the complete screen into one A4 sheet without
  * clipping or enlargement, stamp centered logo, then Print / Save / Share.
  * Excel: validate real XLSX and use Android's normal Save As picker.
@@ -77,6 +77,7 @@ public final class PFMNativeExportPlugin extends Plugin {
   private final Handler main=new Handler(Looper.getMainLooper());
   private final AtomicBoolean busy=new AtomicBoolean(false);
   private WebView reportView;
+  private WebView nativePrintWeb;
   private File pendingSave;
   private File workingFile;
   private PrintDocumentAdapter activePrint;
@@ -135,9 +136,162 @@ public final class PFMNativeExportPlugin extends Plugin {
       call.reject("Another document operation is in progress");return;
     }
     final String fileName=name(call.getString("name"),".pdf");
-    main.post(()->prepareReport(call,html,fileName,action));
+    // Real HTML-printing through Android's WebView PrintDocumentAdapter.
+    // Save/share use the existing, unchanged PDF file delivery route.
+    if("print".equals(action))main.post(()->prepareNativePrint(call,html,fileName));
+    else main.post(()->prepareReport(call,html,fileName,action));
   }
 
+
+
+  // Android V7.3.14: print REAL report HTML (text, tables, SVG charts) using
+  // Chromium's PrintDocumentAdapter. No screenshots or one-page compression.
+  // The app's Save As, FileProvider share and XLSX flows are untouched.
+  private void finishNativePrintWeb(WebView web){
+    if(nativePrintWeb==web)nativePrintWeb=null;
+    try{
+      if(web.getParent() instanceof FrameLayout)
+        ((FrameLayout)web.getParent()).removeView(web);
+      web.destroy();
+    }catch(Exception ignored){}
+  }
+  private void prepareNativePrint(PluginCall call,String html,String filename){
+    FrameLayout host=getActivity().findViewById(android.R.id.content);
+    if(host==null){reject(call,"Android print host is unavailable");return;}
+    PrintManager manager=(PrintManager)getContext().getSystemService(Context.PRINT_SERVICE);
+    if(manager==null){reject(call,"Android printing is not available");return;}
+    final WebView web=new WebView(getActivity());
+    nativePrintWeb=web;
+    final AtomicBoolean loaded=new AtomicBoolean(false);
+    try{
+      web.getSettings().setJavaScriptEnabled(true);
+      web.getSettings().setAllowFileAccess(false);
+      web.getSettings().setAllowContentAccess(false);
+      web.getSettings().setBlockNetworkLoads(true);
+      web.setBackgroundColor(Color.WHITE);
+      FrameLayout.LayoutParams frame=new FrameLayout.LayoutParams(RENDER_WIDTH,850);
+      frame.leftMargin=-1500;
+      host.addView(web,frame);
+      web.setWebViewClient(new WebViewClient(){
+        private WebResourceResponse block(){
+          return new WebResourceResponse("text/plain","UTF-8",
+            new ByteArrayInputStream(new byte[0]));
+        }
+        @Override public WebResourceResponse shouldInterceptRequest(
+            WebView view,WebResourceRequest request){
+          try{
+            Uri uri=request.getUrl();
+            if(!"https".equals(uri.getScheme())||!"localhost".equals(uri.getHost()))
+              return block();
+            String path=uri.getPath();
+            if(path==null||!path.matches("/[A-Za-z0-9_./-]+")||
+              path.contains(".."))return block();
+            String file=path.substring(1),type;
+            if(file.endsWith(".css"))type="text/css";
+            else if(file.endsWith(".png"))type="image/png";
+            else if(file.endsWith(".svg"))type="image/svg+xml";
+            else if(file.endsWith(".jpg")||file.endsWith(".jpeg"))type="image/jpeg";
+            else if(file.endsWith(".webp"))type="image/webp";
+            else return block();
+            return new WebResourceResponse(type,type.startsWith("text/")?"UTF-8":null,
+              getContext().getAssets().open("public/"+file));
+          }catch(Exception ignored){return block();}
+        }
+        @Override public void onPageFinished(WebView target,String url){
+          if(!loaded.compareAndSet(false,true))return;
+          main.postDelayed(()->launchNativePrint(call,web,manager,filename,0),400);
+        }
+        @Override public void onReceivedError(WebView target,int code,
+            String description,String failingUrl){
+          if("https://localhost/".equals(failingUrl)&&
+            loaded.compareAndSet(false,true)){
+            finishNativePrintWeb(web);
+            reject(call,"Printable report could not load: "+description);
+          }
+        }
+      });
+      // Keep actual report HTML; remove executable scripts and external base tags.
+      String safe=html.replaceAll("(?is)<script\\b[^>]*>.*?</script>","")
+        .replaceAll("(?is)<script\\b[^>]*>","")
+        .replaceAll("(?is)<base\\b[^>]*>","");
+      if(!safe.matches("(?s).*?</head>.*")||!safe.matches("(?s).*</body>.*"))
+        throw new Exception("Invalid HTML report for Android printing");
+      safe=safe.replaceFirst("(?i)</head>",
+        "<base href=\"https://localhost/\"/>"+
+        "<link rel=\"stylesheet\" href=\"./pfm-v7314-native-print.css\"/></head>");
+      safe=safe.replaceFirst("(?i)</body>",
+        "<div class=\"pfm-native-a4-footer\"><img src=\"./pfm-logo.png\" alt=\"M.K\"/></div></body>");
+      web.loadDataWithBaseURL("https://localhost/",safe,"text/html","UTF-8",null);
+      main.postDelayed(()->{
+        if(nativePrintWeb==web&&!loaded.get()){
+          finishNativePrintWeb(web);
+          reject(call,"Timed out loading Android print preview");
+        }
+      },30000);
+    }catch(Exception e){
+      finishNativePrintWeb(web);
+      reject(call,"Cannot prepare Android print: "+e.getMessage());
+    }
+  }
+
+  private void launchNativePrint(PluginCall call,WebView web,
+      PrintManager manager,String filename,int attempts){
+    if(nativePrintWeb!=web)return;
+    final String ready="(function(){try{"+
+      "var root=document.getElementById('pfm59PrintRoot');"+
+      "if(!root)throw Error('Printable report content missing');"+
+      "var images=document.images;var done=true;"+
+      "for(var i=0;i<images.length;i++)if(!images[i].complete)done=false;"+
+      "if(document.fonts&&document.fonts.status!=='loaded')done=false;"+
+      "return JSON.stringify({ready:done,text:(root.textContent||'').trim().length});"+
+      "}catch(e){return JSON.stringify({error:String(e&&e.message||e)});}})()";
+    web.evaluateJavascript(ready,value->{
+      try{
+        Object raw=new JSONTokener(value==null?"null":value).nextValue();
+        if(!(raw instanceof String))throw new Exception("Print layout returned no state");
+        JSONObject info=new JSONObject((String)raw);
+        if(info.has("error"))throw new Exception(info.getString("error"));
+        if(info.getInt("text")<2)throw new Exception("The report is empty");
+        if(!info.getBoolean("ready")&&attempts<12){
+          main.postDelayed(()->launchNativePrint(call,web,manager,filename,attempts+1),350);
+          return;
+        }
+        // Do not create LayoutResultCallback instances directly: Android
+        // supplies them to the PrintDocumentAdapter delegate.
+        final PrintDocumentAdapter renderer=web.createPrintDocumentAdapter(filename);
+        final PrintDocumentAdapter adapter=new PrintDocumentAdapter(){
+          @Override public void onStart(){renderer.onStart();}
+          @Override public void onLayout(PrintAttributes oldAttrs,PrintAttributes newAttrs,
+              CancellationSignal signal,LayoutResultCallback callback,Bundle extras){
+            renderer.onLayout(oldAttrs,newAttrs,signal,callback,extras);
+          }
+          @Override public void onWrite(PageRange[] pages,ParcelFileDescriptor destination,
+              CancellationSignal signal,WriteResultCallback callback){
+            renderer.onWrite(pages,destination,signal,callback);
+          }
+          @Override public void onFinish(){
+            try{renderer.onFinish();}
+            finally{
+              activePrint=null;
+              main.post(()->finishNativePrintWeb(web));
+            }
+          }
+        };
+        activePrint=adapter;
+        PrintAttributes attrs=new PrintAttributes.Builder()
+          .setMediaSize(PrintAttributes.MediaSize.ISO_A4.asLandscape())
+          .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
+          .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
+          .build();
+        manager.print(filename,adapter,attrs);
+        busy.set(false);
+        call.resolve(response("print-dialog-opened",false));
+      }catch(Exception e){
+        finishNativePrintWeb(web);
+        reject(call,"Android HTML printing failed: "+e.getMessage());
+      }
+    });
+  }
 
   // Android V7.3.12: capture the ENTIRE printable screen as one A4 image.
   // No pagination, scroll slices, CSS zoom or per-chart/page grouping.
