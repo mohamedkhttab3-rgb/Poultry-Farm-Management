@@ -193,7 +193,7 @@ public final class PFMNativeExportPlugin extends Plugin {
       if(!safe.matches("(?s).*?</head>.*"))throw new Exception("Invalid report document");
       safe=safe.replaceFirst("(?i)</head>","<base href=\"https://localhost/\"/></head>");
       safe=safe.replaceFirst("(?i)</head>","<style>html,body{width:100%!important;max-width:100%!important;overflow:visible!important;height:auto!important;background:white!important;}#pfm59PrintRoot{display:block!important;position:static!important;visibility:visible!important;overflow:visible!important;}#pfm59PrintRoot .pfm59-print-footer{display:none!important;}</style></head>");
-      safe=safe.replaceFirst("(?i)</body>","<script src=\\"./pfm-v737-pdf-pages.js\\"></script></body>");
+      safe=safe.replaceFirst("(?i)</body>","<script src='./pfm-v737-pdf-pages.js'></script></body>");
       view.loadDataWithBaseURL("https://localhost/",safe,"text/html","UTF-8",null);
       main.postDelayed(()->{
         if(reportView==view && !loaded.get()){
