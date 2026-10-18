@@ -145,7 +145,7 @@ public final class PFMNativeExportPlugin extends Plugin {
     reportView=view;
     final AtomicBoolean loaded=new AtomicBoolean(false);
     try{
-      view.getSettings().setJavaScriptEnabled(true); // Only trusted, isolated layout measurement
+      view.getSettings().setJavaScriptEnabled(true); // Only bundled, trusted page composer
       view.getSettings().setAllowFileAccess(false);
       view.getSettings().setAllowContentAccess(false);
       view.getSettings().setBlockNetworkLoads(true);
@@ -193,6 +193,7 @@ public final class PFMNativeExportPlugin extends Plugin {
       if(!safe.matches("(?s).*?</head>.*"))throw new Exception("Invalid report document");
       safe=safe.replaceFirst("(?i)</head>","<base href=\"https://localhost/\"/></head>");
       safe=safe.replaceFirst("(?i)</head>","<style>html,body{width:100%!important;max-width:100%!important;overflow:visible!important;height:auto!important;background:white!important;}#pfm59PrintRoot{display:block!important;position:static!important;visibility:visible!important;overflow:visible!important;}#pfm59PrintRoot .pfm59-print-footer{display:none!important;}</style></head>");
+      safe=safe.replaceFirst("(?i)</body>","<script src='./pfm-v737-pdf-pages.js'></script></body>");
       view.loadDataWithBaseURL("https://localhost/",safe,"text/html","UTF-8",null);
       main.postDelayed(()->{
         if(reportView==view && !loaded.get()){
@@ -205,129 +206,59 @@ public final class PFMNativeExportPlugin extends Plugin {
   }
   private void measureReport(PluginCall call,WebView web,String filename,String action){
     if(reportView!=web)return;
-    String js="(function(){var root=document.getElementById('pfm59PrintRoot');"+
-      "if(!root)return JSON.stringify({height:0,blocks:[]});"+
-      "var selectors='.pfm53-panel,.pfm53-kpi,.pfm53-mini,.pfm59-chart,figure,img,svg,canvas,tr';"+
-      "var blocks=[].map.call(root.querySelectorAll(selectors),function(e){var r=e.getBoundingClientRect();"+
-      "return [Math.max(0,r.top+window.scrollY),Math.max(0,r.bottom+window.scrollY)];})"+
-      ".filter(function(r){return r[1]-r[0]>4;});"+
-      "var full=root.getBoundingClientRect().bottom+window.scrollY;"+
-      "return JSON.stringify({height:Math.ceil(full),blocks:blocks});})()";
-    web.evaluateJavascript(js,value->{
+    web.evaluateJavascript("window.PFMPages.prepare(695)",encoded->{
       try{
-        Object raw=new JSONTokener(value).nextValue();
-        String json=raw instanceof String?(String)raw:value;
-        JSONObject measurement=new JSONObject(json);
-        int height=measurement.getInt("height");
-        if(height<50||height>150000)throw new Exception("Invalid printable report dimensions");
-        JSONArray boxes=measurement.getJSONArray("blocks");
-        float scale=(PAGE_W-2f*PAGE_MARGIN)/RENDER_WIDTH;
-        float logicalPage=(PAGE_H-FOOTER_RESERVED-PAGE_MARGIN)/scale;
-        ArrayList<float[]> regions=new ArrayList<>();
-        for(int i=0;i<boxes.length();i++){
-          JSONArray coords=boxes.optJSONArray(i);
-          if(coords!=null&&coords.length()==2)
-            regions.add(new float[]{(float)coords.optDouble(0),(float)coords.optDouble(1)});
-        }
-        ArrayList<float[]> slices=calculatePages(height,logicalPage,regions);
-        // Never size the offscreen WebView to the entire document. WebView
-        // tiles are screen/viewport-backed; very tall views paint clipped/blank
-        // areas when drawn into a PDF canvas.
-        final int viewportHeight=(int)Math.ceil(logicalPage);
-        web.measure(android.view.View.MeasureSpec.makeMeasureSpec(RENDER_WIDTH,android.view.View.MeasureSpec.EXACTLY),
-          android.view.View.MeasureSpec.makeMeasureSpec(viewportHeight,android.view.View.MeasureSpec.EXACTLY));
-        web.layout(0,0,RENDER_WIDTH,viewportHeight);
-        createPages(call,web,filename,action,slices,scale);
-      }catch(Exception e){
-        finishWeb();reject(call,"Cannot paginate report: "+e.getMessage());
-      }
+        int count=(int)Double.parseDouble(encoded);
+        if(count<1||count>160)throw new Exception("Invalid page count");
+        renderPages(call,web,filename,action,count);
+      }catch(Exception e){finishWeb();reject(call,"PDF layout failed: "+e.getMessage());}
     });
   }
-
-  // Do not cut a chart/figure across pages if the element fits on one page.
-  private ArrayList<float[]> calculatePages(int contentHeight,float capacity,ArrayList<float[]> boxes)throws Exception{
-    ArrayList<float[]> slices=new ArrayList<>();
-    float start=0;
-    while(start<contentHeight-1){
-      float end=Math.min(contentHeight,start+capacity);
-      if(end<contentHeight){
-        float keep=end;
-        for(float[] part:boxes){
-          float top=part[0],bottom=part[1];
-          if(top>start+80 && top<end && bottom>end && bottom-top<capacity*0.91f){
-            if(top<keep)keep=top;
-          }
-        }
-        if(keep<end && keep>start+80)end=keep;
-      }
-      if(end<=start+1)throw new Exception("Cannot split report content");
-      slices.add(new float[]{start,end});
-      if(slices.size()>160)throw new Exception("Report exceeds 160 pages");
-      start=end;
-    }
-    return slices;
-  }
-  private void createPages(PluginCall call,WebView web,String filename,String action,
-                           ArrayList<float[]> slices,float scale){
+  private void renderPages(PluginCall call,WebView web,String filename,String action,int count){
     final PdfDocument document=new PdfDocument();
     final File output;
-    try{output=temp(".pdf");}
-    catch(Exception e){finishWeb();reject(call,e.getMessage());return;}
+    try{output=temp(".pdf");}catch(Exception e){finishWeb();reject(call,e.getMessage());return;}
     final Bitmap logo;
-    try(InputStream stream=getContext().getAssets().open("public/pfm-logo.png")){
-      logo=BitmapFactory.decodeStream(stream);
-    }catch(Exception e){
-      document.close();finishWeb();reject(call,"Report footer logo is missing");return;
-    }
-    if(logo==null){
-      document.close();finishWeb();reject(call,"Cannot read report footer logo");return;
-    }
+    try(InputStream in=getContext().getAssets().open("public/pfm-logo.png")){
+      logo=BitmapFactory.decodeStream(in);
+    }catch(Exception e){document.close();finishWeb();reject(call,"Footer image is unavailable");return;}
+    if(logo==null){document.close();finishWeb();reject(call,"Footer image is invalid");return;}
     new Runnable(){
       int index=0;
+      void cleanup(){try{document.close();}catch(Exception ignored){}logo.recycle();}
       @Override public void run(){
-        if(reportView!=web){cleanup();reject(call,"Report renderer disappeared");return;}
-        try{
-          float[] segment=slices.get(index);
-          PdfDocument.Page page=document.startPage(
-            new PdfDocument.PageInfo.Builder(PAGE_W,PAGE_H,index+1).create());
-          Canvas canvas=page.getCanvas();
-          canvas.drawColor(Color.WHITE);
-          canvas.save();
-          canvas.clipRect(PAGE_MARGIN,PAGE_MARGIN,PAGE_W-PAGE_MARGIN,PAGE_H-FOOTER_RESERVED);
-          // Scroll the actual viewport to this logical page. Drawing the
-          // full-height WebView with a translated PDF canvas clipped images.
-          web.scrollTo(0,(int)Math.floor(segment[0]));
-          canvas.translate(PAGE_MARGIN,PAGE_MARGIN);
-          canvas.scale(scale,scale);
-          web.draw(canvas);
-          canvas.restore();
-          final float icon=43;
-          RectF footer=new RectF((PAGE_W-icon)/2f,PAGE_H-55,(PAGE_W+icon)/2f,PAGE_H-12);
-          android.graphics.Paint paint=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG|
-                      android.graphics.Paint.FILTER_BITMAP_FLAG);
-          canvas.drawBitmap(logo,null,footer,paint);
-          document.finishPage(page);
-          index++;
-          if(index<slices.size()){
-            main.post(this);return;
-          }
-          try(OutputStream stream=new FileOutputStream(output)){document.writeTo(stream);}
-          cleanup();
-          finishWeb();
-          new Thread(()->{
-            try{
-              verifyPdf(output);
-              main.post(()->deliverPdf(call,output,filename,action));
-            }catch(Exception e){
-              output.delete();
-              main.post(()->reject(call,"PDF integrity check failed: "+e.getMessage()));
-            }
-          },"PFM-PDF-verify").start();
-        }catch(Exception e){
-          cleanup();finishWeb();output.delete();reject(call,"PDF drawing failed: "+e.getMessage());
-        }
+        if(reportView!=web){cleanup();reject(call,"Renderer stopped");return;}
+        web.evaluateJavascript("window.PFMPages.show("+index+")",value->{
+          try{
+            Object parsed=new JSONTokener(value).nextValue();
+            JSONObject state=new JSONObject(parsed instanceof String?(String)parsed:value);
+            if(state.getInt("index")!=index||state.getInt("height")>750||state.getInt("text")<3)
+              throw new Exception("A PDF page is blank or larger than the printable area");
+            PdfDocument.Page page=document.startPage(
+              new PdfDocument.PageInfo.Builder(PAGE_W,PAGE_H,index+1).create());
+            Canvas canvas=page.getCanvas();
+            canvas.drawColor(Color.WHITE);
+            canvas.save();
+            canvas.clipRect(PAGE_MARGIN,PAGE_MARGIN,PAGE_W-PAGE_MARGIN,PAGE_H-FOOTER_RESERVED);
+            canvas.translate(PAGE_MARGIN,PAGE_MARGIN);
+            canvas.scale((PAGE_W-2f*PAGE_MARGIN)/RENDER_WIDTH,(PAGE_W-2f*PAGE_MARGIN)/RENDER_WIDTH);
+            web.draw(canvas);
+            canvas.restore();
+            float size=58f;
+            RectF rect=new RectF((PAGE_W-size)/2f,PAGE_H-68,(PAGE_W+size)/2f,PAGE_H-10);
+            canvas.drawBitmap(logo,null,rect,new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG|android.graphics.Paint.FILTER_BITMAP_FLAG));
+            document.finishPage(page);
+            index++;
+            if(index<count){main.postDelayed(this,150);return;}
+            try(OutputStream file=new FileOutputStream(output)){document.writeTo(file);}
+            cleanup();finishWeb();
+            new Thread(()->{
+              try{verifyPdf(output);main.post(()->deliverPdf(call,output,filename,action));}
+              catch(Exception e){output.delete();main.post(()->reject(call,e.getMessage()));}
+            },"PFM-PDF-verify").start();
+          }catch(Exception e){cleanup();finishWeb();output.delete();reject(call,"PDF page "+(index+1)+": "+e.getMessage());}
+        });
       }
-      private void cleanup(){try{document.close();}catch(Exception ignored){}logo.recycle();}
     }.run();
   }
   private void verifyPdf(File pdf)throws Exception{
