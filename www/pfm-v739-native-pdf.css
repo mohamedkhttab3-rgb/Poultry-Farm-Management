@@ -1,41 +1,104 @@
-/* V7.3.9 Android PDF only: Chromium native paginated print.
- * A4 landscape, high quality, reserved footer with centered logo. */
-@page { size: A4 landscape; margin: 11mm 11mm 24mm; }
-html,body,body.pfm59-printing {
-  margin:0!important;padding:0!important;background:#fff!important;
-  width:auto!important;min-width:0!important;max-width:none!important;
-  height:auto!important;overflow:visible!important;
+/* Android V7.3.10 — only the OFFSCREEN PDF compositor loads this file.
+ * Keep A4 landscape chart/cards complete and reserve the native logo footer. */
+@page {size:A4 landscape;margin:0}
+html,body,body.pfm59-printing{
+  width:1120px!important;min-width:1120px!important;max-width:1120px!important;
+  height:auto!important;min-height:0!important;max-height:none!important;
+  margin:0!important;padding:0!important;overflow:visible!important;
+  background:#fff!important;color:#193a5d!important;
+  font-family:Tahoma,Arial,sans-serif!important;
   -webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;
 }
-body.pfm59-printing > :not(#pfm59PrintRoot):not(.pfm739-footer) {display:none!important}
-html body.pfm59-printing #pfm59PrintRoot {
-  display:block!important;position:static!important;visibility:visible!important;
-  float:none!important;transform:none!important;overflow:visible!important;
-  width:100%!important;min-width:0!important;max-width:100%!important;
-  height:auto!important;max-height:none!important;box-sizing:border-box!important;
-  padding:0!important;margin:0!important;background:#fff!important;
-  font-family:Tahoma,Arial,sans-serif!important;
+html body.pfm59-printing #pfm59PrintRoot{
+  display:block!important;position:static!important;float:none!important;
+  visibility:visible!important;transform:none!important;overflow:visible!important;
+  box-sizing:border-box!important;width:1100px!important;max-width:1100px!important;
+  min-width:1100px!important;min-height:0!important;height:auto!important;
+  padding:8px 14px 10px!important;margin:0!important;background:#fff!important;
+  line-height:1.35!important;
 }
-#pfm59PrintRoot * {box-sizing:border-box!important}
-#pfm59PrintRoot .pfm59-print-footer {display:none!important}
-#pfm59PrintRoot table {width:100%!important;max-width:100%!important;border-collapse:collapse!important;table-layout:auto!important}
-#pfm59PrintRoot thead {display:table-header-group!important}
-#pfm59PrintRoot tr {break-inside:avoid!important;page-break-inside:avoid!important}
-#pfm59PrintRoot svg,#pfm59PrintRoot img,#pfm59PrintRoot canvas,#pfm59PrintRoot figure,
-#pfm59PrintRoot .pfm53-panel,#pfm59PrintRoot .report-chart-wrap,
-#pfm59PrintRoot .pfm53-kpi,#pfm59PrintRoot .pfm53-mini {
+#pfm59PrintRoot *{box-sizing:border-box!important}
+#pfm59PrintRoot .pfm59-print-footer,
+#pfm59PrintRoot .pfm59-print-brand img{display:none!important}
+#pfm59PrintRoot .pfm59-print-head{
+  padding:6px 4px 9px!important;min-height:0!important;
+  margin:0 0 8px!important;align-items:center!important;gap:12px!important;
+}
+#pfm59PrintRoot .pfm59-print-brand strong{
+  font-size:19px!important;line-height:1.35!important;white-space:normal!important;
+}
+#pfm59PrintRoot .pfm59-print-brand small{font-size:11px!important}
+#pfm59PrintRoot .pfm59-print-time{font-size:11px!important}
+#pfm59PrintRoot .pfm59-print-scopes{
+  margin:0 0 10px!important;padding:7px 10px!important;min-height:0!important;
+  font-size:12px!important;line-height:1.45!important;flex-wrap:wrap!important;
+}
+#pfm59PrintRoot .pfm59-dashboard,
+#pfm59PrintRoot .pfm739-page-wrapper,
+#pfm59PrintRoot .pfm53-panel{
+  width:100%!important;max-width:100%!important;min-height:0!important;
+  height:auto!important;max-height:none!important;overflow:visible!important;
+  box-sizing:border-box!important;
+}
+#pfm59PrintRoot .pfm53-kpi-row,
+#pfm59PrintRoot .pfm53-second-row{
+  display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  align-items:stretch!important;gap:12px!important;margin:6px 0 12px!important;
+  width:100%!important;height:auto!important;overflow:visible!important;
+}
+#pfm59PrintRoot .pfm53-chart-row,
+#pfm59PrintRoot .pfm53-bottom-row{
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  align-items:stretch!important;gap:12px!important;margin:8px 0 12px!important;
+  width:100%!important;height:auto!important;overflow:visible!important;
+}
+#pfm59PrintRoot .pfm53-kpi,
+#pfm59PrintRoot .pfm53-mini{
+  display:flex!important;flex-direction:column!important;
+  justify-content:space-between!important;
+  min-width:0!important;min-height:135px!important;
+  max-height:none!important;height:auto!important;overflow:visible!important;
+  padding:12px!important;line-height:1.35!important;
+  break-inside:avoid!important;page-break-inside:avoid!important;
+}
+#pfm59PrintRoot .pfm53-kpi-value,
+#pfm59PrintRoot .pfm53-mini-value{
+  font-size:19px!important;line-height:1.3!important;white-space:normal!important;
+  overflow-wrap:anywhere!important;
+}
+#pfm59PrintRoot .pfm53-kpi-title,
+#pfm59PrintRoot .pfm53-mini-title{font-size:12px!important;line-height:1.45!important}
+#pfm59PrintRoot .pfm53-panel{
+  display:block!important;min-width:0!important;
+  padding:10px!important;break-inside:avoid!important;
+}
+#pfm59PrintRoot .pfm53-panel h3{
+  font-size:13px!important;line-height:1.4!important;margin:0 0 8px!important;
+}
+#pfm59PrintRoot .pfm53-chartsvg,
+#pfm59PrintRoot .pfm53-donut-wrap svg,
+#pfm59PrintRoot .report-chart-wrap svg{
+  width:100%!important;height:auto!important;max-height:205px!important;
+  display:block!important;object-fit:contain!important;
+}
+#pfm59PrintRoot figure,#pfm59PrintRoot img,
+#pfm59PrintRoot svg,#pfm59PrintRoot canvas,
+#pfm59PrintRoot .report-chart-wrap{
   max-width:100%!important;break-inside:avoid!important;page-break-inside:avoid!important;
 }
-#pfm59PrintRoot .pfm59-table-section {break-inside:auto!important;overflow:visible!important}
-#pfm59PrintRoot .pfm53-chart-row,#pfm59PrintRoot .pfm53-bottom-row {break-inside:auto!important}
-#pfm59PrintRoot .pfm53-chartsvg {max-height:175px!important;height:auto!important}
-#pfm59PrintRoot .pfm59-print-brand img {display:none!important}
-#pfm59PrintRoot .no-print,#pfm59PrintRoot button,#pfm59PrintRoot input,
-#pfm59PrintRoot select,#pfm59PrintRoot textarea {display:none!important}
-.pfm739-footer {
-  position:fixed!important;left:0!important;right:0!important;
-  bottom:-18mm!important;height:17mm!important;
-  display:flex!important;justify-content:center!important;align-items:center!important;
-  background:#fff!important;break-inside:avoid!important;
+#pfm59PrintRoot .pfm59-table-section{overflow:visible!important;height:auto!important}
+#pfm59PrintRoot table{
+  width:100%!important;max-width:100%!important;table-layout:auto!important;
+  border-collapse:collapse!important;
 }
-.pfm739-footer img {display:block!important;width:15mm!important;height:15mm!important;object-fit:contain!important}
+#pfm59PrintRoot thead{display:table-header-group!important}
+#pfm59PrintRoot tr{
+  break-inside:avoid!important;page-break-inside:avoid!important;
+}
+#pfm59PrintRoot td,#pfm59PrintRoot th{
+  font-size:11px!important;line-height:1.35!important;
+  white-space:normal!important;overflow-wrap:anywhere!important;
+}
+#pfm59PrintRoot button,#pfm59PrintRoot input,
+#pfm59PrintRoot select,#pfm59PrintRoot textarea,
+#pfm59PrintRoot .no-print{display:none!important}
