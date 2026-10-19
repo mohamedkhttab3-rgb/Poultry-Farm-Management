@@ -87,6 +87,7 @@ header,nav,main{position:relative;z-index:1;}
 }
 </style>
 <script src="./pfm-v63-storage.js"></script>
+<script src="./pfm-unified-sync.js"></script>
 <script src="./pfm-recovery-data.js"></script>
 <link href="./pfm-logo.png" rel="apple-touch-icon"/>
 <link href="./manifest.json" rel="manifest"/>
@@ -1372,7 +1373,7 @@ async function unlockApp(cloud=false){
   if(localStorage.getItem('pfm_recovery_seed_v4') && restoredCount>0 && !localStorage.getItem('pfm_recovery_notice_v4')){try{localStorage.setItem('pfm_recovery_notice_v4','1')}catch(_){}setSyncStatus('تم استعادة البيانات السابقة بنجاح');}
   if(cloud&&supabaseClient){
     try{
-      await syncFromCloud({pushLocal:true});
+      await syncNow();
     }catch(e){
       console.warn('Cloud sync after authentication failed:',e);
       setSyncStatus('تم تسجيل الدخول — تعذرت المزامنة الآن، وتم فتح البرنامج بالبيانات المحلية');
@@ -1522,7 +1523,32 @@ async function syncFromCloud({pushLocal=false}={}){
     persistLocal();renderAll();setSyncStatus('تمت المزامنة ☁️',true);
   }catch(e){console.error(e);setSyncStatus('بدون مزامنة — سيعاد المحاولة');console.warn('Cloud sync:',e.message)}
 }
-async function syncNow(){if(syncBusy||!supabaseClient||!currentUser)return;if(!navigator.onLine){setSyncStatus('بدون إنترنت — محفوظ محليًا');return}syncBusy=true;try{await syncToCloud();await syncFromCloud({pushLocal:false});}catch(e){console.error(e);setSyncStatus('تعذر المزامنة — البيانات محفوظة محليًا')}finally{syncBusy=false}}
+async function syncNow(){
+ if(syncBusy||!supabaseClient||!currentUser)return;
+ if(!navigator.onLine){setSyncStatus('بدون إنترنت — محفوظ محليًا');return}
+ if(!window.PFMUnifiedSync){setSyncStatus('محرّك المزامنة غير متاح — البيانات محفوظة محليًا');return}
+ syncBusy=true;
+ try{
+  const result=await window.PFMUnifiedSync.sync({
+   client:supabaseClient,userId:currentUser.id,db,storage:window.localStorage,
+   assertUnchanged:source=>window.PFMUnifiedSync.canonical(db)===source,
+   archiveLocal:async source=>{
+    if(!window.PFMV63.available())throw Error('Local storage unavailable: export JSON first');
+    await window.PFMV63.snapshot(currentUser.id,source,'نسخة أمان قبل مزامنة الأجهزة');
+   },
+   persistLocal:async next=>{
+    db=next;
+    persistLocal();
+    renderAll();
+   }
+  });
+  if(result.status==='synced')setSyncStatus('تمت المزامنة الآمنة ☁️',true);
+  else if(result.status==='conflict')setSyncStatus('تعارض بين الأجهزة ('+result.conflicts.length+') — لم تتغير البيانات، يلزم حل التعارض');
+  else if(result.status==='offline')setSyncStatus('بدون إنترنت — البيانات محفوظة محليًا');
+  else setSyncStatus('المزامنة مؤجلة ('+result.status+') — البيانات محفوظة محليًا');
+ }catch(e){console.error('PFM unified sync:',e);setSyncStatus('تعذرت المزامنة الآمنة — البيانات المحلية محفوظة');}
+ finally{syncBusy=false}
+}
 window.addEventListener('online',()=>{if(currentUser&&supabaseClient)syncNow()});
 
 const id=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
