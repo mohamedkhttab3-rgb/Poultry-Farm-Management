@@ -177,7 +177,7 @@ function installReportActions(){
  const existing=document.querySelector('button[onclick*="PFMPrintResults59"]');
  const parent=existing?.parentElement;
  if(!parent||parent.querySelector('[data-pfm-android-pdf]'))return;
- for(const [action,ar,en] of [['save','💾 حفظ PDF','💾 Save PDF'],['share','📤 مشاركة PDF','📤 Share PDF']]){
+ for(const [action,ar,en] of [['print','🖨️ طباعة PDF','🖨️ Print PDF'],['save','💾 حفظ PDF','💾 Save PDF'],['share','📤 مشاركة PDF','📤 Share PDF']]){
   const button=document.createElement('button');button.type='button';button.className='btn';
   button.dataset.pfmAndroidPdf=action;
   button.textContent=document.documentElement.lang==='en'?en:ar;
