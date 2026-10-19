@@ -65,32 +65,32 @@ jobs:
           sha256sum android/app/build/outputs/apk/debug/app-debug.apk > android/app/build/outputs/apk/debug/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: PoultryFarmManagement-Android-V7.3.14-QA-debug
+          name: PoultryFarmManagement-Android-V7.3.15-QA-debug
           path: |
             android/app/build/outputs/apk/debug/app-debug.apk
             android/app/build/outputs/apk/debug/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 14
 
-      - name: Publish direct-download Android V7.3.14 QA APK
+      - name: Publish direct-download Android V7.3.15 QA APK
         if: github.ref == 'refs/heads/fix/android-v7314-native-print-adapter'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          TAG="v7.3.14-native-html-print-qa"
-          FILE="PoultryFarmManagement-v7.3.14-Android-debug.apk"
+          TAG="v7.3.15-print-share-footer-qa"
+          FILE="PoultryFarmManagement-v7.3.15-Android-debug.apk"
           if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Release tag already exists; refusing to overwrite existing APK"
             exit 1
           fi
           mkdir -p release-files
           cp android/app/build/outputs/apk/debug/app-debug.apk "release-files/$FILE"
-          (cd release-files && sha256sum "$FILE" > SHA256SUMS-v7.3.14.txt)
+          (cd release-files && sha256sum "$FILE" > SHA256SUMS-v7.3.15.txt)
           gh release create "$TAG" \
-            "release-files/$FILE" "release-files/SHA256SUMS-v7.3.14.txt" \
+            "release-files/$FILE" "release-files/SHA256SUMS-v7.3.15.txt" \
             -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "Poultry Farm Management Android V7.3.14 PDF QA" \
+            --title "Poultry Farm Management Android V7.3.15 PDF QA" \
             --notes "QA debug APK. Rebuilt Android PDF generator, preserved native print/save/share and Excel XLSX. Automatic source/Android build checks completed, but actual phone PDF test is still required." \
             --prerelease
