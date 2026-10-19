@@ -3,7 +3,8 @@
 // A real Project URL + Publishable/Anon key may be supplied by the user's
 // existing V3.6 config file or by a previously saved local configuration.
 (function(){
-  const empty={url:'',publishableKey:'',redirectTo:''};
+  // V8 shared cloud project; publishable key is intentionally public. Never add service_role/secret keys.
+  const empty={url:'https://flqyqpqwnwncmrdgnocd.supabase.co',publishableKey:"sb_publishable_ObB0P7RnYBG-9JMUj6evTg__NHhLPFf",redirectTo:''};
   const isReal=(c)=>{
     const url=String(c?.url||'').trim();
     const key=String(c?.publishableKey||c?.anonKey||'').trim();
