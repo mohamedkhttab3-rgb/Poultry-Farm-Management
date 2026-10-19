@@ -1,0 +1,99 @@
+name: PFM V8 cross-platform QA
+on:
+  push:
+    branches: ['feature/pfm-v8-android-windows-ios']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  shared-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test shared storage, finance and V8 synchronization
+        run: |
+          node scripts/verify-source.cjs
+          node scripts/verify-public.cjs
+          node scripts/verify-native.cjs
+          node tests/test_unified_sync.cjs
+          node tests/test_v8_realtime.cjs
+          node tests/test_android_export_bridge.cjs
+          node tests/test_v410_vat_contract.cjs
+          node tests/test_poultry_cycle_economics.cjs
+  android-debug:
+    needs: shared-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install Android SDK
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - name: Generate native Android project
+        run: |
+          npx cap add android
+          npx cap sync android
+          npm run android:icons
+          node scripts/install-android-export.cjs
+          node scripts/set-android-version.cjs
+      - name: Build Android V8 QA APK
+        run: |
+          chmod +x android/gradlew
+          cd android
+          ./gradlew --no-daemon assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PoultryFarmManagement-V8-Android-QA
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+  windows-desktop:
+    needs: shared-checks
+    runs-on: windows-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Build Windows V8 QA
+        run: npm run desktop:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PoultryFarmManagement-V8-Windows-QA
+          path: dist-desktop/*
+          if-no-files-found: error
+  ios-source:
+    needs: shared-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate Capacitor iOS source and configuration
+        run: |
+          npm install --no-audit --no-fund
+          npx cap add ios
+          npx cap sync ios
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - name: iOS qualification note
+        run: echo "iOS source prepared. Signed device IPA requires macOS Xcode signing and physical device QA."
