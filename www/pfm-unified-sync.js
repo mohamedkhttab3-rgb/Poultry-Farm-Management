@@ -43,7 +43,11 @@ function build(local,merged){
   if(ARRAYS.has(collection))result[collection].push(payload);
   else if(collection==='finance')result.finance[record.record_id]=payload;
   else if(collection==='settings'||collection==='v410')result[collection]=payload;
-  else if(collection==='extras')Object.assign(result,payload);
+  else if(collection==='extras'){
+   for(const [field,value] of Object.entries(payload))
+    if(!RESERVED.has(field)&&field!=='__proto__'&&field!=='constructor')
+     result[field]=value;
+  }
  }
  return result;
 }
@@ -72,6 +76,17 @@ async function sync({client,userId,db,storage,assertUnchanged,persistLocal,archi
  if(!client||!userId||!db||!storage||!persistLocal)throw Error('Missing sync context');
  if(typeof navigator!=='undefined'&&navigator.onLine===false)return {status:'offline'};
  const source=canonical(db);
+ // A pristine installation still contains default settings (and may contain
+ // an empty V4.10 ledger). These defaults must not block first cloud login.
+ // Any meaningful local project/ledger/preferences instead requires review.
+ const defaultSettings=Object.entries(db.settings||{}).every(([k,v])=>
+  (k==='currency'&&v==='SAR')||(k==='language'&&v==='ar')||
+  (k==='globalStandardBreed'&&v==='Ross 308'));
+ const emptyLedger=v=>v==null||(Array.isArray(v)?v.length===0:
+  typeof v==='object'?Object.values(v).every(emptyLedger):false);
+ const newDevice=defaultSettings&&emptyLedger(db.v410)&&
+  [...ARRAYS].every(type=>(db[type]||[]).length===0)&&
+  Object.keys(db.finance||{}).length===0;
  const local=documents(db);
  // Read ONLY the signed-in account; RLS independently enforces ownership.
  const {data:rows,error:readError}=await client.from('pfm_sync_records')
@@ -91,7 +106,13 @@ async function sync({client,userId,db,storage,assertUnchanged,persistLocal,archi
   if(!b){
    if(l&&!r){writes.push({key,doc:l,expected:0});continue}
    if(!l&&r){merged.set(key,{collection:r.collection,record_id:r.record_id,payload:r.payload});incoming.push(key);nextState[key]={payload:rc,version:r.version};continue}
-   if(l&&r){conflicts.push(key);continue}
+   if(l&&r){
+    if(newDevice&&(key==='settings:main'||key==='v410:main')){
+     merged.set(key,{collection:r.collection,record_id:r.record_id,payload:r.payload});
+     incoming.push(key);nextState[key]={payload:rc,version:r.version};continue;
+    }
+    conflicts.push(key);continue;
+   }
   }else{
    const localChanged=lc!==bc,remoteChanged=rc!==bc;
    if(!l||!r){
