@@ -88,6 +88,7 @@ header,nav,main{position:relative;z-index:1;}
 </style>
 <script src="./pfm-v63-storage.js"></script>
 <script src="./pfm-unified-sync.js"></script>
+<script src="./pfm-v8-realtime.js"></script>
 <script src="./pfm-recovery-data.js"></script>
 <link href="./pfm-logo.png" rel="apple-touch-icon"/>
 <link href="./manifest.json" rel="manifest"/>
@@ -1028,7 +1029,7 @@ let currentUser=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');
 // Explicit DOM references: do not depend on the browser's implicit window[id] behavior.
 const DOM_IDS=['farmName','farmCompany','farmLicense','farmOwner','farmManager','farmLocation','farmSaveBtn','farmCancelBtn','houseFarm','houseName','houseCapacity','houseSaveBtn','houseCancelBtn','cycleFarm','cycleHouse','cycleDate','cycleBirds','cycleInitWeight','cycleBreed','cycleBreedCustom','cycleSource','cycleCurrency','cycleSaveBtn','cycleCancelBtn','dailyCycle','dailyDate','dailyDead','dailyCull','dailyFeed','dailyWater','dailyWeight','dailyTemp','dailyHumidity','dailyNotes','dailySaveBtn','dailyCancelBtn','weightCycle','weightDate','weightSample','weightTotal','weightMin','weightMax','weightSampleWeights','weightSD','weightCalcStatus','weightSaveBtn','weightCancelBtn','feedCycle','feedDate','feedType','feedQty','feedPrice','feedCurrencyLabel','medCurrencyLabel','saleCurrencyLabel','feedSaveBtn','feedCancelBtn','medCycle','medDate','medType','medName','medQty','medCost','medDose','medWithdrawal','medSaveBtn','medCancelBtn','invFarm','invItem','invUnit','invOpening','invMin','invIn','invOut','inventorySaveBtn','inventoryCancelBtn','finFarm','finCycle','financeBox','financeTable','costChicks','financeExpenseType','financeExpenseAmount','financeExpenseList','finSalePrice','finCurrency','otherRevenue','reportCycle','reportStandardBreed','reportStandardAge','reportStandardCatalog','printReport','saleCycle','saleDate','saleBirds','saleWeightUnit','saleWeight','saleWeightBox','saleAvgWeightBox','saleAvgWeight','saleAvgWeightHint','salePrice','saleBuyer','saleSaveBtn','saleCancelBtn','farmCount','houseCount','activeCycles','birdCount','deadCount','soldBirdCount','liveKgCount','dashboardFarm','dashboardHouse','dashboardSelectionBox','avgFcrCount','dashboardRevenue','dashboardProfit','dashboardCurrency2','dashboardCurrency3','dashboardCv','perfFarm','perfHouse','performanceBox','performanceTable','compareFarm','compareHouse','comparisonBox','comparisonScopeHint','feedFarmFilter','feedHouseFilter','medFarmFilter','medHouseFilter','invFilterFarm','invFilterHouse','finFilterFarm','finFilterHouse','performanceScopeHint','feedScopeHint','medScopeHint','inventoryScopeHint','financeScopeHint','feedConsumedCount','feedActualCount','alerts','farmTable','houseTable','cycleTable','dailyTable','weightTable','feedTable','medTable','inventoryTable','saleTable','memberFarm','memberEmail','memberRole','membersBox','globalCurrency','currencyLockNote','dashboardCurrency','cvStatus','auditTable','performanceRuleBreed','performanceRuleAge','performanceRuleWeight','performanceRuleFcr','performanceRuleAdg','performanceRuleCv','performanceRuleEpef','performanceRulePi','performanceRuleMortality','performanceRuleTable','globalStandardBreed','standardPreviewBreed','standardPreviewAge','globalStandardPanel','inviteEmail','inviteFarm','inviteRole','inviteResult'];
 for(const __id of DOM_IDS){ try{Object.defineProperty(window,__id,{configurable:true,get(){return document.getElementById(__id)},set(v){/* DOM elements are addressed through their id */}})}catch(__e){} }
-let syncTimer=null, syncBusy=false;
+let syncTimer=null, syncBusy=false, syncPending=false, v8Realtime=null, v8RealtimeUser=null;
 let financeDraftExpenses={};
 function localKey(uid=currentUser?.id){return uid?KEY_BASE+uid:null}
 function syncKey(uid=currentUser?.id){return uid?SYNC_KEY_BASE+uid:null}
@@ -1373,6 +1374,7 @@ async function unlockApp(cloud=false){
   if(localStorage.getItem('pfm_recovery_seed_v4') && restoredCount>0 && !localStorage.getItem('pfm_recovery_notice_v4')){try{localStorage.setItem('pfm_recovery_notice_v4','1')}catch(_){}setSyncStatus('تم استعادة البيانات السابقة بنجاح');}
   if(cloud&&supabaseClient){
     try{
+      startV8Realtime();
       await syncNow();
     }catch(e){
       console.warn('Cloud sync after authentication failed:',e);
@@ -1391,6 +1393,7 @@ function bindAuthButtons(){
   if(forgot) forgot.onclick=()=>resetPassword();
 }
 async function logoutUser(){
+  stopV8Realtime();
   persistLocal();
   if(supabaseClient){try{await supabaseClient.auth.signOut()}catch(e){console.error(e)}}
   currentUser=null;localStorage.removeItem(SESSION_KEY);db=emptyDb();financeDraftExpenses={};document.getElementById('authOverlay').style.display='flex';authMode('login');setSyncStatus('غير متصل');
@@ -1427,7 +1430,7 @@ async function bootAuth(){
         supabaseClient.auth.onAuthStateChange((_event,session)=>{
           if(_event==='PASSWORD_RECOVERY'){setTimeout(()=>showRecoveryForm(),0);return;}
           if(session?.user&&_event!=='SIGNED_OUT'){setTimeout(async()=>{try{await loadCloudProfile(session.user);await unlockApp(true);await acceptInviteFromHash()}catch(e){console.warn(e)}},0)}
-          else if(_event==='SIGNED_OUT'){currentUser=null;localStorage.removeItem(SESSION_KEY);db=emptyDb();if(overlay)overlay.style.display='flex';authMode('login');setSyncStatus('غير متصل')}
+          else if(_event==='SIGNED_OUT'){stopV8Realtime();currentUser=null;localStorage.removeItem(SESSION_KEY);db=emptyDb();if(overlay)overlay.style.display='flex';authMode('login');setSyncStatus('غير متصل')}
         });
       }
     }catch(e){console.warn('Supabase startup skipped:',e);supabaseClient=null;setSyncStatus('وضع محلي — جاهز للدخول');}
@@ -1438,7 +1441,7 @@ async function bootAuth(){
   }
 }
 
-const save=()=>{persistLocal();renderAll();if(supabaseClient&&currentUser){clearTimeout(syncTimer);syncTimer=setTimeout(()=>syncNow(),500)}};
+const save=()=>{persistLocal();renderAll();if(supabaseClient&&currentUser){clearTimeout(syncTimer);syncTimer=setTimeout(()=>syncNow(),0)}};
 function showCloudSetup(){const b=document.getElementById('cloudSetupBox');if(!b)return;b.style.display='block';b.innerHTML=supabaseClient?'<b>Supabase متصل.</b> تسجيل الدخول يتم عبر Supabase، وإذا تعذرت المزامنة فسيبقى البرنامج مفتوحًا ويعمل محليًا حتى تُصلح جداول/صلاحيات قاعدة البيانات.':'<b>Supabase غير مربوط.</b> ضع Project URL + Publishable/Anon Key الحقيقيين في <code>www/supabase-config.local.js</code> أو احفظهما في إعدادات التطبيق. لا تستخدم Secret/Service Role Key.'}
 function getFarmForRecord(type,x){if(!x)return null;if(type==='farms')return x.id;if(type==='houses'||type==='inventory')return x.farmId;if(type==='cycles')return x.farmId;const c=cyc(x.cycleId);return c?.farmId||null}
 function markDeleted(type,x){const farmId=getFarmForRecord(type,x);if(farmId&&isUuid(x.id)){db.tombstones.push({id:uuid(),farmId,entity:type,recordId:x.id,deletedAt:new Date().toISOString()})}}
@@ -1523,8 +1526,27 @@ async function syncFromCloud({pushLocal=false}={}){
     persistLocal();renderAll();setSyncStatus('تمت المزامنة ☁️',true);
   }catch(e){console.error(e);setSyncStatus('بدون مزامنة — سيعاد المحاولة');console.warn('Cloud sync:',e.message)}
 }
+function stopV8Realtime(){
+ if(v8Realtime){try{v8Realtime.stop()}catch(e){console.warn('Realtime stop:',e)}}
+ v8Realtime=null;v8RealtimeUser=null;
+}
+function startV8Realtime(){
+ if(!supabaseClient||!currentUser?.id||!window.PFMV8Realtime)return;
+ if(v8Realtime&&v8RealtimeUser===currentUser.id)return;
+ stopV8Realtime();
+ try{
+  v8Realtime=window.PFMV8Realtime.create({
+   client:supabaseClient,
+   onChange:()=>{if(currentUser&&navigator.onLine)syncNow()},
+   onStatus:state=>{if(state==='disconnected')setSyncStatus('Realtime غير متصل — المزامنة الاحتياطية متاحة')}
+  });
+  v8RealtimeUser=currentUser.id;
+  v8Realtime.start(currentUser.id);
+ }catch(e){stopV8Realtime();console.warn('Realtime unavailable, periodic recovery still works:',e)}
+}
 async function syncNow(){
- if(syncBusy||!supabaseClient||!currentUser)return;
+ if(syncBusy){syncPending=true;return;}
+ if(!supabaseClient||!currentUser)return;
  if(!navigator.onLine){setSyncStatus('بدون إنترنت — محفوظ محليًا');return}
  if(!window.PFMUnifiedSync){setSyncStatus('محرّك المزامنة غير متاح — البيانات محفوظة محليًا');return}
  syncBusy=true;
@@ -1547,13 +1569,13 @@ async function syncNow(){
   else if(result.status==='offline')setSyncStatus('بدون إنترنت — البيانات محفوظة محليًا');
   else setSyncStatus('المزامنة مؤجلة ('+result.status+') — البيانات محفوظة محليًا');
  }catch(e){console.error('PFM unified sync:',e);setSyncStatus('تعذرت المزامنة الآمنة — البيانات المحلية محفوظة');}
- finally{syncBusy=false}
+ finally{syncBusy=false;if(syncPending){syncPending=false;queueMicrotask(()=>syncNow());}}
 }
-window.addEventListener('online',()=>{if(currentUser&&supabaseClient)syncNow()});
+window.addEventListener('online',()=>{if(currentUser&&supabaseClient){v8Realtime?.reconnectNow();syncNow();}});
 document.addEventListener('visibilitychange',()=>{
  if(!document.hidden&&currentUser&&supabaseClient)syncNow();
 });
-// Poll for changes originating on another device even when no local edit occurs.
+// Fallback only: realtime detects changes immediately; scheduled checks recover missed events.
 setInterval(()=>{if(!document.hidden&&currentUser&&supabaseClient&&navigator.onLine)syncNow()},60000);
 
 const id=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
