@@ -23,6 +23,7 @@
  #pfm59PrintRoot th,#pfm59PrintRoot td{overflow-wrap:anywhere!important;white-space:normal!important}
  #pfm59PrintRoot button,#pfm59PrintRoot input,#pfm59PrintRoot select,#pfm59PrintRoot textarea,#pfm59PrintRoot .no-print{display:none!important}
  .pfm-native-a4-footer{position:fixed!important;bottom:-14mm!important;left:0!important;right:0!important;height:13mm!important;text-align:center!important;display:flex!important;align-items:center!important;justify-content:center!important}
+ .pfm-native-a4-footer{gap:2.5mm!important;direction:ltr!important;font-family:Arial,sans-serif!important;color:#193a5d!important;font-size:10pt!important;font-weight:600!important;white-space:nowrap!important}
  .pfm-native-a4-footer img{display:block!important;height:11mm!important;width:11mm!important;object-fit:contain!important}
 }
 @media screen { .pfm-native-a4-footer{display:none!important} }
