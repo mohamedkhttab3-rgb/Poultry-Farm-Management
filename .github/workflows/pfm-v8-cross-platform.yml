@@ -93,6 +93,7 @@ jobs:
           npm install --no-audit --no-fund
           npx cap add ios
           npx cap sync ios
+          node scripts/set-ios-version.cjs
         env:
           ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
       - name: iOS qualification note
