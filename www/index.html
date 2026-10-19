@@ -1550,6 +1550,11 @@ async function syncNow(){
  finally{syncBusy=false}
 }
 window.addEventListener('online',()=>{if(currentUser&&supabaseClient)syncNow()});
+document.addEventListener('visibilitychange',()=>{
+ if(!document.hidden&&currentUser&&supabaseClient)syncNow();
+});
+// Poll for changes originating on another device even when no local edit occurs.
+setInterval(()=>{if(!document.hidden&&currentUser&&supabaseClient&&navigator.onLine)syncNow()},60000);
 
 const id=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
