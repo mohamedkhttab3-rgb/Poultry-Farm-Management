@@ -73,7 +73,7 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Build Windows V8 QA
-        run: npm run desktop:win
+        run: npm run build:win
       - uses: actions/upload-artifact@v4
         with:
           name: PoultryFarmManagement-V8-Windows-QA
