@@ -1,0 +1,40 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const source=fs.readFileSync('www/pfm-v8-realtime.js','utf8');
+const callbacks=[],timers=new Map(),rooms=[];
+let nextTimer=1,removed=0;
+const context={window:{},Promise,Error,setTimeout:(fn,delay)=>{const i=nextTimer++;timers.set(i,{fn,delay});return i},clearTimeout:id=>timers.delete(id)};
+vm.runInNewContext(source,context);
+const api=context.window.PFMV8Realtime;
+const client={
+ channel:(name)=>{const room={name,handlers:{},on(event,filter,callback){this.handlers[event]=callback;this.filter=filter;return this},subscribe(cb){this.status=cb;return this}};rooms.push(room);return room},
+ removeChannel:async()=>{removed++}
+};
+let updates=0;const controller=api.create({client,onChange:()=>updates++});
+const id='12345678-1234-4234-9234-123456789012';
+controller.start(id);
+assert.equal(rooms.length,1);
+assert.equal(rooms[0].filter.table,'pfm_sync_records');
+assert.equal(rooms[0].filter.filter,'owner_id=eq.'+id);
+rooms[0].status('SUBSCRIBED');
+assert.equal(updates,1);
+rooms[0].handlers.postgres_changes({eventType:'UPDATE'});
+assert.equal(updates,2);
+rooms[0].status('CHANNEL_ERROR');
+assert([...timers.values()].some(x=>x.delay>=1000));
+controller.reconnectNow();assert.equal(rooms.length,2);
+const prior=updates;
+rooms[0].handlers.postgres_changes({eventType:'UPDATE'});
+assert.equal(updates,prior,'Disconnected subscriptions cannot update data');
+controller.stop();assert.equal(controller.active,false);
+rooms[1].handlers.postgres_changes({eventType:'UPDATE'});
+assert.equal(updates,prior,'No notifications after logout');
+assert(removed>=1);
+const html=fs.readFileSync('www/index.html','utf8');
+const pack=JSON.parse(fs.readFileSync('package.json','utf8'));
+assert.equal(pack.version,'8.0.0');
+assert(html.includes('./pfm-v8-realtime.js'));
+assert(html.includes('startV8Realtime()'));
+assert(html.includes('stopV8Realtime()'));
+assert(html.includes('syncPending=true'));
+console.log('PASS: V8 realtime authorization scope, event delivery, reconnect, logout and unified version.');
