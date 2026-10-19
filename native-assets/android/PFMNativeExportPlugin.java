@@ -220,7 +220,7 @@ public final class PFMNativeExportPlugin extends Plugin {
         "<base href=\"https://localhost/\"/>"+
         "<link rel=\"stylesheet\" href=\"./pfm-v7314-native-print.css\"/></head>");
       safe=safe.replaceFirst("(?i)</body>",
-        "<div class=\"pfm-native-a4-footer\"><img src=\"./pfm-logo.png\" alt=\"M.K\"/></div></body>");
+        "<div class=\"pfm-native-a4-footer\"><span>Poultry Farm Management M.K™</span><img src=\"./pfm-logo.png\" alt=\"Poultry Farm Management\"/></div></body>");
       web.loadDataWithBaseURL("https://localhost/",safe,"text/html","UTF-8",null);
       main.postDelayed(()->{
         if(nativePrintWeb==web&&!loaded.get()){
@@ -470,12 +470,22 @@ public final class PFMNativeExportPlugin extends Plugin {
       // Original screen is drawn ONCE; no slicing, duplicate sheets or zoom.
       web.draw(paper);
       paper.restore();
-      float logoSize=50f;
-      RectF rect=new RectF((PAGE_W-logoSize)/2f,PAGE_H-64,
-        (PAGE_W+logoSize)/2f,PAGE_H-14);
-      paper.drawBitmap(logo,null,rect,
-        new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG|
-          android.graphics.Paint.FILTER_BITMAP_FLAG));
+      // Keep the complete approved identity centered in the A4 footer.
+      final String footerText="Poultry Farm Management M.K™";
+      android.graphics.Paint footerPaint=new android.graphics.Paint(
+        android.graphics.Paint.ANTI_ALIAS_FLAG|android.graphics.Paint.FILTER_BITMAP_FLAG);
+      footerPaint.setColor(Color.rgb(25,58,93));
+      footerPaint.setTextSize(11f);
+      footerPaint.setTypeface(android.graphics.Typeface.create(
+        android.graphics.Typeface.DEFAULT,android.graphics.Typeface.BOLD));
+      final float logoSize=42f, gap=9f;
+      final float textWidth=footerPaint.measureText(footerText);
+      final float groupLeft=(PAGE_W-textWidth-gap-logoSize)/2f;
+      final float footerCenterY=PAGE_H-37f;
+      paper.drawText(footerText,groupLeft,footerCenterY+4f,footerPaint);
+      RectF rect=new RectF(groupLeft+textWidth+gap,footerCenterY-logoSize/2f,
+        groupLeft+textWidth+gap+logoSize,footerCenterY+logoSize/2f);
+      paper.drawBitmap(logo,null,rect,footerPaint);
       pdf.finishPage(page);
       try(OutputStream destination=new FileOutputStream(output)){
         pdf.writeTo(destination);
