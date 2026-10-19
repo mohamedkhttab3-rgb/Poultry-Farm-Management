@@ -1,7 +1,7 @@
 name: Android V7.3 regression checks
 on:
   push:
-    branches: [android-v73-ui-export-review-20261016, 'fix/android-reliable-exports-20261017', 'fix/android-v732-navigation-brand', 'fix/android-v733-native-export-rebuild', 'fix/android-v734-direct-print-excel-save', 'fix/android-v735-pdf-print-save-share', 'fix/android-v736-pdf-page-renderer', 'fix/android-v737-paged-pdf', 'fix/android-v738-pdf-null-layout', 'fix/android-v739-native-chromium-pdf', 'fix/android-v7310-pdf-layout', 'fix/android-v7311-pdf-structural-pages', 'fix/android-v7312-a4-screen-image-pdf', 'fix/android-v7313-pdf-canvas-fileprovider', 'fix/android-v7314-native-print-adapter']
+    branches: [android-v73-ui-export-review-20261016, 'fix/android-reliable-exports-20261017', 'fix/android-v732-navigation-brand', 'fix/android-v733-native-export-rebuild', 'fix/android-v734-direct-print-excel-save', 'fix/android-v735-pdf-print-save-share', 'fix/android-v736-pdf-page-renderer', 'fix/android-v737-paged-pdf', 'fix/android-v738-pdf-null-layout', 'fix/android-v739-native-chromium-pdf', 'fix/android-v7310-pdf-layout', 'fix/android-v7311-pdf-structural-pages', 'fix/android-v7312-a4-screen-image-pdf', 'fix/android-v7313-pdf-canvas-fileprovider', 'fix/android-v7314-native-print-adapter', 'feature/unified-offline-sync-v1']
   workflow_dispatch:
 permissions:
   contents: write
@@ -16,6 +16,7 @@ jobs:
           node-version: '22'
       - name: Verify source and Android native export
         run: |
+          node tests/test_unified_sync.cjs
           node scripts/verify-source.cjs
           node scripts/verify-public.cjs
           node scripts/verify-native.cjs
