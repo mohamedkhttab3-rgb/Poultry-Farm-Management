@@ -39,7 +39,8 @@ function build(local,merged){
  for(const type of ARRAYS)result[type]=[];
  result.finance={};
  for(const [key,record] of merged){
-  const {collection,payload}=record;
+  const {collection}=record;
+  const payload=JSON.parse(JSON.stringify(record.payload));
   if(ARRAYS.has(collection))result[collection].push(payload);
   else if(collection==='finance')result.finance[record.record_id]=payload;
   else if(collection==='settings'||collection==='v410')result[collection]=payload;
