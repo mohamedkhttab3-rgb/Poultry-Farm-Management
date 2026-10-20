@@ -167,6 +167,7 @@ function integerSplit(value,cycles){
  return cycles.map((c,i)=>{const x=i===cycles.length-1?value-allocated:Math.floor(value*Number(c.birds||0)/total);allocated+=x;return x});
 }
 function saveChicksInvoice(){
+ if(window.PFMV8SingleEntryActive)return alertError('سجّل فاتورة الصيصان من نموذج المشتريات الموحدة لمنع التكرار.');
  try{
   const d=dbNow(),q=chickQuote(),farm=$('pfm75-farm').value,number=Number($('pfm75-cycle').value),no=$('pfm75-chick-invoice').value.trim();
   if(!no)throw Error('أدخل رقم الفاتورة.');
