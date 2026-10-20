@@ -29,8 +29,24 @@ jobs:
           node tests/test_android_export_bridge.cjs
           node tests/test_v410_vat_contract.cjs
           node tests/test_poultry_cycle_economics.cjs
-  android-debug:
+  qa-release:
     needs: shared-checks
+    if: github.ref == 'refs/heads/feature/pfm-v8-single-purchase-entry'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create private draft QA release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: pfm-v8-purchases-qa-${{ github.run_id }}
+        run: |
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease --title "PFM V8 Purchases QA ($GITHUB_RUN_ID)" --notes "UNAPPROVED TEST BUILD. Use disposable farm data only. Android and Windows builds require device QA; iOS source is not an IPA."
+  android-debug:
+    needs: [shared-checks, qa-release]
+    if: always() && needs.shared-checks.result == 'success' && (needs.qa-release.result == 'success' || needs.qa-release.result == 'skipped')
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     timeout-minutes: 75
     steps:
@@ -61,14 +77,26 @@ jobs:
           chmod +x android/gradlew
           cd android
           ./gradlew --no-daemon assembleDebug
+      - name: Upload QA APK to private draft release
+        if: github.ref == 'refs/heads/feature/pfm-v8-single-purchase-entry'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: pfm-v8-purchases-qa-${{ github.run_id }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk PFM-V8-Android-QA.apk
+          gh release upload "$TAG" PFM-V8-Android-QA.apk --repo "$GITHUB_REPOSITORY"
       - uses: actions/upload-artifact@v4
+        if: github.ref != 'refs/heads/feature/pfm-v8-single-purchase-entry'
         with:
           name: PoultryFarmManagement-V8-Android-QA
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 3
   windows-desktop:
-    needs: shared-checks
+    needs: [shared-checks, qa-release]
+    if: always() && needs.shared-checks.result == 'success' && (needs.qa-release.result == 'success' || needs.qa-release.result == 'skipped')
+    permissions:
+      contents: write
     runs-on: windows-latest
     timeout-minutes: 50
     steps:
@@ -80,7 +108,19 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Build Windows V8 QA
         run: npm run build:win
+      - name: Upload QA Windows EXE to private draft release
+        if: github.ref == 'refs/heads/feature/pfm-v8-single-purchase-entry'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: pfm-v8-purchases-qa-${{ github.run_id }}
+        shell: pwsh
+        run: |
+          $app = Get-ChildItem -Path 'dist-desktop' -Filter '*.exe' -File | Sort-Object Length -Descending | Select-Object -First 1
+          if (-not $app) { throw 'Windows EXE was not built.' }
+          Copy-Item -LiteralPath $app.FullName -Destination 'PFM-V8-Windows-QA.exe'
+          gh release upload $env:TAG 'PFM-V8-Windows-QA.exe' --repo $env:GITHUB_REPOSITORY
       - uses: actions/upload-artifact@v4
+        if: github.ref != 'refs/heads/feature/pfm-v8-single-purchase-entry'
         with:
           name: PoultryFarmManagement-V8-Windows-QA
           path: dist-desktop/*.exe
