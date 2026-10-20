@@ -1,7 +1,7 @@
 name: PFM V8 cross-platform QA
 on:
   push:
-    branches: ['feature/pfm-v8-android-windows-ios']
+    branches: ['feature/pfm-v8-android-windows-ios', 'feature/pfm-v8-single-purchase-entry']
   workflow_dispatch:
 permissions:
   contents: read
