@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const css=fs.readFileSync('www/pfm-v7314-native-print.css','utf8');
+const native=fs.readFileSync('native-assets/android/PFMNativeExportPlugin.java','utf8');
+const printFooter=css.match(/\.pfm-native-a4-footer\{position:fixed[^}]*\}/)?.[0]||'';
+assert(printFooter,'Native A4 footer placement is missing');
+assert(/bottom:0!important/.test(printFooter),'A4 footer must stay INSIDE printable page body');
+assert(!/bottom:\s*-/.test(printFooter),'Negative footer offset clips Android print');
+assert(/left:50%!important/.test(printFooter));
+assert(/transform:translateX\(-50%\)!important/.test(printFooter));
+assert(/position:fixed!important/.test(printFooter),'Repeat footer on each printed page');
+assert(native.includes('Poultry Farm Management M.K™'));
+assert(native.includes('<img src=\\\"./pfm-logo.png\\\"'),'Original logo missing from native print');
+console.log('PASS: footer is centered within A4 print bounds, repeated and uses approved identity.');
+console.log('NOTE: Device print-preview visual check is still required.');
