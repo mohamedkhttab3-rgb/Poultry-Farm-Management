@@ -204,10 +204,25 @@ let activePrint=null,activeFrame=null;
    const css=stylesheetText();
    const android=window.Capacitor?.isNativePlatform?.() && window.Capacitor.getPlatform?.()==='android';
    const printCopy=android?root.cloneNode(true):root;
+   // Unified V8 A4 footer, owned by the printable document itself.
+   // Chromium repeats fixed elements on each physical print page.
+   // Uses the app's ORIGINAL pfm-logo.png; never a generated substitute.
+   const identityFooter='<div class="pfm-native-a4-footer" aria-label="Poultry Farm Management M.K™">'+
+     '<span>Poultry Farm Management M.K™</span>'+
+     '<img src="./pfm-logo.png" alt="Poultry Farm Management"/></div>';
+   const identityCss='<style>@media print{'+
+     '.pfm-native-a4-footer{position:fixed!important;bottom:0!important;left:50%!important;right:auto!important;'+
+     'transform:translateX(-50%)!important;display:flex!important;align-items:center!important;'+
+     'justify-content:center!important;gap:2.5mm!important;direction:ltr!important;'+
+     'width:max-content!important;max-width:95%!important;height:12mm!important;'+
+     'color:#193a5d!important;font:600 10pt Arial,sans-serif!important;white-space:nowrap!important;'+
+     'visibility:visible!important;z-index:999999!important;}'+
+     '.pfm-native-a4-footer img{width:10mm!important;height:10mm!important;object-fit:contain!important;display:block!important;}'+
+     '}@media screen{.pfm-native-a4-footer{display:none!important}}</style>';
    if(android){const foot=printCopy.querySelector('.pfm59-print-footer');if(foot){foot.replaceChildren();const img=document.createElement('img');img.src='./pfm-logo.png';img.alt='M.K™';foot.appendChild(img);}}
    const cssLink=css?'<style>'+css.replace(/<\/style/gi,'<\\/style')+'</style>':'<link rel="stylesheet" href="./pfm-v59-print-results.css"/>';
    const safeTitle=e(root.querySelector('.pfm59-print-brand strong')?.textContent||'Poultry Farm Manager');
-   return '<!DOCTYPE html><html dir="'+(document.documentElement.dir||'rtl')+'" lang="'+(document.documentElement.lang||'ar')+'"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><base href="'+base+'"/><title>'+safeTitle+'</title>'+cssLink+(root.querySelector('.pfm67-print-all-finance')?'<link rel="stylesheet" href="./v52-finance.css"/><link rel="stylesheet" href="./pfm-v67-finance-print.css"/>':'')+(android?'<link rel="stylesheet" href="./pfm-v736-android-print.css"/>':'')+'<style>html,body{background:#fff!important;margin:0!important;padding:0!important;}body.pfm59-printing #pfm59PrintRoot{display:block!important;}@media print{html,body{height:auto!important;overflow:visible!important;}}@media screen{body.pfm59-printing #pfm59PrintRoot{display:block!important;}}</style></head><body class="pfm59-printing">'+printCopy.outerHTML+'</body></html>';
+   return '<!DOCTYPE html><html dir="'+(document.documentElement.dir||'rtl')+'" lang="'+(document.documentElement.lang||'ar')+'"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><base href="'+base+'"/><title>'+safeTitle+'</title>'+cssLink+identityCss+(root.querySelector('.pfm67-print-all-finance')?'<link rel="stylesheet" href="./v52-finance.css"/><link rel="stylesheet" href="./pfm-v67-finance-print.css"/>':'')+(android?'<link rel="stylesheet" href="./pfm-v736-android-print.css"/>':'')+'<style>html,body{background:#fff!important;margin:0!important;padding:0!important;}body.pfm59-printing #pfm59PrintRoot{display:block!important;}@media print{html,body{height:auto!important;overflow:visible!important;}}@media screen{body.pfm59-printing #pfm59PrintRoot{display:block!important;}}</style></head><body class="pfm59-printing">'+printCopy.outerHTML+identityFooter+'</body></html>';
  }
  // Use a full-sized printable document; a 1px iframe can clip print pages in Chrome.
  function waitForReady(doc){return Promise.all([
