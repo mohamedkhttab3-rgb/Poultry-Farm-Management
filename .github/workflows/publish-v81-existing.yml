@@ -1,0 +1,25 @@
+name: Publish verified V8.1 installation candidates
+on:
+  push:
+    branches: ['feature/pfm-v8.1-cross-platform-qa']
+    paths: ['.github/workflows/publish-v81-existing.yml']
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify three V8.1 assets then publish draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_TAG: v8.1.0-qa-39494334625
+        run: |
+          set -euo pipefail
+          id=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=30" --jq ".[] | select(.tag_name == \"$TARGET_TAG\") | .id")
+          test -n "$id"
+          names=$(gh api "repos/$GITHUB_REPOSITORY/releases/$id/assets?per_page=100" --jq '.[].name')
+          echo "$names"
+          grep -q '^PFM-V8.1-Android-debug.apk$' <<< "$names"
+          grep -q '^PFM-V8.1-iOS-Xcode-Source.zip$' <<< "$names"
+          grep -q '^PoultryFarmManagement-8.1.0-win-x64.exe$' <<< "$names"
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$id" -F draft=false -F prerelease=true --jq '{url: .html_url, draft: .draft, prerelease: .prerelease}'
