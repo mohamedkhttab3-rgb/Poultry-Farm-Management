@@ -73,7 +73,7 @@ function issue(){
   const qty=Number($('pfm-v8-issue-qty').value),date=$('pfm-v8-issue-date').value;
   if(!lot||!cycle||lot.farmId!==selectedFarm()||cycle.farmId!==lot.farmId)throw Error(tr('اختر دفعة ودورة من نفس المزرعة.','Choose a lot and cycle from the same farm.'));
   if(!Number.isFinite(qty)||qty<=0||qty>balance(lot)+0.0000001)throw Error(tr('الكمية غير صحيحة أو تتجاوز الرصيد.','Quantity is invalid or exceeds available stock.'));
-  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)||date<cycle.date||date>new Date().toISOString().slice(0,10))throw Error(tr('تاريخ الصرف يجب أن يكون داخل الدورة وحتى اليوم.','Issue date must be within the cycle and no later than today.'));
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date<cycle.date||date>new Date().toISOString().slice(0,10))throw Error(tr('تاريخ الصرف يجب أن يكون داخل الدورة وحتى اليوم.','Issue date must be within the cycle and no later than today.'));
   if(stock().close?.[cycle.id]?.status==='closed')throw Error(tr('الدورة مغلقة ماليًا، لا يمكن الصرف عليها.','The cycle is financially closed.'));
   if(typeof can!=='function'||!can('finance',cycle.farmId))throw Error(tr('ليس لديك صلاحية مالية على المزرعة.','No finance permission for this farm.'));
   const kind=lot.kind,sourceType=kind==='feed'?'feed':kind==='bedding'?'expense':'med';
