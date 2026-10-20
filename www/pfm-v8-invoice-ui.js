@@ -168,6 +168,13 @@ function install(){
  $('pfm-v8-preview').addEventListener('click',preview);
  $('pfm-v8-submit').addEventListener('click',submit);
  $('v53-nav')?.addEventListener('click',e=>{if(e.target?.closest('[onclick*="inventory"]'))refresh()});
+ // Dashboard shortcuts can open Purchases without a navigation click.
+ // Refresh farm/cycle options when the already-existing screen becomes active.
+ const inventory=$('inventory');
+ if(inventory&&typeof MutationObserver==='function'){
+  new MutationObserver(()=>{if(inventory.classList.contains('active'))refresh()})
+   .observe(inventory,{attributes:true,attributeFilter:['class']});
+ }
  ready=true;return true;
 }
 let attempts=0;const timer=setInterval(()=>{if(install()||++attempts>=100)clearInterval(timer)},300);
