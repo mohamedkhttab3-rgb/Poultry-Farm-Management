@@ -66,6 +66,7 @@ jobs:
           name: PoultryFarmManagement-V8-Android-QA
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+          retention-days: 3
   windows-desktop:
     needs: shared-checks
     runs-on: windows-latest
@@ -82,8 +83,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: PoultryFarmManagement-V8-Windows-QA
-          path: dist-desktop/*
+          path: dist-desktop/*.exe
           if-no-files-found: error
+          retention-days: 3
   ios-source:
     needs: shared-checks
     runs-on: ubuntu-latest
