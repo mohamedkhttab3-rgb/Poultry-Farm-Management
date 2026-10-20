@@ -177,6 +177,14 @@ function install(){
  }
  // Activate only after every unified-entry dependency and control is mounted.
  window.PFMV8SingleEntryActive=true;
+ // The new unified farm sections extend the approved one-invoice UI without
+ // changing its financial commit, validation or existing source records.
+ if(!document.getElementById('pfm-v8-workspace-loader')){
+  const script=document.createElement('script');
+  script.id='pfm-v8-workspace-loader';
+  script.src='./pfm-v8-purchases-workspace.js';
+  document.head.appendChild(script);
+ }
  ready=true;return true;
 }
 let attempts=0;const timer=setInterval(()=>{if(install()||++attempts>=100)clearInterval(timer)},300);
