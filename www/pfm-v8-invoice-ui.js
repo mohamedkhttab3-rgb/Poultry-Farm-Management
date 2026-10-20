@@ -16,6 +16,14 @@ const ordinal=c=>typeof cycleOrdinal==='function'?Number(cycleOrdinal(c)):Number
 let ready=false,busy=false;
 function scope(el){
  const kind=field(el,'kind').value,chick=kind==='chicks',direct=!chick&&!stocked.has(kind);
+ const feed=kind==='feed';
+ el.querySelector('.v8-feed').hidden=!feed;
+ if(feed){
+  field(el,'unit').value='كجم';
+  const stage=field(el,'feedStage');
+  if(stage.value)field(el,'item').value=stage.value;
+  field(el,'item').readOnly=true;
+ }else field(el,'item').readOnly=false;
  el.querySelector('.v8-chick').hidden=!chick;
  el.querySelector('.v8-direct').hidden=!direct;
  el.querySelector('.v8-free').hidden=!chick;
@@ -38,7 +46,9 @@ function chickQty(el){
 function line(){
  const el=document.createElement('div');el.className='pfm-v8-line';
  el.innerHTML='<div class="pfm-v8-linehead"><b>'+tr('بند مشتريات','Purchase item')+'</b><button type="button" data-remove>'+tr('حذف','Remove')+'</button></div><div class="pfm-v8-fields">'+
- sel('kind','نوع البند','Type',kinds)+inp('item','اسم الصنف','Item name')+
+ sel('kind','نوع البند','Type',kinds)+
+ '<label class="v8-feed" hidden><span>'+tr('مرحلة العلف','Feed stage')+'</span><select data-k="feedStage"><option value="">'+tr('اختر المرحلة','Select stage')+'</option><option value="بادي">'+tr('بادي','Starter')+'</option><option value="نامي">'+tr('نامي','Grower')+'</option><option value="ناهي">'+tr('ناهي','Finisher')+'</option></select></label>'+
+ inp('item','اسم الصنف','Item name')+
  inp('quantity','الكمية','Quantity','number','1')+inp('unit','الوحدة','Unit','text','وحدة')+
  sel('priceMode','طريقة التسعير','Pricing',[['total','إجمالي البند','Line total'],['unit','سعر الوحدة','Unit price']])+
  inp('amount','السعر / إجمالي البند','Price / line total','number')+
@@ -53,6 +63,7 @@ function line(){
  inp('note','ملاحظات','Notes')+'</div>';
  el.querySelector('[data-remove]').addEventListener('click',()=>{if($('pfm-v8-lines').children.length>1)el.remove()});
  field(el,'kind').addEventListener('change',()=>scope(el));
+ field(el,'feedStage').addEventListener('change',()=>scope(el));
  field(el,'cycleNumber').addEventListener('change',()=>chickQty(el));
  scope(el);return el;
 }
@@ -142,7 +153,7 @@ function install(){
  '@media(max-width:620px){#pfm-v8-invoice .pfm-v8-fields{grid-template-columns:1fr}}',
  // Hide duplicate entry forms only. Existing stock movement and reports are retained.
  '#pfm75-expenses > .panel:not(#pfm-v8-invoice),#pfm75-lots-form > #v410-lot-panel > .v410-grid,#pfm75-lots-form > #v410-lot-panel > .actions,#pfm75-cycle-expenses{display:none!important}',
- '#v410SaveChicks,#v410SaveExpense,#v410CreateLot{display:none!important}'
+ '#v410SaveChicks,#v410SaveExpense,#v410CreateLot,#finance [onclick="addFinanceExpense()"]{display:none!important}'
  ].join('\n');document.head.appendChild(sheet);
  $('pfm-v8-date').value=new Date().toISOString().slice(0,10);
  $('pfm-v8-lines').appendChild(line());refresh();
