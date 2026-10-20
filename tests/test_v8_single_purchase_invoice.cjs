@@ -38,6 +38,8 @@ assert.equal(tons.nextV410.lots[0].unit,'kg','Stock unit must be kg');
 assert.equal(tons.nextV410.lots[0].unitCost,1,'Purchase value per stock kg');
 assert.throws(()=>invoice.prepare(blank(),{...request(),date:'2026-02-31'},ctx),/Valid invoice date/);
 assert.throws(()=>invoice.prepare(blank(),{...request(),date:'bad'},ctx),/Valid invoice date/);
+assert.throws(()=>invoice.prepare(blank(),request([chick]),{...ctx,currency:()=> 'USD'}),/CURRENCY_MISMATCH/);
+assert.throws(()=>invoice.prepare(blank(),request([transport]),{...ctx,currency:()=> 'USD'}),/CURRENCY_MISMATCH/);
 assert.throws(()=>invoice.prepare(blank(),request([chick,{...chick,item:'صيصان أخرى'}]),ctx),/DUPLICATE_CHICKS/);
 assert.throws(()=>invoice.prepare(blank(),request([{...chick,quantity:299}]),ctx),/must equal the total received/);
 const legacy=blank();legacy.v410.lots.push({farmId:'f1',supplier:'Supplier One',invoice:'123',item:'بادي'});
