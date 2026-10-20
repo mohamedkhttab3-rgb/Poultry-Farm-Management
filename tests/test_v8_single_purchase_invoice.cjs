@@ -24,6 +24,13 @@ assert.equal(p.nextFinance.c1.otherRevenue,50);
 assert.equal(p.nextFinance.c1.chicks+p.nextFinance.c2.chicks,580);
 assert.equal(p.nextV410.chicks.c1.free+p.nextV410.chicks.c2.free,10);
 assert.equal(p.document.totals.accountingCost,3132.5);
+const emptyOptional=invoice.prepare(blank(),request([{...feed,discount:'',freight:'',vatRate:'',reclaim:''}]),ctx);
+assert.equal(emptyOptional.nextV410.lots[0].accountingCost,2000,'Empty optional VAT fields must become zero, not block valid input');
+const blankFree=invoice.prepare(blank(),request([{...chick,free:'',discount:'',freight:''}]),ctx);
+assert.equal(blankFree.nextFinance.c1.chicks+blankFree.nextFinance.c2.chicks,600,'Empty free chick amount is zero, not invalid');
+assert.throws(()=>invoice.prepare(blank(),request([{...feed,quantity:''}]),ctx),/quantity required/,'Required quantity must not accept blank input');
+assert.throws(()=>invoice.prepare(blank(),request([{...feed,amount:''}]),ctx),/amount required/,'Required amount must not accept blank input');
+
 let saves=0;invoice.commit(db,request(),{...ctx,persist:()=>saves++});
 assert.equal(saves,1);
 assert.equal(db.v410.purchaseDocuments.length,1);
