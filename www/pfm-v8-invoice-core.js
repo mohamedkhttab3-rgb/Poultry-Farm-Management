@@ -142,12 +142,12 @@
     vatRate:rate,reclaimPercent:reclaim,mode,unit:unitKind});
    const tax={...priced,rate,mode,reclaim};
    const cost=round(priced.accountingCost+freight);
-   const row={id:ctx.uuid(),kind,item,quantity:qty,unit:unit==='ton'?'kg':unit,
+   const row={id:ctx.uuid(),kind,item,quantity:qty,unit,
      priceMode:pricing,amount:effectiveAmount,discount,freight,vat:tax,
      cost,free,cycleNumber:isChicks?Number(x.cycleNumber):null,
      cycleId:cycle?.id||null,note:String(x.note||'').trim().slice(0,400)};
    if(STOCK.has(kind)){
-    nextV410.lots.push({id:row.id,farmId,kind,item,unit:row.unit,
+    nextV410.lots.push({id:row.id,farmId,kind,item,unit:unit==='ton'?'kg':unit,
      qty:priced.quantityBase,amount:effectiveAmount,discount,
      accountingCost:priced.accountingCost,unitCost:priced.accountingCost/priced.quantityBase,
      vat:tax,date,supplier,invoice,createdAt:now,currency:db.settings?.currency||'SAR',
