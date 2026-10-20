@@ -114,10 +114,10 @@
    if(!['unit','total'].includes(pricing))fail('Unknown price basis');
    const listed=finite(x.amount,'amount',{min:0,strict:true});
    const amount=round(pricing==='unit'?qty*listed:listed);
-   const discount=finite(x.discount??0,'discount');
-   const freight=finite(x.freight??0,'freight');
-   const rate=finite(x.vatRate??0,'VAT rate',{max:100});
-   const reclaim=finite(x.reclaim??0,'recoverable VAT',{max:100});
+   const discount=finite(x.discount===''?0:x.discount??0,'discount');
+   const freight=finite(x.freight===''?0:x.freight??0,'freight');
+   const rate=finite(x.vatRate===''?0:x.vatRate??0,'VAT rate',{max:100});
+   const reclaim=finite(x.reclaim===''?0:x.reclaim??0,'recoverable VAT',{max:100});
    const mode=String(x.vatMode||'excluded');
    if(!['included','excluded'].includes(mode)||discount>=amount)fail('Invalid VAT mode or discount');
    if(!isChicks&&freight)fail('Freight must be included in an item amount except for chicks');
@@ -131,7 +131,7 @@
      fail('CURRENCY_MISMATCH: chick invoice and cycle currencies differ');
     const actual=cycles.reduce((s,c)=>s+Number(c.birds),0);
     if(!Number.isInteger(qty)||qty!==actual)fail('Chick purchase quantity must equal the total received in selected houses');
-    free=finite(x.free??0,'free chicks',{min:0,integer:true});
+    free=finite(x.free===''?0:x.free??0,'free chicks',{min:0,integer:true});
     if(free>=qty)fail('Free chicks must be less than received chicks');
     for(const c of cycles)if(ledger.close?.[c.id]?.status==='closed'||
        ledger.chicks?.[c.id]||Number(db.finance?.[c.id]?.chicks||0)>0)
