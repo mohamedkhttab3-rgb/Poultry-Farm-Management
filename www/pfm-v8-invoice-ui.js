@@ -175,6 +175,8 @@ function install(){
   new MutationObserver(()=>{if(inventory.classList.contains('active'))refresh()})
    .observe(inventory,{attributes:true,attributeFilter:['class']});
  }
+ // Activate only after every unified-entry dependency and control is mounted.
+ window.PFMV8SingleEntryActive=true;
  ready=true;return true;
 }
 let attempts=0;const timer=setInterval(()=>{if(install()||++attempts>=100)clearInterval(timer)},300);
