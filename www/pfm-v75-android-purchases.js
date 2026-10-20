@@ -1,8 +1,10 @@
-/* Android only: approved unified Purchases > Expenses / Stock.
-   Uses the existing V4.10 purchase, issue and financial ledgers; no shadow charges. */
+/* V8 shared Purchases > Expenses / Stock. Original Android workflow retained.
+   Windows/iOS opt in via the dedicated V8 loader. Accounting uses the SAME
+   existing V4.10 and V5.2 ledgers; no secondary ledger or copy of user data. */
 (function(){
 'use strict';
-if(!window.Capacitor?.isNativePlatform?.()||window.Capacitor.getPlatform?.()!=='android')return;
+const isAndroid=!!(window.Capacitor?.isNativePlatform?.()&&window.Capacitor.getPlatform?.()==='android');
+if(!isAndroid&&!window.PFMV8SharedPurchasesEnabled)return;
 const $=id=>document.getElementById(id);
 const core=()=>window.PFM74PurchaseCore;
 const dbNow=()=>typeof db==='undefined'?null:db;
@@ -117,7 +119,9 @@ function html(){
  'html.pfm72-android-native #pfm75-purchases .v410-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}',
  'html.pfm72-android-native #pfm75-purchases details{display:block;margin:12px 0}',
  '@media(max-width:410px){html.pfm72-android-native .pfm75-grid,html.pfm72-android-native #pfm75-purchases .v410-grid{grid-template-columns:1fr}}'
- ].join('\n');document.head.appendChild(css);
+ ].map(rule=>isAndroid?rule:rule.replaceAll('html.pfm72-android-native','html.pfm-v8-shared-purchases')).join('\n');
+ if(!isAndroid)document.documentElement.classList.add('pfm-v8-shared-purchases');
+ document.head.appendChild(css);
  $('pfm75-chick-date').value=new Date().toISOString().slice(0,10);
  inv.addEventListener('click',()=>{if($('inventory')?.classList.contains('active'))setTimeout(refreshStock,0)});
  selectTab('expenses');refresh(true);return true;
