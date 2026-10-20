@@ -1,6 +1,6 @@
 {
   "name": "poultry-farm-manager",
-  "version": "8.0.0",
+  "version": "8.1.0",
   "private": true,
   "scripts": {
     "sync": "npx cap sync",
@@ -29,7 +29,7 @@
     "@capacitor/ios": "^8.0.0",
     "@capacitor/cli": "^8.0.0"
   },
-  "description": "Poultry Farm Management V8 — unified Android, Windows and iOS offline-first cloud sync",
+  "description": "Poultry Farm Management V8.1 — unified Android, Windows and iOS offline-first cloud sync",
   "main": "desktop/main.cjs",
   "devDependencies": {
     "electron": "^38.0.0",
