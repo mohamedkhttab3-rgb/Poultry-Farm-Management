@@ -122,6 +122,8 @@
     cycles=db.cycles.filter(c=>c.farmId===farmId&&Number(ctx.cycleOrdinal?.(c)??c.cycleNumber??1)===num);
     if(!cycles.length||cycles.some(c=>!Number.isInteger(Number(c.birds))||Number(c.birds)<1))
      fail('Select a farm cycle with registered house chick quantities');
+    if(ctx.currency&&cycles.some(c=>ctx.currency(c.id)!==(db.settings?.currency||'SAR')))
+     fail('CURRENCY_MISMATCH: chick invoice and cycle currencies differ');
     const actual=cycles.reduce((s,c)=>s+Number(c.birds),0);
     if(!Number.isInteger(qty)||qty!==actual)fail('Chick purchase quantity must equal the total received in selected houses');
     free=finite(x.free??0,'free chicks',{min:0,integer:true});
@@ -132,6 +134,8 @@
    }else if(DIRECT[kind]){
     cycle=db.cycles.find(c=>c.id===scope&&c.farmId===farmId);
     if(!cycle)fail('Direct expense must be assigned to a cycle in the selected farm');
+    if(ctx.currency&&ctx.currency(cycle.id)!==(db.settings?.currency||'SAR'))
+     fail('CURRENCY_MISMATCH: direct expense and cycle currencies differ');
     if(ledger.close?.[cycle.id]?.status==='closed')fail('Cannot charge a closed financial cycle');
    }else if(!STOCK.has(kind))fail('Purchase kind cannot be allocated');
    const billed=isChicks?qty-free:qty;
