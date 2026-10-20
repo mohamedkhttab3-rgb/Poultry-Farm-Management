@@ -20,5 +20,25 @@ assert(!/bottom:\s*-/.test(footer),'Negative offset clips print footer');
 assert(native.includes('web.createPrintDocumentAdapter(filename)'),'Android print adapter missing');
 assert(!native.includes('safe=safe.replaceFirst("(?i)</body>"'),'Native duplicate footer insertion must remain removed');
 assert(desktop.includes('printToPDF(') && desktop.includes("pageSize:'A4'"),'Desktop PDF path missing');
+// Execute the ACTUAL shared document builder using lightweight DOM stubs.
+const begin=shared.indexOf(' function standalone(root){');
+const end=shared.indexOf(' // Use a full-sized printable document',begin);
+assert(begin>=0&&end>begin,'Cannot locate standalone printable HTML generator');
+const produce=new Function('document','window','e','stylesheetText',
+ shared.slice(begin,end)+
+ 'return standalone({cloneNode(){return this},querySelector(sel){'+
+ 'if(sel===\'.pfm59-print-brand strong\')return {textContent:\'Dashboard\'};'+
+ 'return null},outerHTML:\'<article id="pfm59PrintRoot"><p>Report</p></article>\'});');
+for(const mode of ['android','windows']){
+ const html=produce({baseURI:'pfm://app/index.html',documentElement:{dir:'rtl',lang:'ar'}},
+   {Capacitor:{isNativePlatform:()=>mode==='android',getPlatform:()=> 'android'}},
+   String,()=>'.pfm59-print-footer{display:none!important}');
+ assert(html.includes('<span>Poultry Farm Management M.K™</span>'),mode+' footer text absent');
+ assert(html.includes('<img src="./pfm-logo.png"'),mode+' original logo absent');
+ assert(html.includes('</article><div class="pfm-native-a4-footer"'),mode+' footer is hidden inside report root');
+ assert(html.includes('body.pfm59-printing > .pfm-native-a4-footer:not(#pfm59PrintRoot)'),mode+' legacy hide-rule override absent');
+ assert(html.includes('@page{size:A4 landscape;margin:11mm 11mm 19mm;}'),mode+' footer margin absent');
+ assert.equal(html.split('class="pfm-native-a4-footer"').length,2,mode+' footer duplicated');
+}
 console.log('PASS: Original logo and approved text in repeated A4 footer of shared Android + Windows reports.');
 console.log('LIMIT: Actual device render/preview still requires Android/Windows UI verification.');
