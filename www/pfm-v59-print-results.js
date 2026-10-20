@@ -213,7 +213,7 @@ let activePrint=null,activeFrame=null;
    const identityCss='<style>@page{size:A4 landscape;margin:11mm 11mm 19mm;}@media print{'+
      // The logo is on the LEFT of the upper heading, while the whole brand
      // remains in its existing top-right position for Arabic reports.
-     '#pfm59PrintRoot .pfm59-print-brand{direction:ltr!important;justify-content:flex-end!important;}'+
+     'body.pfm59-printing #pfm59PrintRoot .pfm59-print-head .pfm59-print-brand{direction:ltr!important;justify-content:flex-end!important;}'+
      '#pfm59PrintRoot .pfm59-print-brand > div{direction:rtl!important;text-align:right!important;}'+
      '#pfm59PrintRoot .pfm59-print-brand img{display:block!important;width:34px!important;height:34px!important;flex:0 0 34px!important;object-fit:contain!important;}'+
      'body.pfm59-printing > .pfm-native-a4-footer:not(#pfm59PrintRoot){position:fixed!important;display:flex!important;bottom:0!important;left:50%!important;right:auto!important;'+
