@@ -1,4 +1,4 @@
-// V8 iOS version stamping after Capacitor generates Xcode source.
+// V8.1 iOS version stamping after Capacitor generates Xcode source.
 // No Apple signing keys or credentials are required for this source-only step.
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
@@ -15,13 +15,13 @@ function setValue(text,key,value){
  // Capacitor default might inherit Xcode build settings; preserve them.
  return text;
 }
-plist=setValue(plist,'CFBundleShortVersionString','8.0.0');
-plist=setValue(plist,'CFBundleVersion','8000');
+plist=setValue(plist,'CFBundleShortVersionString','8.1.0');
+plist=setValue(plist,'CFBundleVersion','8100');
 fs.writeFileSync(info,plist);
 let pbx=fs.readFileSync(project,'utf8');
 if(!/MARKETING_VERSION\s*=/.test(pbx)||!/CURRENT_PROJECT_VERSION\s*=/.test(pbx))
  throw Error('iOS project version settings missing');
-pbx=pbx.replace(/MARKETING_VERSION\s*=\s*[^;]+;/g,'MARKETING_VERSION = 8.0.0;')
- .replace(/CURRENT_PROJECT_VERSION\s*=\s*[^;]+;/g,'CURRENT_PROJECT_VERSION = 8000;');
+pbx=pbx.replace(/MARKETING_VERSION\s*=\s*[^;]+;/g,'MARKETING_VERSION = 8.1.0;')
+ .replace(/CURRENT_PROJECT_VERSION\s*=\s*[^;]+;/g,'CURRENT_PROJECT_VERSION = 8100;');
 fs.writeFileSync(project,pbx);
-console.log('PASS: iOS V8.0.0 source version (8000); signed IPA remains separate.');
+console.log('PASS: iOS V8.1.0 source version (8100); signed IPA remains separate.');
