@@ -23,6 +23,7 @@ jobs:
           node tests/test_v8_realtime.cjs
           node tests/test_v8_pdf_footer_bounds.cjs
           node tests/test_v8_logo_order_only.cjs
+          node tests/test_v8_unified_navigation.cjs
           node tests/test_android_export_bridge.cjs
           node tests/test_v410_vat_contract.cjs
           node tests/test_poultry_cycle_economics.cjs
