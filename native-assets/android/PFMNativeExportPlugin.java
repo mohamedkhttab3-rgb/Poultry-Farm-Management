@@ -482,10 +482,11 @@ public final class PFMNativeExportPlugin extends Plugin {
       final float textWidth=footerPaint.measureText(footerText);
       final float groupLeft=(PAGE_W-textWidth-gap-logoSize)/2f;
       final float footerCenterY=PAGE_H-37f;
-      paper.drawText(footerText,groupLeft,footerCenterY+4f,footerPaint);
-      RectF rect=new RectF(groupLeft+textWidth+gap,footerCenterY-logoSize/2f,
-        groupLeft+textWidth+gap+logoSize,footerCenterY+logoSize/2f);
+      // Keep one centered unit, with the original logo LEFT of the text.
+      RectF rect=new RectF(groupLeft,footerCenterY-logoSize/2f,
+        groupLeft+logoSize,footerCenterY+logoSize/2f);
       paper.drawBitmap(logo,null,rect,footerPaint);
+      paper.drawText(footerText,groupLeft+logoSize+gap,footerCenterY+4f,footerPaint);
       pdf.finishPage(page);
       try(OutputStream destination=new FileOutputStream(output)){
         pdf.writeTo(destination);
