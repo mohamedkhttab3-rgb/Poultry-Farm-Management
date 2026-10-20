@@ -208,9 +208,14 @@ let activePrint=null,activeFrame=null;
    // Chromium repeats fixed elements on each physical print page.
    // Uses the app's ORIGINAL pfm-logo.png; never a generated substitute.
    const identityFooter='<div class="pfm-native-a4-footer" aria-label="Poultry Farm Management M.K™">'+
-     '<span>Poultry Farm Management M.K™</span>'+
-     '<img src="./pfm-logo.png" alt="Poultry Farm Management"/></div>';
+     '<img src="./pfm-logo.png" alt="Poultry Farm Management"/>'+
+     '<span>Poultry Farm Management M.K™</span></div>';
    const identityCss='<style>@page{size:A4 landscape;margin:11mm 11mm 19mm;}@media print{'+
+     // The logo is on the LEFT of the upper heading, while the whole brand
+     // remains in its existing top-right position for Arabic reports.
+     '#pfm59PrintRoot .pfm59-print-brand{direction:ltr!important;justify-content:flex-end!important;}'+
+     '#pfm59PrintRoot .pfm59-print-brand > div{direction:rtl!important;text-align:right!important;}'+
+     '#pfm59PrintRoot .pfm59-print-brand img{display:block!important;width:34px!important;height:34px!important;flex:0 0 34px!important;object-fit:contain!important;}'+
      'body.pfm59-printing > .pfm-native-a4-footer:not(#pfm59PrintRoot){position:fixed!important;display:flex!important;bottom:0!important;left:50%!important;right:auto!important;'+
      'transform:translateX(-50%)!important;display:flex!important;align-items:center!important;'+
      'justify-content:center!important;gap:2.5mm!important;direction:ltr!important;'+
