@@ -1,7 +1,7 @@
-name: PFM V8 cross-platform QA
+name: PFM V8.1 cross-platform release checks
 on:
   push:
-    branches: ['feature/pfm-v8-android-windows-ios', 'feature/pfm-v8-single-purchase-entry']
+    branches: ['feature/pfm-v8-android-windows-ios', 'feature/pfm-v8-single-purchase-entry', 'feature/pfm-v8.1-cross-platform-qa']
   workflow_dispatch:
 permissions:
   contents: read
@@ -73,7 +73,7 @@ jobs:
           npm run android:icons
           node scripts/install-android-export.cjs
           node scripts/set-android-version.cjs
-      - name: Build Android V8 QA APK
+      - name: Build Android V8.1 APK
         run: |
           chmod +x android/gradlew
           cd android
@@ -89,10 +89,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: github.ref != 'refs/heads/feature/pfm-v8-single-purchase-entry'
         with:
-          name: PoultryFarmManagement-V8-Android-QA
+          name: PoultryFarmManagement-V8.1-Android-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-          retention-days: 3
+          retention-days: 30
   windows-desktop:
     needs: [shared-checks, qa-release]
     if: always() && needs.shared-checks.result == 'success' && (needs.qa-release.result == 'success' || needs.qa-release.result == 'skipped')
@@ -107,7 +107,7 @@ jobs:
           node-version: '22'
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Build Windows V8 QA
+      - name: Build Windows V8.1 EXE
         run: npm run build:win
       - name: Upload QA Windows EXE to private draft release
         if: github.ref == 'refs/heads/feature/pfm-v8-single-purchase-entry'
@@ -123,7 +123,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: github.ref != 'refs/heads/feature/pfm-v8-single-purchase-entry'
         with:
-          name: PoultryFarmManagement-V8-Windows-QA
+          name: PoultryFarmManagement-V8.1-Windows-EXE
           path: dist-desktop/*.exe
           if-no-files-found: error
           retention-days: 3
@@ -144,5 +144,46 @@ jobs:
           node scripts/set-ios-version.cjs
         env:
           ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - name: Package unsigned iOS project source
+        run: |
+          zip -qr PFM-V8.1-iOS-Xcode-Source.zip ios
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PoultryFarmManagement-V8.1-iOS-Xcode-Source
+          path: PFM-V8.1-iOS-Xcode-Source.zip
+          if-no-files-found: error
+          retention-days: 30
       - name: iOS qualification note
-        run: echo "iOS source prepared. Signed device IPA requires macOS Xcode signing and physical device QA."
+        run: echo "iOS project generated only. A signed installable IPA needs Apple signing in Xcode, macOS and physical-device QA."
+
+  publish-v81:
+    needs: [shared-checks, android-debug, windows-desktop, ios-source]
+    if: github.ref == 'refs/heads/feature/pfm-v8.1-cross-platform-qa' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Download compiled V8.1 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: PoultryFarmManagement-V8.1-*
+          merge-multiple: false
+          path: v81-assets
+      - name: Verify and name V8.1 installation candidates
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          test -s v81-assets/PoultryFarmManagement-V8.1-Android-APK/app-debug.apk
+          cp v81-assets/PoultryFarmManagement-V8.1-Android-APK/app-debug.apk release/PFM-V8.1-Android-APK-debug.apk
+          find v81-assets/PoultryFarmManagement-V8.1-Windows-EXE -type f -iname '*.exe' -size +100k -print
+          cp v81-assets/PoultryFarmManagement-V8.1-Windows-EXE/*.exe release/
+          test -s v81-assets/PoultryFarmManagement-V8.1-iOS-Xcode-Source/PFM-V8.1-iOS-Xcode-Source.zip
+          cp v81-assets/PoultryFarmManagement-V8.1-iOS-Xcode-Source/PFM-V8.1-iOS-Xcode-Source.zip release/
+          sha256sum release/* > release/SHA256SUMS.txt
+      - name: Publish V8.1 candidate for installation testing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v8.1.0-qa-${{ github.run_id }}"
+          gh release create "$TAG" release/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Poultry Farm Management V8.1 — Installation candidates" --prerelease --notes "V8.1 Android APK (debug-signed, installable for testing), Windows EXE (unsigned installer/portable), and iOS Xcode source (NOT an installable IPA). Shared automated tests and platform packaging passed. Do not treat this as device-verified or production-signed. Validate PDF print/save/share, sync, purchases, cycle accounting and closing on each device before final approval."
