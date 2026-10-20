@@ -104,7 +104,12 @@
    if(seen.has(signature))fail('DUPLICATE_ITEM: identical invoice line '+(i+1));
    seen.add(signature);
    const qty=finite(x.quantity,'quantity',{min:0,strict:true});
-   const unit=String(x.unit||'item').trim().slice(0,36);
+   const rawUnit=String(x.unit||'item').trim().slice(0,36);
+   // Physical feed quantity is always stored in kilograms; invoice may be kg or tons.
+   // Never treat an unknown feed unit as kilograms silently.
+   const unit=rawUnit==='طن'?'ton':rawUnit==='كجم'?'kg':rawUnit;
+   if(kind==='feed'&&!['kg','ton'].includes(unit))
+    fail('Feed quantity unit must be kg or ton');
    const pricing=String(x.priceMode||'total');
    if(!['unit','total'].includes(pricing))fail('Unknown price basis');
    const listed=finite(x.amount,'amount',{min:0,strict:true});
