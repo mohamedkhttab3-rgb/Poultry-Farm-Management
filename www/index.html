@@ -1083,7 +1083,7 @@ function renderFinanceExpenseList(cycleId){
   const cur=getCycleCurrency(cyc(cycleId));
   financeExpenseList.innerHTML=`<table><thead><tr><th>البند</th><th>القيمة</th><th>العملة</th><th>الإجراء</th></tr></thead><tbody>${items.map((x,i)=>`<tr><td>${esc(x.category)}</td><td>${(+x.amount||0).toFixed(2)}</td><td>${esc(cur)}</td><td><button type="button" class="btn danger" onclick="removeFinanceExpense(${i})">حذف</button></td></tr>`).join('')}</tbody><tfoot><tr><th>إجمالي مصروفات المشروع</th><th>${financeExpenseTotal(items).toFixed(2)}</th><th>${esc(cur)}</th><th></th></tr></tfoot></table>`;
 }
-function addFinanceExpense(){
+function addFinanceExpense(){if(window.PFMV8SingleEntryActive)return alert('سجّل مصروفات المشروع ضمن فاتورة المشتريات الموحدة لمنع التكرار.');
   const cycleId=finCycle?.value;
   const c=cyc(cycleId);
   if(!c)return alert('اختر الدورة أولًا.');
