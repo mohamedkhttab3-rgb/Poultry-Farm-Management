@@ -10,7 +10,7 @@
  body.pfm59-printing #pfm59PrintRoot{display:block!important;position:static!important;visibility:visible!important;width:100%!important;max-width:100%!important;min-width:0!important;transform:none!important;overflow:visible!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;font-family:Tahoma,Arial,sans-serif!important;color:#193a5d!important}
  #pfm59PrintRoot *{box-sizing:border-box!important}
  #pfm59PrintRoot .pfm59-print-footer{display:none!important}
- #pfm59PrintRoot .pfm59-print-brand img{display:none!important}
+ #pfm59PrintRoot .pfm59-print-brand img{display:block!important;width:34px!important;height:34px!important;object-fit:contain!important}
  #pfm59PrintRoot .pfm59-report,#pfm59PrintRoot .report,#pfm59PrintRoot .pfm59-dashboard,#pfm59PrintRoot .pfm59-table-section,#pfm59PrintRoot .pfm67-print-all-finance{width:100%!important;max-width:100%!important;height:auto!important;max-height:none!important;overflow:visible!important}
  #pfm59PrintRoot .pfm53-kpi-row,#pfm59PrintRoot .pfm53-second-row{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
  #pfm59PrintRoot .pfm53-chart-row,#pfm59PrintRoot .pfm53-bottom-row{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
