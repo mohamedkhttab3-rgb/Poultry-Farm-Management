@@ -43,7 +43,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: v8.1.0-qa-${{ github.run_id }}
         run: |
-          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --title "Poultry Farm Management V8.1 — installation candidates" --notes "Android debug-signed APK, Windows unsigned EXE, iOS Xcode project source only (NOT signed IPA). These require device acceptance tests before production approval."
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease --title "Poultry Farm Management V8.1 — installation candidates" --notes "Android debug-signed APK, Windows unsigned EXE, iOS Xcode project source only (NOT signed IPA). These require device acceptance tests before production approval."
       - name: Create legacy V8 private QA release
         if: github.ref == 'refs/heads/feature/pfm-v8-single-purchase-entry'
         env:
@@ -140,7 +140,9 @@ jobs:
           if-no-files-found: error
           retention-days: 3
   ios-source:
-    needs: shared-checks
+    needs: [shared-checks, qa-release]
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -170,3 +172,24 @@ jobs:
           gh release upload "$TAG" PFM-V8.1-iOS-Xcode-Source.zip --repo "$GITHUB_REPOSITORY"
       - name: iOS qualification note
         run: echo "iOS project generated only. A signed installable IPA needs Apple signing in Xcode, macOS and physical-device QA."
+
+  publish-v81:
+    needs: [shared-checks, qa-release, android-debug, windows-desktop, ios-source]
+    if: github.ref == 'refs/heads/feature/pfm-v8.1-cross-platform-qa'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check actual uploaded files and publish V8.1 candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v8.1.0-qa-${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          assets=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq '.assets[].name')
+          echo "$assets"
+          grep -q 'PFM-V8.1-Android-debug.apk' <<< "$assets"
+          grep -q 'PFM-V8.1-iOS-Xcode-Source.zip' <<< "$assets"
+          grep -q '8.1.0' <<< "$assets"
+          grep -q '\.exe' <<< "$assets"
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease
