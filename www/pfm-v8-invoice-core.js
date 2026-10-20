@@ -93,6 +93,9 @@
    if(!item||item.length>180)fail('Enter item description at line '+(i+1));
    const isChicks=kind==='chicks';
    const scope=isChicks?String(x.cycleNumber||''):DIRECT[kind]?String(x.cycleId||''):'stock';
+   // A second chick line would overwrite the same cycle cost in this transaction.
+   if(isChicks&&lines.some(prev=>prev.kind==='chicks'&&prev.cycleNumber===Number(x.cycleNumber)))
+    fail('DUPLICATE_CHICKS: reception cycle already has a line');
    const signature=kind+'|'+norm(item)+'|'+scope;
    if(seen.has(signature))fail('DUPLICATE_ITEM: identical invoice line '+(i+1));
    seen.add(signature);
