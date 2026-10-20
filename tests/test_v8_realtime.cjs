@@ -32,7 +32,7 @@ assert.equal(updates,prior,'No notifications after logout');
 assert(removed>=1);
 const html=fs.readFileSync('www/index.html','utf8');
 const pack=JSON.parse(fs.readFileSync('package.json','utf8'));
-assert.equal(pack.version,'8.0.0');
+assert.equal(pack.version,'8.1.0');
 assert(html.includes('./pfm-v8-realtime.js'));
 assert(html.includes('startV8Realtime()'));
 assert(html.includes('stopV8Realtime()'));
