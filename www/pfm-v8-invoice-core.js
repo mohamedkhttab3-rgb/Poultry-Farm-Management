@@ -73,7 +73,8 @@
   const date=String(input?.date||'').trim();
   if(!db.farms.some(f=>f.id===farmId))fail('Select a registered farm');
   if(!supplier||!invoice||supplier.length>160||invoice.length>100)fail('Supplier and invoice number are required');
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(Date.parse(date+'T12:00:00Z')))
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(Date.parse(date+'T12:00:00Z'))||
+     new Date(date+'T12:00:00Z').toISOString().slice(0,10)!==date)
    fail('Valid invoice date is required');
   if(!ctx.canFinance?.(farmId))fail('Finance permission required for this farm');
   const existing=duplicate(db,farmId,supplier,invoice);
