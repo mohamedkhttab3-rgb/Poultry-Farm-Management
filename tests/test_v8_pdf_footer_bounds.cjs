@@ -18,6 +18,9 @@ assert(footer,'Native A4 footer position missing');
 assert(footer.includes('bottom:0!important'),'Footer outside A4 printable region');
 assert(!/bottom:\s*-/.test(footer),'Negative offset clips print footer');
 assert(native.includes('web.createPrintDocumentAdapter(filename)'),'Android print adapter missing');
+assert(native.includes('writePaginatedA4('),'Android PDF Save and Share must paginate');
+assert(native.includes('paper.drawBitmap(logo,null,rect,footerPaint);'),'Android must stamp the original centered logo on each saved/shared page');
+assert(!native.includes('writeSingleA4('),'Old compressed single-sheet renderer still present');
 assert(!native.includes('safe=safe.replaceFirst("(?i)</body>"'),'Native duplicate footer insertion must remain removed');
 assert(desktop.includes('printToPDF(') && desktop.includes("pageSize:'A4'"),'Desktop PDF path missing');
 // Execute the ACTUAL shared document builder using lightweight DOM stubs.
