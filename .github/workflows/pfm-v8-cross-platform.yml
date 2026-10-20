@@ -132,13 +132,20 @@ jobs:
           if (-not $app) { throw 'Windows EXE was not built.' }
           Copy-Item -LiteralPath $app.FullName -Destination 'PFM-V8-Windows-QA.exe'
           gh release upload $env:TAG 'PFM-V8-Windows-QA.exe' --repo $env:GITHUB_REPOSITORY
-      - uses: actions/upload-artifact@v4
-        if: github.ref != 'refs/heads/feature/pfm-v8-single-purchase-entry'
-        with:
-          name: PoultryFarmManagement-V8.1-Windows-EXE
-          path: dist-desktop/*.exe
-          if-no-files-found: error
-          retention-days: 3
+      - name: Upload V8.1 Windows installer directly to draft release
+        if: github.ref == 'refs/heads/feature/pfm-v8.1-cross-platform-qa'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v8.1.0-qa-${{ github.run_id }}
+        shell: pwsh
+        run: |
+          $apps = Get-ChildItem -Path 'dist-desktop' -Filter '*.exe' -File
+          if (-not $apps) { throw 'Windows EXE not built' }
+          foreach ($app in $apps) {
+            gh release upload $env:TAG $app.FullName --repo $env:GITHUB_REPOSITORY
+            if ($LASTEXITCODE -ne 0) { throw 'Windows release upload failed' }
+          }
+
   ios-source:
     needs: [shared-checks, qa-release]
     permissions:
