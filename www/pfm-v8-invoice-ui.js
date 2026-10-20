@@ -62,7 +62,13 @@ function line(){
  '<label class="v8-freight" hidden><span>'+tr('نقل إضافي للصيصان','Extra chick freight')+'</span><input data-k="freight" type="number" value="0"></label>'+
  inp('note','ملاحظات','Notes')+'</div>';
  el.querySelector('[data-remove]').addEventListener('click',()=>{if($('pfm-v8-lines').children.length>1)el.remove()});
- field(el,'kind').addEventListener('change',()=>scope(el));
+ field(el,'kind').addEventListener('change',()=>{
+  field(el,'item').value='';
+  field(el,'quantity').value='1';
+  field(el,'unit').value='وحدة';
+  field(el,'feedStage').value='';
+  scope(el);
+ });
  field(el,'feedStage').addEventListener('change',()=>scope(el));
  field(el,'cycleNumber').addEventListener('change',()=>chickQty(el));
  scope(el);return el;
