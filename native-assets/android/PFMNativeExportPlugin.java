@@ -219,8 +219,8 @@ public final class PFMNativeExportPlugin extends Plugin {
       safe=safe.replaceFirst("(?i)</head>",
         "<base href=\"https://localhost/\"/>"+
         "<link rel=\"stylesheet\" href=\"./pfm-v7314-native-print.css\"/></head>");
-      safe=safe.replaceFirst("(?i)</body>",
-        "<div class=\"pfm-native-a4-footer\"><span>Poultry Farm Management M.K™</span><img src=\"./pfm-logo.png\" alt=\"Poultry Farm Management\"/></div></body>");
+      // V8: the common printable HTML already includes the single fixed A4
+      // footer; do not inject a second logo that may overlap or be clipped.
       web.loadDataWithBaseURL("https://localhost/",safe,"text/html","UTF-8",null);
       main.postDelayed(()->{
         if(nativePrintWeb==web&&!loaded.get()){
