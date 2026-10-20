@@ -33,7 +33,7 @@ function scope(el){
  n.innerHTML=nums.map(x=>'<option value="'+x+'">'+esc(tr('دورة ','Cycle '))+x+'</option>').join('');
  if(nums.includes(Number(prior)))n.value=prior;
  const c=field(el,'cycleId'),old=c.value;
- c.innerHTML=farmCycles().map(x=>'<option value="'+esc(x.id)+'">'+esc(x.houseId+' — '+x.date)+'</option>').join('');
+ c.innerHTML=farmCycles().map(x=>'<option value="'+esc(x.id)+'">'+esc((typeof getHouseName==='function'?getHouseName(x.houseId):x.houseId)+' — '+x.date)+'</option>').join('');
  if([...c.options].some(x=>x.value===old))c.value=old;
  field(el,'quantity').readOnly=chick;
  if(chick)chickQty(el);
@@ -153,7 +153,7 @@ function install(){
  '@media(max-width:620px){#pfm-v8-invoice .pfm-v8-fields{grid-template-columns:1fr}}',
  // Hide duplicate entry forms only. Existing stock movement and reports are retained.
  '#pfm75-expenses > .panel:not(#pfm-v8-invoice),#pfm75-lots-form > #v410-lot-panel > .v410-grid,#pfm75-lots-form > #v410-lot-panel > .actions,#pfm75-cycle-expenses{display:none!important}',
- '#v410SaveChicks,#v410SaveExpense,#v410CreateLot,#finance [onclick="addFinanceExpense()"]{display:none!important}'
+ '#v410SaveChicks,#v410SaveExpense,#v410CreateLot,#finance [onclick="addFinanceExpense()"],#finance .field:has(> #financeExpenseType),#finance .field:has(> #financeExpenseAmount){display:none!important}'
  ].join('\n');document.head.appendChild(sheet);
  $('pfm-v8-date').value=new Date().toISOString().slice(0,10);
  $('pfm-v8-lines').appendChild(line());refresh();
