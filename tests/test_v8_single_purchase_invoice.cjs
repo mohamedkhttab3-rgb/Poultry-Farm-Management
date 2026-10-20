@@ -36,6 +36,12 @@ assert.equal(tons.document.lines[0].unit,'ton','Invoice must retain original ton
 assert.equal(tons.nextV410.lots[0].qty,2000,'Stock must convert tons to kg');
 assert.equal(tons.nextV410.lots[0].unit,'kg','Stock unit must be kg');
 assert.equal(tons.nextV410.lots[0].unitCost,1,'Purchase value per stock kg');
+const arabicUnit=invoice.prepare(blank(),request([{...feed,item:'ناهي',quantity:2,unit:'طن',amount:2000}]),ctx);
+assert.equal(arabicUnit.nextV410.lots[0].qty,2000,'Arabic ton must convert to kilograms');
+const arabicKg=invoice.prepare(blank(),request([{...feed,item:'بادي',quantity:100,unit:'كجم',amount:500}]),ctx);
+assert.equal(arabicKg.nextV410.lots[0].unit,'kg','Arabic kg must be canonicalized');
+assert.throws(()=>invoice.prepare(blank(),request([{...feed,unit:'box'}]),ctx),/Feed quantity unit must be kg or ton/);
+
 assert.throws(()=>invoice.prepare(blank(),{...request(),date:'2026-02-31'},ctx),/Valid invoice date/);
 assert.throws(()=>invoice.prepare(blank(),{...request(),date:'bad'},ctx),/Valid invoice date/);
 assert.throws(()=>invoice.prepare(blank(),request([chick]),{...ctx,currency:()=> 'USD'}),/CURRENCY_MISMATCH/);
