@@ -66,6 +66,7 @@ function farmChange(){
 function issue(){
  if(issuing)return;
  issuing=true;
+ let checkpoint=null;
  try{
   const lot=(stock().lots||[]).find(x=>x.id===$('pfm-v8-issue-lot').value);
   const cycle=(db.cycles||[]).find(x=>x.id===$('pfm-v8-issue-cycle').value);
@@ -82,6 +83,14 @@ function issue(){
   if(sourceType==='med'&&db.meds.some(x=>x.cycleId===cycle.id&&x.date===date&&x.name===lot.item))
    throw Error(tr('هذا الصنف مسجل بالفعل للدورة في نفس اليوم.','This item is already issued to the cycle on this date.'));
   const ledger=stock(),cost=money(qty*Number(lot.unitCost||0)),now=new Date().toISOString();
+  // Keep a complete in-memory checkpoint. If persisting fails, restore all
+  // ledgers and avoid exposing a partial stock movement or duplicate expense.
+  checkpoint={feed:db.feed.slice(),meds:db.meds.slice(),
+   finance:db.finance[cycle.id],financeHad:Object.prototype.hasOwnProperty.call(db.finance,cycle.id),
+   movements:Array.isArray(ledger.movements)?ledger.movements.slice():null,
+   expenses:ledger.expenses?{...ledger.expenses}:null,
+   audit:Array.isArray(db.auditLog)?db.auditLog.slice():null,
+   cycleId:cycle.id,ledger};
   const recId=uuid(),movement={id:uuid(),lotId:lot.id,cycleId:cycle.id,sourceType,sourceId:recId,
     kind:'issue',qty,unitCost:lot.unitCost,cost,date,createdAt:now};
   if(!Array.isArray(ledger.movements))ledger.movements=[];
@@ -110,6 +119,17 @@ function issue(){
   $('pfm-v8-issue-state').textContent=tr('تم صرف الكمية للعنبر وتحديث المخزون وتكلفة الدورة مرة واحدة.','Issued to the house, with one stock deduction and one cycle cost.');
   window.PFM_V410?.refresh?.();refreshIssues();
  }catch(err){
+  if(checkpoint){
+   db.feed=checkpoint.feed;db.meds=checkpoint.meds;
+   if(checkpoint.financeHad)db.finance[checkpoint.cycleId]=checkpoint.finance;
+   else delete db.finance[checkpoint.cycleId];
+   if(checkpoint.movements)checkpoint.ledger.movements=checkpoint.movements;
+   else delete checkpoint.ledger.movements;
+   if(checkpoint.expenses)checkpoint.ledger.expenses=checkpoint.expenses;
+   else delete checkpoint.ledger.expenses;
+   if(checkpoint.audit)db.auditLog=checkpoint.audit;
+   if(typeof financeDraftExpenses!=='undefined')delete financeDraftExpenses[checkpoint.cycleId];
+  }
   $('pfm-v8-issue-state').textContent=tr('تعذر الصرف: ','Issue failed: ')+err.message;
  }finally{issuing=false;}
 }
