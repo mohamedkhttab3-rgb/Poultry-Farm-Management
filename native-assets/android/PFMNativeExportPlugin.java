@@ -59,8 +59,8 @@ import java.util.zip.ZipInputStream;
 
 /**
  * Android V7.3.14 - native HTML A4 printing with preserved PDF exports.
- * PDF: draw the complete screen into one A4 sheet without
- * clipping or enlargement, stamp centered logo, then Print / Save / Share.
+ * PDF: paginate the complete report onto readable A4 sheets without
+ * clipping or shrinking; center the original logo on every page for Save / Share.
  * Excel: validate real XLSX and use Android's normal Save As picker.
  * No custom multi-choice export menus, no cached-file-only fake save,
  * no application data or desktop code changes.
@@ -390,7 +390,7 @@ public final class PFMNativeExportPlugin extends Plugin {
       "var pending=0;var imgs=root.querySelectorAll('img');"+
       "for(var k=0;k<imgs.length;k++)if(!imgs[k].complete)pending++;"+
       "return JSON.stringify({height:Math.ceil(max+8),"+
-      "text:(root.textContent||'').trim().length,pending:pending});"+
+      "text:(root.textContent||'').trim().length,pending:pending,blocks:(function(){var a=[],els=root.querySelectorAll('.report-chart-wrap, .pfm-report-mortality-pair, .report-header, .signature-grid, .card, figure, svg, img, tr');for(var j=0;j<els.length&&j<1600;j++){var box=els[j].getBoundingClientRect();if(box.height>10)a.push([Math.floor(box.top+window.scrollY),Math.ceil(box.bottom+window.scrollY)]);}return a;})()});"+
       "}catch(e){return JSON.stringify({error:String(e&&e.message||e)});}})()";
     web.evaluateJavascript(js,result->{
       try{
@@ -422,18 +422,31 @@ public final class PFMNativeExportPlugin extends Plugin {
         web.scrollTo(0,0);
         web.invalidate();
         // Let Chromium paint the resized, full-height view before snapshotting.
-        main.postDelayed(()->writeSingleA4(call,web,filename,action,height),700);
+        main.postDelayed(()->writePaginatedA4(call,web,filename,action,height,info),700);
       }catch(Exception e){finishWeb();reject(call,"PDF screen preparation failed: "+e.getMessage());}
     });
   }
 
-  // Draw the full Android WebView into one A4 PdfDocument page at source scale.
-  // No intermediate giant bitmap: direct canvas output avoids OutOfMemoryError
-  // on long reports. Width and height are always fitted WITHOUT enlargement.
-  // Android FileProvider/SAF/PrintManager remain in the existing, separate
-  // delivery methods below; no file:// URIs or storage permissions.
-  private void writeSingleA4(PluginCall call,WebView web,String filename,
-      String action,int height){
+  // Save/share use multiple readable A4 pages, unlike the former single
+  // screenshot which shrank long final reports into illegible miniatures.
+  private int preferredPageEnd(JSONObject measured,int top,int maximum,int pageHeight){
+    JSONArray blocks=measured.optJSONArray("blocks");
+    if(blocks==null)return maximum;
+    int chosen=maximum;
+    for(int i=0;i<blocks.length();i++){
+      JSONArray row=blocks.optJSONArray(i);
+      if(row==null||row.length()<2)continue;
+      int begin=row.optInt(0,-1),end=row.optInt(1,-1);
+      if(begin<=top||end<=maximum||begin>=maximum)continue;
+      // Keep a complete image, chart, card or table row on the next page
+      // when it fits there and at least 60% of this page can be used.
+      if(end-begin>pageHeight||begin-top<pageHeight*0.6f)continue;
+      chosen=Math.min(chosen,Math.max(top+1,begin-4));
+    }
+    return chosen;
+  }
+  private void writePaginatedA4(PluginCall call,WebView web,String filename,
+      String action,int height,JSONObject measured){
     if(reportView!=web)return;
     PdfDocument pdf=new PdfDocument();
     Bitmap logo=null;
@@ -447,30 +460,12 @@ public final class PFMNativeExportPlugin extends Plugin {
       final int width=web.getWidth();
       if(width!=RENDER_WIDTH||web.getHeight()!=height)
         throw new Exception("Screen layout is not ready for PDF export");
-      // Exact A4 landscape in PDF points; 27pt margin and a reserved logo strip.
-      final float availableWidth=PAGE_W-2f*PAGE_MARGIN;
-      final float availableHeight=PAGE_H-PAGE_MARGIN-FOOTER_RESERVED;
-      final float scale=Math.min(1f,Math.min(availableWidth/width,
-        availableHeight/(float)height));
-      if(!(scale>0f)||!Float.isFinite(scale))
-        throw new Exception("Invalid A4 scale");
-      final float fittedWidth=width*scale;
-      final float fittedHeight=height*scale;
-      final float x=PAGE_MARGIN+(availableWidth-fittedWidth)/2f;
-      final float y=PAGE_MARGIN+(availableHeight-fittedHeight)/2f;
-      PdfDocument.Page page=pdf.startPage(
-        new PdfDocument.PageInfo.Builder(PAGE_W,PAGE_H,1).create());
-      Canvas paper=page.getCanvas();
-      paper.drawColor(Color.WHITE);
-      paper.save();
-      paper.clipRect(x,y,x+fittedWidth,y+fittedHeight);
-      paper.translate(x,y);
-      paper.scale(scale,scale);
-      web.scrollTo(0,0);
-      // Original screen is drawn ONCE; no slicing, duplicate sheets or zoom.
-      web.draw(paper);
-      paper.restore();
-      // Keep the complete approved identity centered in the A4 footer.
+      final float bodyWidth=PAGE_W-2f*PAGE_MARGIN;
+      final float bodyHeight=PAGE_H-PAGE_MARGIN-FOOTER_RESERVED;
+      final float scale=bodyWidth/width;
+      final int pagePixels=Math.max(1,(int)Math.floor(bodyHeight/scale));
+      if(!Float.isFinite(scale)||pagePixels<200)
+        throw new Exception("Invalid A4 page geometry");
       final String footerText="Poultry Farm Management M.K™";
       android.graphics.Paint footerPaint=new android.graphics.Paint(
         android.graphics.Paint.ANTI_ALIAS_FLAG|android.graphics.Paint.FILTER_BITMAP_FLAG);
@@ -478,16 +473,38 @@ public final class PFMNativeExportPlugin extends Plugin {
       footerPaint.setTextSize(11f);
       footerPaint.setTypeface(android.graphics.Typeface.create(
         android.graphics.Typeface.DEFAULT,android.graphics.Typeface.BOLD));
-      final float logoSize=42f, gap=9f;
+      final float logoSize=42f,gap=9f;
       final float textWidth=footerPaint.measureText(footerText);
       final float groupLeft=(PAGE_W-textWidth-gap-logoSize)/2f;
       final float footerCenterY=PAGE_H-37f;
-      // Keep one centered unit, with the original logo LEFT of the text.
       RectF rect=new RectF(groupLeft,footerCenterY-logoSize/2f,
         groupLeft+logoSize,footerCenterY+logoSize/2f);
-      paper.drawBitmap(logo,null,rect,footerPaint);
-      paper.drawText(footerText,groupLeft+logoSize+gap,footerCenterY+4f,footerPaint);
-      pdf.finishPage(page);
+      web.scrollTo(0,0);
+      int pageNo=0,start=0;
+      while(start<height){
+        if(++pageNo>160)throw new Exception("Report exceeds 160 A4 pages");
+        int maximum=Math.min(height,start+pagePixels);
+        int end=maximum<height
+          ?preferredPageEnd(measured,start,maximum,pagePixels):maximum;
+        if(end<=start)end=maximum;
+        PdfDocument.Page page=pdf.startPage(
+          new PdfDocument.PageInfo.Builder(PAGE_W,PAGE_H,pageNo).create());
+        Canvas paper=page.getCanvas();
+        paper.drawColor(Color.WHITE);
+        paper.save();
+        paper.clipRect(PAGE_MARGIN,PAGE_MARGIN,
+          PAGE_MARGIN+bodyWidth,PAGE_MARGIN+(end-start)*scale);
+        paper.translate(PAGE_MARGIN,PAGE_MARGIN);
+        paper.scale(scale,scale);
+        paper.translate(0,-start);
+        web.draw(paper);
+        paper.restore();
+        // Original logo and brand, centred at the foot of every A4 page.
+        paper.drawBitmap(logo,null,rect,footerPaint);
+        paper.drawText(footerText,groupLeft+logoSize+gap,footerCenterY+4f,footerPaint);
+        pdf.finishPage(page);
+        start=end;
+      }
       try(OutputStream destination=new FileOutputStream(output)){
         pdf.writeTo(destination);
       }
