@@ -61,7 +61,7 @@ function line(){
  '<label class="v8-free" hidden><span>'+tr('صيصان مجانية','Free chicks')+'</span><input data-k="free" type="number" value="0"></label>'+
  '<label class="v8-freight" hidden><span>'+tr('نقل إضافي للصيصان','Extra chick freight')+'</span><input data-k="freight" type="number" value="0"></label>'+
  inp('note','ملاحظات','Notes')+'</div>';
- el.querySelector('[data-remove]').addEventListener('click',()=>{if($('pfm-v8-lines').children.length>1)el.remove()});
+ el.querySelector('[data-remove]').addEventListener('click',()=>{el.remove()});
  field(el,'kind').addEventListener('change',()=>{
   field(el,'item').value='';
   field(el,'quantity').value='1';
@@ -85,7 +85,7 @@ function refresh(){
 function input(){
  const get=key=>$(key)?.value||'';
  return {farmId:farm(),invoice:get('pfm-v8-invoice-no'),supplier:get('pfm-v8-supplier'),
-  date:get('pfm-v8-date'),lines:[...$('pfm-v8-lines').children].map(el=>{
+  date:get('pfm-v8-date'),lines:[...$('pfm-v8-lines').querySelectorAll('.pfm-v8-line')].map(el=>{
    const o={};for(const key of ['kind','item','quantity','unit','priceMode','amount','discount','vatMode','vatRate','reclaim','cycleId','cycleNumber','free','freight','note'])o[key]=field(el,key)?.value??'';return o;
   })};
 }
@@ -124,7 +124,7 @@ function submit(){
    }
   }
   status(tr('تم الحفظ بنجاح: ','Saved successfully: ')+doc.invoice,true);
-  $('pfm-v8-invoice-no').value='';$('pfm-v8-lines').replaceChildren(line());history();
+  $('pfm-v8-invoice-no').value='';$('pfm-v8-lines').querySelectorAll('.pfm-v8-line').forEach(el=>el.remove());history();
   window.PFM_V410?.refresh?.();
  }catch(e){status(tr('لم يتم الحفظ: ','Not saved: ')+e.message,false)}
  finally{busy=false;btn.disabled=false}
@@ -164,7 +164,7 @@ function install(){
  $('pfm-v8-date').value=new Date().toISOString().slice(0,10);
  $('pfm-v8-lines').appendChild(line());refresh();
  $('pfm-v8-farm').addEventListener('change',()=>{$('pfm-v8-lines').querySelectorAll('.pfm-v8-line').forEach(scope)});
- $('pfm-v8-add').addEventListener('click',()=>{if($('pfm-v8-lines').children.length<60)$('pfm-v8-lines').appendChild(line())});
+ $('pfm-v8-add').addEventListener('click',()=>{if($('pfm-v8-lines').querySelectorAll('.pfm-v8-line').length<60)$('pfm-v8-lines').appendChild(line())});
  $('pfm-v8-preview').addEventListener('click',preview);
  $('pfm-v8-submit').addEventListener('click',submit);
  $('v53-nav')?.addEventListener('click',e=>{if(e.target?.closest('[onclick*="inventory"]'))refresh()});
