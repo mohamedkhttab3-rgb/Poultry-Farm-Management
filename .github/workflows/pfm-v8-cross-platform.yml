@@ -32,17 +32,26 @@ jobs:
           node tests/test_poultry_cycle_economics.cjs
   qa-release:
     needs: shared-checks
-    if: github.ref == 'refs/heads/feature/pfm-v8-single-purchase-entry'
+    if: github.ref == 'refs/heads/feature/pfm-v8-single-purchase-entry' || github.ref == 'refs/heads/feature/pfm-v8.1-cross-platform-qa'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Create private draft QA release
+      - name: Create V8.1 prerelease destination
+        if: github.ref == 'refs/heads/feature/pfm-v8.1-cross-platform-qa'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v8.1.0-qa-${{ github.run_id }}
+        run: |
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --title "Poultry Farm Management V8.1 — installation candidates" --notes "Android debug-signed APK, Windows unsigned EXE, iOS Xcode project source only (NOT signed IPA). These require device acceptance tests before production approval."
+      - name: Create legacy V8 private QA release
+        if: github.ref == 'refs/heads/feature/pfm-v8-single-purchase-entry'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: pfm-v8-purchases-qa-${{ github.run_id }}
         run: |
-          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease --title "PFM V8 Purchases QA ($GITHUB_RUN_ID)" --notes "UNAPPROVED TEST BUILD. Use disposable farm data only. Android and Windows builds require device QA; iOS source is not an IPA."
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease --title "PFM V8 Purchases QA ($GITHUB_RUN_ID)" --notes "UNAPPROVED TEST BUILD."
+
   android-debug:
     needs: [shared-checks, qa-release]
     if: always() && needs.shared-checks.result == 'success' && (needs.qa-release.result == 'success' || needs.qa-release.result == 'skipped')
@@ -86,13 +95,16 @@ jobs:
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk PFM-V8-Android-QA.apk
           gh release upload "$TAG" PFM-V8-Android-QA.apk --repo "$GITHUB_REPOSITORY"
-      - uses: actions/upload-artifact@v4
-        if: github.ref != 'refs/heads/feature/pfm-v8-single-purchase-entry'
-        with:
-          name: PoultryFarmManagement-V8.1-Android-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: 30
+      - name: Upload V8.1 Android APK directly to release
+        if: github.ref == 'refs/heads/feature/pfm-v8.1-cross-platform-qa'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v8.1.0-qa-${{ github.run_id }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk PFM-V8.1-Android-debug.apk
+          test -s PFM-V8.1-Android-debug.apk
+          sha256sum PFM-V8.1-Android-debug.apk
+          gh release upload "$TAG" PFM-V8.1-Android-debug.apk --repo "$GITHUB_REPOSITORY"
   windows-desktop:
     needs: [shared-checks, qa-release]
     if: always() && needs.shared-checks.result == 'success' && (needs.qa-release.result == 'success' || needs.qa-release.result == 'skipped')
@@ -147,43 +159,14 @@ jobs:
       - name: Package unsigned iOS project source
         run: |
           zip -qr PFM-V8.1-iOS-Xcode-Source.zip ios
-      - uses: actions/upload-artifact@v4
-        with:
-          name: PoultryFarmManagement-V8.1-iOS-Xcode-Source
-          path: PFM-V8.1-iOS-Xcode-Source.zip
-          if-no-files-found: error
-          retention-days: 30
-      - name: iOS qualification note
-        run: echo "iOS project generated only. A signed installable IPA needs Apple signing in Xcode, macOS and physical-device QA."
-
-  publish-v81:
-    needs: [shared-checks, android-debug, windows-desktop, ios-source]
-    if: github.ref == 'refs/heads/feature/pfm-v8.1-cross-platform-qa' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      actions: read
-    steps:
-      - name: Download compiled V8.1 artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: PoultryFarmManagement-V8.1-*
-          merge-multiple: false
-          path: v81-assets
-      - name: Verify and name V8.1 installation candidates
-        run: |
-          set -euo pipefail
-          mkdir -p release
-          test -s v81-assets/PoultryFarmManagement-V8.1-Android-APK/app-debug.apk
-          cp v81-assets/PoultryFarmManagement-V8.1-Android-APK/app-debug.apk release/PFM-V8.1-Android-APK-debug.apk
-          find v81-assets/PoultryFarmManagement-V8.1-Windows-EXE -type f -iname '*.exe' -size +100k -print
-          cp v81-assets/PoultryFarmManagement-V8.1-Windows-EXE/*.exe release/
-          test -s v81-assets/PoultryFarmManagement-V8.1-iOS-Xcode-Source/PFM-V8.1-iOS-Xcode-Source.zip
-          cp v81-assets/PoultryFarmManagement-V8.1-iOS-Xcode-Source/PFM-V8.1-iOS-Xcode-Source.zip release/
-          sha256sum release/* > release/SHA256SUMS.txt
-      - name: Publish V8.1 candidate for installation testing
+      - name: Upload V8.1 iOS Xcode source directly to release
+        if: github.ref == 'refs/heads/feature/pfm-v8.1-cross-platform-qa'
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: v8.1.0-qa-${{ github.run_id }}
         run: |
-          TAG="v8.1.0-qa-${{ github.run_id }}"
-          gh release create "$TAG" release/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Poultry Farm Management V8.1 — Installation candidates" --prerelease --notes "V8.1 Android APK (debug-signed, installable for testing), Windows EXE (unsigned installer/portable), and iOS Xcode source (NOT an installable IPA). Shared automated tests and platform packaging passed. Do not treat this as device-verified or production-signed. Validate PDF print/save/share, sync, purchases, cycle accounting and closing on each device before final approval."
+          test -s PFM-V8.1-iOS-Xcode-Source.zip
+          sha256sum PFM-V8.1-iOS-Xcode-Source.zip
+          gh release upload "$TAG" PFM-V8.1-iOS-Xcode-Source.zip --repo "$GITHUB_REPOSITORY"
+      - name: iOS qualification note
+        run: echo "iOS project generated only. A signed installable IPA needs Apple signing in Xcode, macOS and physical-device QA."
