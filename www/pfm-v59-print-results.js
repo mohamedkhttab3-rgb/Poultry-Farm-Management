@@ -210,8 +210,8 @@ let activePrint=null,activeFrame=null;
    const identityFooter='<div class="pfm-native-a4-footer" aria-label="Poultry Farm Management M.K™">'+
      '<span>Poultry Farm Management M.K™</span>'+
      '<img src="./pfm-logo.png" alt="Poultry Farm Management"/></div>';
-   const identityCss='<style>@media print{'+
-     '.pfm-native-a4-footer{position:fixed!important;bottom:0!important;left:50%!important;right:auto!important;'+
+   const identityCss='<style>@page{size:A4 landscape;margin:11mm 11mm 19mm;}@media print{'+
+     'body.pfm59-printing > .pfm-native-a4-footer:not(#pfm59PrintRoot){position:fixed!important;display:flex!important;bottom:0!important;left:50%!important;right:auto!important;'+
      'transform:translateX(-50%)!important;display:flex!important;align-items:center!important;'+
      'justify-content:center!important;gap:2.5mm!important;direction:ltr!important;'+
      'width:max-content!important;max-width:95%!important;height:12mm!important;'+
