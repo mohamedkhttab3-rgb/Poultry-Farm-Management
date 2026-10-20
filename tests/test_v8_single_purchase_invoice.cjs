@@ -63,4 +63,12 @@ assert(ui.includes('PFMV8InvoiceCore.commit'));
 assert(ui.includes('class="v8-feed"'));
 assert(ui.includes('#finance [onclick="addFinanceExpense()"]'));
 assert(html.includes('pfm-v8-invoice-core.js')&&html.includes('pfm-v8-invoice-ui.js'));
+const legacyFinance=fs.readFileSync('www/v410-finance.js','utf8');
+const legacyAndroid=fs.readFileSync('www/pfm-v75-android-purchases.js','utf8');
+assert(ui.includes('window.PFMV8SingleEntryActive=true'),'Single entry enabled only when UI is ready');
+for(const handler of ['function createLot(){','function saveChicks(){','function saveDetailedExpense(){']){
+ assert(legacyFinance.includes(handler+"if(window.PFMV8SingleEntryActive)"),'Guard legacy action '+handler);
+}
+assert(legacyAndroid.includes("if(window.PFMV8SingleEntryActive)return alertError("),'Block old Android chicks purchase');
+assert(html.includes("function addFinanceExpense(){if(window.PFMV8SingleEntryActive)"),'Prevent direct duplicate finance expense input');
 console.log('PASS: invoice accounting, one-time stock cost, chicks, legacy preservation, VAT, duplicates, closed cycles, permissions, persistence rollback.');
