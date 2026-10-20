@@ -91,6 +91,9 @@
    const x=input.lines[i]||{},kind=String(x.kind||''),item=String(x.item||'').trim();
    if(!KNOWN.has(kind))fail('Unknown purchase category at line '+(i+1));
    if(!item||item.length>180)fail('Enter item description at line '+(i+1));
+   // Keep the approved starter/grower/finisher feed purchase workflow.
+   if(kind==='feed'&&!['بادي','نامي','ناهي'].includes(item))
+    fail('Feed purchase must specify بادي / نامي / ناهي');
    const isChicks=kind==='chicks';
    const scope=isChicks?String(x.cycleNumber||''):DIRECT[kind]?String(x.cycleId||''):'stock';
    // A second chick line would overwrite the same cycle cost in this transaction.
