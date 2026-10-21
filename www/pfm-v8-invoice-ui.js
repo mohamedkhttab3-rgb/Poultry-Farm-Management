@@ -4,7 +4,7 @@
 const $=id=>document.getElementById(id);
 const tr=(ar,en)=>document.documentElement.lang==='en'?en:ar;
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const kinds=[['feed','أعلاف','Feed'],['chicks','صيصان','Chicks'],['med','أدوية','Medicines'],['vaccine','تحصينات','Vaccines'],['disinfectant','مطهرات','Disinfectants'],['bedding','نشارة','Bedding'],['rent','إيجار','Rent'],['diesel','ديزل','Diesel'],['electricity','كهرباء','Electricity'],['water','مياه','Water'],['labor','عمال','Labor'],['transport','نقل','Transport'],['loading','تحميل','Loading'],['equipment_rent','إيجار معدات','Equipment rental'],['other','أخرى','Other']];
+const kinds=[['feed','أعلاف','Feed'],['chicks','صيصان','Chicks'],['med','أدوية','Medicines'],['vaccine','تحصينات','Vaccines'],['disinfectant','مطهرات','Disinfectants'],['bedding','نشارة','Bedding'],['rent','إيجار','Rent'],['diesel','ديزل','Diesel'],['electricity','كهرباء','Electricity'],['water','مياه','Water'],['labor','عمال','Labor'],['transport','نقل','Transport'],['loading','تحميل','Loading'],['equipment_rent','إيجار معدات','Equipment rental'],['other','أخرى','Other'],['shared','مصروف مشترك','Shared farm expense'],['asset','أصل ثابت','Fixed asset']];
 const stocked=new Set(['feed','med','vaccine','disinfectant','bedding']);
 const opts=a=>a.map(v=>'<option value="'+esc(v[0])+'">'+esc(tr(v[1],v[2]))+'</option>').join('');
 const inp=(key,ar,en,type='text',value='')=>'<label><span>'+esc(tr(ar,en))+'</span><input data-k="'+key+'" type="'+type+'" value="'+esc(value)+'"></label>';
@@ -15,7 +15,7 @@ const farmCycles=()=>Array.isArray(db?.cycles)?db.cycles.filter(x=>x.farmId===fa
 const ordinal=c=>typeof cycleOrdinal==='function'?Number(cycleOrdinal(c)):Number(c.cycleNumber||1);
 let ready=false,busy=false;
 function scope(el){
- const kind=field(el,'kind').value,chick=kind==='chicks',direct=!chick&&!stocked.has(kind);
+ const kind=field(el,'kind').value,chick=kind==='chicks',shared=kind==='shared',asset=kind==='asset',direct=!chick&&!shared&&!asset&&!stocked.has(kind);
  const feed=kind==='feed';
  el.querySelector('.v8-feed').hidden=!feed;
  if(feed){
@@ -28,6 +28,12 @@ function scope(el){
  el.querySelector('.v8-direct').hidden=!direct;
  el.querySelector('.v8-free').hidden=!chick;
  el.querySelector('.v8-freight').hidden=!chick;
+ el.querySelector('.v81-shared').hidden=!shared;
+ el.querySelector('.v81-asset').hidden=!asset;
+ if(shared){
+  const target=el.querySelector('.v81-shared-cycles'),checked=new Set([...target.querySelectorAll('[data-cycle]')].filter(x=>x.checked).map(x=>x.value));
+  target.innerHTML=farmCycles().map(c=>'<label><input type="checkbox" data-cycle value="'+esc(c.id)+'" '+(checked.has(c.id)?'checked':'')+'><span>'+esc((typeof getHouseName==='function'?getHouseName(c.houseId):c.houseId)+' — '+c.date)+'</span></label>').join('');
+ }
  const nums=[...new Set(farmCycles().map(ordinal))].filter(Number.isInteger).sort((a,b)=>a-b);
  const n=field(el,'cycleNumber'),prior=n.value;
  n.innerHTML=nums.map(x=>'<option value="'+x+'">'+esc(tr('دورة ','Cycle '))+x+'</option>').join('');
@@ -59,7 +65,9 @@ function line(){
  '<label class="v8-chick" hidden><span>'+tr('رقم دورة استقبال الصيصان','Chick reception cycle')+'</span><select data-k="cycleNumber"></select></label>'+
  '<label class="v8-direct" hidden><span>'+tr('الدورة المحمل عليها','Charge to cycle')+'</span><select data-k="cycleId"></select></label>'+
  '<label class="v8-free" hidden><span>'+tr('صيصان مجانية','Free chicks')+'</span><input data-k="free" type="number" value="0"></label>'+
- '<label class="v8-freight" hidden><span>'+tr('نقل إضافي للصيصان','Extra chick freight')+'</span><input data-k="freight" type="number" value="0"></label>'+
+ '<label class="v8-freight" hidden><span>'+tr('نقل إضافي للصيصان','Extra chick freight')+'</span><input data-k="freight" type="number" value="0"></label>'+ 
+ '<div class="v81-shared" hidden><label><span>'+tr('أساس التوزيع','Allocation basis')+'</span><select data-k="method"><option value="equal">'+tr('بالتساوي','Equal')+'</option><option value="birds">'+tr('حسب عدد الطيور','By birds')+'</option></select></label><p>'+tr('اختر العنابر المستفيدة — تسجّل الفاتورة مرة واحدة فقط','Select beneficiary houses; invoice is stored only once')+'</p><div class="v81-shared-cycles"></div></div>'+ 
+ '<div class="v81-asset" hidden>'+inp('startDate','تاريخ بدء تشغيل الأصل','Asset service date','date')+inp('lifeMonths','العمر الإنتاجي بالشهور','Useful life (months)','number','60')+inp('residual','القيمة المتبقية','Residual value','number','0')+'</div>'+
  inp('note','ملاحظات','Notes')+'</div>';
  el.querySelector('[data-remove]').addEventListener('click',()=>{el.remove()});
  field(el,'kind').addEventListener('change',()=>{
@@ -86,12 +94,15 @@ function input(){
  const get=key=>$(key)?.value||'';
  return {farmId:farm(),invoice:get('pfm-v8-invoice-no'),supplier:get('pfm-v8-supplier'),
   date:get('pfm-v8-date'),lines:[...$('pfm-v8-lines').querySelectorAll('.pfm-v8-line')].map(el=>{
-   const o={};for(const key of ['kind','item','quantity','unit','priceMode','amount','discount','vatMode','vatRate','reclaim','cycleId','cycleNumber','free','freight','note'])o[key]=field(el,key)?.value??'';return o;
+   const o={};for(const key of ['kind','item','quantity','unit','priceMode','amount','discount','vatMode','vatRate','reclaim','cycleId','cycleNumber','free','freight','note','method','startDate','lifeMonths','residual'])o[key]=field(el,key)?.value??'';
+    o.cycleIds=[...el.querySelectorAll('.v81-shared-cycles [data-cycle]:checked')].map(c=>c.value);
+    return o;
   })};
 }
 function accounting(){
  const core=window.PFM74PurchaseCore;
  return {uuid:()=>uuid(),price:core.price,shares:core.shares,
+   allocate:window.PFMV81Accounting?.allocate,
   normalizeExpenses:normalizeFinanceExpenses,
   canFinance:id=>!!currentUser&&can('finance',id),
   cycleOrdinal:ordinal,userId:currentUser?.id||null,
@@ -154,6 +165,10 @@ function install(){
  '#pfm-v8-invoice .pfm-v8-line{border:1px solid #bfd5e6;border-radius:10px;padding:12px;margin:12px 0;background:#f6faff}',
  '#pfm-v8-invoice .pfm-v8-linehead{display:flex;align-items:center;justify-content:space-between}',
  '#pfm-v8-invoice [hidden]{display:none!important}',
+ '#pfm-v8-invoice .v81-shared,#pfm-v8-invoice .v81-asset{grid-column:1/-1;padding:10px;border:1px solid #c5d6e2;border-radius:8px}',
+ '#pfm-v8-invoice .v81-shared-cycles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}',
+ '#pfm-v8-invoice .v81-shared-cycles label{display:flex;flex-direction:row;align-items:center}',
+ '#pfm-v8-invoice .v81-shared-cycles input{min-height:0;width:auto}',
  '#pfm-v8-invoice-status[data-valid="false"]{color:#b91c1c}',
  '#pfm-v8-invoice-status[data-valid="true"]{color:#047857}',
  '@media(max-width:620px){#pfm-v8-invoice .pfm-v8-fields{grid-template-columns:1fr}}',

@@ -2052,13 +2052,17 @@ function calc(c){
   const fin=db.finance[c.id]||{};
   const saleRevenue=sales.reduce((sum,x)=>sum+saleRowRevenue(x),0);
   const expenseTotal=Object.prototype.hasOwnProperty.call(financeDraftExpenses,c.id)?financeExpenseTotal(financeDraftExpenses[c.id]):financeExpenseTotal(fin);
-  const cost=fc+meds+(+fin.chicks||0)+expenseTotal;
+  // Shared expenses and monthly depreciation are posted once in V8.1's
+  // independent allocations ledger. Never copy them to finance.expenses.
+  const allocated=(typeof window!=='undefined'&&window.PFMV81Accounting?.charges(db,c.id,metricDate))||{shared:0,depreciation:0,total:0};
+  const sharedCost=allocated.shared,depreciationCost=allocated.depreciation;
+  const cost=fc+meds+(+fin.chicks||0)+expenseTotal+sharedCost+depreciationCost;
   const rev=saleRevenue+(+fin.otherRevenue||0),profit=rev-cost,producedWeight=totalLiveWeight>0?totalLiveWeight:0,costPerKg=producedWeight>0?cost/producedWeight:0;
   const realizedPriceKg=soldKg>0?saleRevenue/soldKg:0;
   const economicCoefficient=costPerKg>0&&realizedPriceKg>0?realizedPriceKg/costPerKg:0,ebef=epef>0&&economicCoefficient>0?epef*economicCoefficient:0;
   const marketableBirds=soldBirds+liv,costPerBird=marketableBirds>0?cost/marketableBirds:0;
   const liveBreak=liveSource(c,metricDate);
-  return {dead,cul,liv,feed,w,gain,fcr,gainFcr,metricDate,livPct,ageDays,pi,epef,adg,cv,ebef,economicCoefficient,meds,fc,expenseTotal,cost,rev,profit,soldBirds,soldKg,saleRevenue,liveKg,totalLiveWeight,birdSalesWeight,costPerKg,costPerBird,realizedPriceKg,currency:cur,marketableBirds,missingCurrency:false,liveBreak};
+  return {dead,cul,liv,feed,w,gain,fcr,gainFcr,metricDate,livPct,ageDays,pi,epef,adg,cv,ebef,economicCoefficient,meds,fc,expenseTotal,sharedCost,depreciationCost,cost,rev,profit,soldBirds,soldKg,saleRevenue,liveKg,totalLiveWeight,birdSalesWeight,costPerKg,costPerBird,realizedPriceKg,currency:cur,marketableBirds,missingCurrency:false,liveBreak};
 }
 function cycleOrdinal(c){
   if(!c)return 0;
@@ -2800,5 +2804,5 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script><script src="./v410-finance.js"></script><script src="./pfm-v68-sa-training.js"></script><script src="./v52-finance.js"></script><script id="v53-dashboard-logic" src="./pfm-v53-reference.js"></script><script src="./pfm-v54-interior.js"></script>
 <script src="./pfm-v55-project-navigation.js"></script><!-- Demo seed disabled: never overwrite local production data --><script src="./pfm-excel-transfer.js"></script><link rel="stylesheet" href="./pfm-v57-data-controls.css"/><script src="./pfm-v57-data-controls.js"></script><link rel="stylesheet" href="./pfm-v59-print-results.css"/><script src="./pfm-v59-print-results.js"></script>
-<script src="./pfm-v65-mobile.js"></script><script src="./pfm-v72-android-export.js"></script><script src="./pfm-v72-android-login.js"></script><script src="./pfm-v8-purchases-loader.js"></script><script src="./pfm-v8-invoice-core.js"></script><script src="./pfm-v8-invoice-ui.js"></script>
+<script src="./pfm-v65-mobile.js"></script><script src="./pfm-v72-android-export.js"></script><script src="./pfm-v72-android-login.js"></script><script src="./pfm-v8-purchases-loader.js"></script><script src="./pfm-v81-accounting-core.js"></script><script src="./pfm-v8-invoice-core.js"></script><script src="./pfm-v8-invoice-ui.js"></script><script src="./pfm-v81-accounting-ui.js"></script>
 </body></html>

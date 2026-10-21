@@ -17,7 +17,7 @@
   water:'ماء',labor:'عمال',loading:'تحميل دجاج',
   equipment_rent:'إيجار معدات',transport:'نقل',other:'مصاريف أخرى'
  };
- const KNOWN=new Set(['chicks',...STOCK,...Object.keys(DIRECT)]);
+ const KNOWN=new Set(['chicks','shared','asset',...STOCK,...Object.keys(DIRECT)]);
  const round=x=>Math.round((Number(x)+Number.EPSILON)*100)/100;
  const norm=x=>String(x??'').normalize('NFKC').trim().replace(/\s+/g,' ').toLocaleLowerCase('en');
  const fail=message=>{throw Error(message)};
@@ -83,7 +83,8 @@
   const ledger=db.v410||{},docs=[...(ledger.purchaseDocuments||[])];
   const nextV410={...ledger,lots:[...(ledger.lots||[])],
     chicks:{...(ledger.chicks||{})},expenses:{...(ledger.expenses||{})},
-    audit:[...(ledger.audit||[])],purchaseDocuments:docs};
+    audit:[...(ledger.audit||[])],purchaseDocuments:docs,
+    sharedExpenses:[...(ledger.sharedExpenses||[])],assets:[...(ledger.assets||[])]};
   const nextFinance={...(db.finance||{})};
   const seen=new Set(),lines=[],total={net:0,tax:0,gross:0,recoverable:0,accountingCost:0};
   const now=typeof ctx.now==='function'?ctx.now():new Date().toISOString();
@@ -96,7 +97,8 @@
    if(kind==='feed'&&!['بادي','نامي','ناهي'].includes(item))
     fail('Feed purchase must specify بادي / نامي / ناهي');
    const isChicks=kind==='chicks';
-   const scope=isChicks?String(x.cycleNumber||''):DIRECT[kind]?String(x.cycleId||''):'stock';
+   const isShared=kind==='shared',isAsset=kind==='asset';
+   const scope=isChicks?String(x.cycleNumber||''):DIRECT[kind]?String(x.cycleId||''):isShared?String((x.cycleIds||[]).join('|')):isAsset?'fixed-asset':'stock';
    // A second chick line would overwrite the same cycle cost in this transaction.
    if(isChicks&&lines.some(prev=>prev.kind==='chicks'&&prev.cycleNumber===Number(x.cycleNumber)))
     fail('DUPLICATE_CHICKS: reception cycle already has a line');
@@ -136,6 +138,12 @@
     for(const c of cycles)if(ledger.close?.[c.id]?.status==='closed'||
        ledger.chicks?.[c.id]||Number(db.finance?.[c.id]?.chicks||0)>0)
        fail('Chicks already charged or cycle financially closed; no data changed');
+   }else if(isShared){
+    if(typeof ctx.allocate!=='function')fail('Allocation engine unavailable');
+    if(!Array.isArray(x.cycleIds)||!x.cycleIds.length)fail('Select beneficiary houses');
+   }else if(isAsset){
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(String(x.startDate||'')))fail('Asset service date required');
+    if(!Number.isInteger(Number(x.lifeMonths))||Number(x.lifeMonths)<1||Number(x.lifeMonths)>600)fail('Asset life must be 1–600 months');
    }else if(DIRECT[kind]){
     cycle=db.cycles.find(c=>c.id===scope&&c.farmId===farmId);
     if(!cycle)fail('Direct expense must be assigned to a cycle in the selected farm');
@@ -162,6 +170,25 @@
      accountingCost:priced.accountingCost,unitCost:priced.accountingCost/priced.quantityBase,
      vat:tax,date,supplier,invoice,createdAt:now,currency:db.settings?.currency||'SAR',
      purchaseDocumentId:null});
+   }else if(isShared){
+    const allocated=ctx.allocate({...db,v410:nextV410},{farmId,cycleIds:x.cycleIds,
+      amount:cost,method:x.method||'equal',weights:x.weights,currency:db.settings?.currency||'SAR'});
+    row.allocations=allocated;
+    nextV410.sharedExpenses.push({id:row.id,farmId,purchaseDocumentId:null,date,supplier,invoice,
+      category:item,cost,method:x.method||'equal',allocations:allocated,currency:db.settings?.currency||'SAR',createdAt:now});
+    // Shared expense lives in one invoice-backed allocation ledger only.
+    // It must never be copied into db.finance[cycleId].expenses.
+   }else if(isAsset){
+    const residual=finite(x.residual===''?0:x.residual??0,'asset residual');
+    if(residual>=cost)fail('Residual must be less than capitalized cost');
+    const startDate=String(x.startDate);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(startDate)||Number.isNaN(Date.parse(startDate+'T12:00:00Z'))||
+      new Date(startDate+'T12:00:00Z').toISOString().slice(0,10)!==startDate)fail('Invalid service date');
+    if(startDate<date)fail('Asset service date cannot precede purchase date');
+    nextV410.assets.push({id:row.id,farmId,item,category:'fixed_asset',cost,residual,
+      lifeMonths:Number(x.lifeMonths),startDate,date,supplier,invoice,purchaseDocumentId:null,
+      currency:db.settings?.currency||'SAR',createdAt:now});
+    // Capital purchase is an asset, NOT an expense for the day or cycle.
    }else if(isChicks){
     const weights=c=>c.birds;
     const costs=ctx.shares(cost,cycles,weights),nets=ctx.shares(tax.net,cycles,weights),
@@ -210,6 +237,10 @@
    if(lot)lot.purchaseDocumentId=id;
    const expense=nextV410.expenses[row.id];
    if(expense)expense.purchaseDocumentId=id;
+   const shared=nextV410.sharedExpenses.find(a=>a.id===row.id);
+   if(shared)shared.purchaseDocumentId=id;
+   const asset=nextV410.assets.find(a=>a.id===row.id);
+   if(asset)asset.purchaseDocumentId=id;
    if(row.kind==='chicks')for(const c of row.allocatedCycles){
     nextV410.chicks[c.cycleId].purchaseDocumentId=id;
    }
