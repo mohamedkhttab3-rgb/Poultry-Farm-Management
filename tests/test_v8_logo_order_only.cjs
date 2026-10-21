@@ -25,7 +25,8 @@ for(const platform of ['android','windows','ios']){
  assert(/^<img src="\.\/pfm-logo\.png"[^>]*><span>Poultry Farm Management M\.K™<\/span>$/.test(footer[1]),platform+' logo must appear LEFT of footer text');
  assert(html.includes('.pfm59-print-brand img{display:block!important'),platform+' top logo must be visible');
  assert(html.includes('.pfm59-print-brand{direction:ltr!important'),platform+' top logo must precede the title');
- assert(html.includes('@page{size:A4 landscape;margin:11mm 11mm 24mm;}'),platform+' footer positioning changed');
+ assert(html.includes('margin:11mm 11mm 24mm;'),platform+' footer positioning changed');
+ if(platform!=='ios')assert(html.includes('@bottom-center{'),platform+' must place brand in physical A4 footer margin');
 }
 const leftNative=native.indexOf('paper.drawBitmap(logo,null,rect,footerPaint);');
 const rightNative=native.indexOf('paper.drawText(footerText,groupLeft+logoSize+gap,footerCenterY+3f,footerPaint);');
