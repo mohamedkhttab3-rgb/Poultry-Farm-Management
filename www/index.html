@@ -2054,7 +2054,7 @@ function calc(c){
   const expenseTotal=Object.prototype.hasOwnProperty.call(financeDraftExpenses,c.id)?financeExpenseTotal(financeDraftExpenses[c.id]):financeExpenseTotal(fin);
   // Shared expenses and monthly depreciation are posted once in V8.1's
   // independent allocations ledger. Never copy them to finance.expenses.
-  const allocated=window.PFMV81Accounting?.charges(db,c.id,metricDate)||{shared:0,depreciation:0,total:0};
+  const allocated=(typeof window!=='undefined'&&window.PFMV81Accounting?.charges(db,c.id,metricDate))||{shared:0,depreciation:0,total:0};
   const sharedCost=allocated.shared,depreciationCost=allocated.depreciation;
   const cost=fc+meds+(+fin.chicks||0)+expenseTotal+sharedCost+depreciationCost;
   const rev=saleRevenue+(+fin.otherRevenue||0),profit=rev-cost,producedWeight=totalLiveWeight>0?totalLiveWeight:0,costPerKg=producedWeight>0?cost/producedWeight:0;
