@@ -11,12 +11,14 @@ assert(shared.includes('<span>Poultry Farm Management M.K™</span>'),'Approved 
 assert(shared.includes('<img src="./pfm-logo.png"'),'Original app logo missing');
 assert(shared.includes("printCopy.outerHTML+identityFooter+'</body></html>'"),'Shared footer not appended to each print document');
 assert(shared.includes('body.pfm59-printing > .pfm-native-a4-footer:not(#pfm59PrintRoot)'), 'Legacy print hide rule still hides the shared footer');
-assert(shared.includes('@page{size:A4 landscape;margin:11mm 11mm 19mm;}'),'Printable footer strip not reserved');
+assert(shared.includes('@page{size:A4 landscape;margin:11mm 11mm 24mm;}'),'Printable footer strip not reserved');
 // Native WebView uses this same HTML and allows the footer style at the page bottom.
 const footer=nativeCss.match(/\.pfm-native-a4-footer\{position:fixed[^}]*\}/)?.[0]||'';
 assert(footer,'Native A4 footer position missing');
-assert(footer.includes('bottom:0!important'),'Footer outside A4 printable region');
-assert(!/bottom:\s*-/.test(footer),'Negative offset clips print footer');
+assert(footer.includes('bottom:-12mm!important'),'Footer must sit inside the reserved 24mm A4 margin, below the content area');
+assert(footer.includes('height:7mm!important'),'Footer must fit in a small safe band');
+assert(nativeCss.includes('font-size:8pt!important'),'Footer brand font must be smaller');
+assert(nativeCss.includes('height:7mm!important;width:7mm!important'),'Original footer logo must be reduced');
 assert(native.includes('web.createPrintDocumentAdapter(filename)'),'Android print adapter missing');
 assert(native.includes('writePaginatedA4('),'Android PDF Save and Share must paginate');
 assert(native.includes('paper.drawBitmap(logo,null,rect,footerPaint);'),'Android must stamp the original centered logo on each saved/shared page');
