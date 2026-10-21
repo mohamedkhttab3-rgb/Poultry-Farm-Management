@@ -1,7 +1,7 @@
-name: PFM V8.1 Phase 2 — shared allocations, depreciation, reporting and closing
+name: PFM V8.1 Phase 3 — PDF footer and broiler financial lifecycle
 on:
   push:
-    branches: ['feature/pfm-v81-accounting-phase2']
+    branches: ['feature/pfm-v81-pdf-finance-qa']
   workflow_dispatch:
 permissions:
   contents: read
@@ -29,6 +29,7 @@ jobs:
         run: |
           node tests/test_v81_shared_costs_depreciation.cjs
           node tests/test_v81_financial_close_integration.cjs
+          node tests/test_v81_broiler_full_lifecycle.cjs
           node tests/test_v8_single_purchase_invoice.cjs
           node tests/test_v8_single_workspace.cjs
           node tests/test_v8_shared_purchases.cjs
