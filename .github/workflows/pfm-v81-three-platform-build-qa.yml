@@ -1,0 +1,142 @@
+name: PFM V8.1 Phase 3 — Android Windows iOS build verification
+on:
+  push:
+    branches: ['feature/pfm-v81-pdf-finance-qa']
+    paths: ['.github/workflows/pfm-v81-three-platform-build-qa.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  draft-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create private release destination
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: pfm-v81-phase3-qa-${{ github.run_id }}
+        run: |
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease --title "PFM V8.1 Phase 3 — testing builds" --notes "TEST ONLY — Android debug APK, unsigned Windows EXE, iOS Xcode source; not signed IPA. Approved V8.1 untouched."
+  android:
+    needs: draft-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Prepare SDK and dependencies
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install 'platforms;android-36' 'build-tools;36.0.0'
+          npm install --no-audit --no-fund
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - name: Generate and compile V8.1 Android app
+        run: |
+          npx cap add android
+          npx cap sync android
+          npm run android:icons
+          node scripts/install-android-export.cjs
+          node scripts/set-android-version.cjs
+          chmod +x android/gradlew
+          cd android
+          ./gradlew --no-daemon assembleDebug
+          test -s app/build/outputs/apk/debug/app-debug.apk
+      - name: Upload Android APK directly to draft Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: pfm-v81-phase3-qa-${{ github.run_id }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk PFM-V8.1-Phase3-Android-QA.apk
+          test -s PFM-V8.1-Phase3-Android-QA.apk
+          gh release upload "$TAG" PFM-V8.1-Phase3-Android-QA.apk --repo "$GITHUB_REPOSITORY"
+      - name: Android testing limitation
+        run: echo "APK compiled; native printer requires device smoke test. No release was changed."
+  windows:
+    needs: draft-release
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build V8.1 Windows installer
+        run: |
+          npm install --no-audit --no-fund
+          npm run build:win
+      - name: Confirm EXE exists
+        shell: pwsh
+        run: |
+          $apps = Get-ChildItem -Path 'dist-desktop' -Filter '*.exe' -File
+          if (-not $apps) { throw 'No installer/portable Windows EXE generated' }
+          foreach ($app in $apps) { Write-Host "$($app.Name): $($app.Length) bytes" }
+      - name: Upload Windows EXE directly to draft Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: pfm-v81-phase3-qa-${{ github.run_id }}
+        run: |
+          $app = Get-ChildItem -Path 'dist-desktop' -Filter '*.exe' -File | Sort-Object Length -Descending | Select-Object -First 1
+          if (-not $app -or $app.Length -lt 1000000) { throw 'Windows installer missing or unexpectedly small' }
+          Copy-Item -LiteralPath $app.FullName -Destination 'PFM-V8.1-Phase3-Windows-QA.exe'
+          gh release upload $env:TAG PFM-V8.1-Phase3-Windows-QA.exe --repo $env:GITHUB_REPOSITORY
+          if ($LASTEXITCODE -ne 0) { throw 'Release upload failed' }
+
+  ios-source:
+    needs: draft-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate V8.1 iOS source with shared PDF logic
+        run: |
+          npm install --no-audit --no-fund
+          npx cap add ios
+          npx cap sync ios
+          node scripts/set-ios-version.cjs
+          test -f ios/App/App/Info.plist
+          test -f ios/App/App.xcodeproj/project.pbxproj
+          grep -q '8.1.0' ios/App/App.xcodeproj/project.pbxproj
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - name: Archive iOS Xcode project
+        run: zip -qr PFM-V8.1-Phase3-iOS-Xcode-Source.zip ios
+      - name: Upload unsigned iOS Xcode project directly to draft Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: pfm-v81-phase3-qa-${{ github.run_id }}
+        run: |
+          test -s PFM-V8.1-Phase3-iOS-Xcode-Source.zip
+          gh release upload "$TAG" PFM-V8.1-Phase3-iOS-Xcode-Source.zip --repo "$GITHUB_REPOSITORY"
+      - name: iOS testing limitation
+        run: echo "Only Xcode project generation validated. Signed IPA and device PDF tests require macOS + Apple signing."
+
+  publish-test:
+    needs: [android, windows, ios-source]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Verify files exist and publish prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: pfm-v81-phase3-qa-${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          release_id=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq ".[] | select(.tag_name == \"$TAG\") | .id")
+          test -n "$release_id"
+          assets=$(gh api "repos/$GITHUB_REPOSITORY/releases/$release_id/assets?per_page=100" --jq '.[].name')
+          grep -Fxq 'PFM-V8.1-Phase3-Android-QA.apk' <<< "$assets"
+          grep -Fxq 'PFM-V8.1-Phase3-Windows-QA.exe' <<< "$assets"
+          grep -Fxq 'PFM-V8.1-Phase3-iOS-Xcode-Source.zip' <<< "$assets"
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$release_id" -F draft=false -F prerelease=true --jq '{url:.html_url,draft:.draft,prerelease:.prerelease}'

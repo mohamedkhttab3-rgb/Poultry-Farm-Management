@@ -205,12 +205,26 @@ let activePrint=null,activeFrame=null;
    const android=window.Capacitor?.isNativePlatform?.() && window.Capacitor.getPlatform?.()==='android';
    const printCopy=android?root.cloneNode(true):root;
    // Unified V8 A4 footer, owned by the printable document itself.
-   // Chromium repeats fixed elements on each physical print page.
+   // Chromium/WebKit repeat fixed elements on each physical print page.
+   // Reserve 24mm below the body and put the 7mm-tall footer inside that
+   // bottom of the protected print content box; verify against every page's rows.
    // Uses the app's ORIGINAL pfm-logo.png; never a generated substitute.
    const identityFooter='<div class="pfm-native-a4-footer" aria-label="Poultry Farm Management M.K™">'+
      '<img src="./pfm-logo.png" alt="Poultry Farm Management"/>'+
      '<span>Poultry Farm Management M.K™</span></div>';
-   const identityCss='<style>@page{size:A4 landscape;margin:11mm 11mm 19mm;}@media print{'+
+   // Desktop Chromium and Android WebView: put the brand in the actual A4
+   // print margin instead of laying a fixed element over report table rows.
+   // iOS WebKit retains the legacy fixed footer until signed device QA.
+   const marginBoxFooter=!window.Capacitor?.isNativePlatform?.()||
+     window.Capacitor?.getPlatform?.()==='android';
+   const marginBoxCss=marginBoxFooter?
+     '@page{size:A4 landscape;margin:11mm 11mm 24mm;@bottom-center{'+
+     'content:"Poultry Farm Management M.K™";font:600 8pt Arial,sans-serif;color:#193a5d;'+
+     'background-image:url("./pfm-logo.png");background-repeat:no-repeat;'+
+     'background-size:7mm 7mm;background-position:left center;padding-left:9mm;}}':
+     '@page{size:A4 landscape;margin:11mm 11mm 24mm;}';
+   const identityCss='<style>'+marginBoxCss+'@media print{'+
+     (marginBoxFooter?'body.pfm59-printing > .pfm-native-a4-footer{display:none!important;}':'')+
      // The logo is on the LEFT of the upper heading, while the whole brand
      // remains in its existing top-right position for Arabic reports.
      'body.pfm59-printing #pfm59PrintRoot .pfm59-print-head .pfm59-print-brand{direction:ltr!important;justify-content:flex-end!important;}'+
@@ -218,16 +232,19 @@ let activePrint=null,activeFrame=null;
      '#pfm59PrintRoot .pfm59-print-brand img{display:block!important;width:34px!important;height:34px!important;flex:0 0 34px!important;object-fit:contain!important;}'+
      'body.pfm59-printing > .pfm-native-a4-footer:not(#pfm59PrintRoot){position:fixed!important;display:flex!important;bottom:0!important;left:50%!important;right:auto!important;'+
      'transform:translateX(-50%)!important;display:flex!important;align-items:center!important;'+
-     'justify-content:center!important;gap:2.5mm!important;direction:ltr!important;'+
-     'width:max-content!important;max-width:95%!important;height:12mm!important;'+
-     'color:#193a5d!important;font:600 10pt Arial,sans-serif!important;white-space:nowrap!important;'+
+     'justify-content:center!important;gap:1.8mm!important;direction:ltr!important;'+
+     'width:max-content!important;max-width:95%!important;height:7mm!important;'+
+     'color:#193a5d!important;font:600 8pt Arial,sans-serif!important;white-space:nowrap!important;'+
      'visibility:visible!important;z-index:999999!important;}'+
-     '.pfm-native-a4-footer img{width:10mm!important;height:10mm!important;object-fit:contain!important;display:block!important;}'+
+     '.pfm-native-a4-footer img{width:7mm!important;height:7mm!important;object-fit:contain!important;display:block!important;}'+
+     // Same selector, AFTER the older fixed footer's visibility overrides;
+     // Chrome uses the @bottom-center margin brand, never two logos.
+     (marginBoxFooter?'body.pfm59-printing > .pfm-native-a4-footer:not(#pfm59PrintRoot){display:none!important;visibility:hidden!important;}':'')+
      '}@media screen{.pfm-native-a4-footer{display:none!important}}</style>';
    if(android){const foot=printCopy.querySelector('.pfm59-print-footer');if(foot){foot.replaceChildren();const img=document.createElement('img');img.src='./pfm-logo.png';img.alt='M.K™';foot.appendChild(img);}}
    const cssLink=css?'<style>'+css.replace(/<\/style/gi,'<\\/style')+'</style>':'<link rel="stylesheet" href="./pfm-v59-print-results.css"/>';
    const safeTitle=e(root.querySelector('.pfm59-print-brand strong')?.textContent||'Poultry Farm Manager');
-   return '<!DOCTYPE html><html dir="'+(document.documentElement.dir||'rtl')+'" lang="'+(document.documentElement.lang||'ar')+'"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><base href="'+base+'"/><title>'+safeTitle+'</title>'+cssLink+identityCss+(root.querySelector('.pfm67-print-all-finance')?'<link rel="stylesheet" href="./v52-finance.css"/><link rel="stylesheet" href="./pfm-v67-finance-print.css"/>':'')+(android?'<link rel="stylesheet" href="./pfm-v736-android-print.css"/>':'')+'<style>html,body{background:#fff!important;margin:0!important;padding:0!important;}body.pfm59-printing #pfm59PrintRoot{display:block!important;}@media print{html,body{height:auto!important;overflow:visible!important;}}@media screen{body.pfm59-printing #pfm59PrintRoot{display:block!important;}}</style></head><body class="pfm59-printing">'+printCopy.outerHTML+identityFooter+'</body></html>';
+   return '<!DOCTYPE html><html dir="'+(document.documentElement.dir||'rtl')+'" lang="'+(document.documentElement.lang||'ar')+'"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><base href="'+base+'"/><title>'+safeTitle+'</title>'+cssLink+identityCss+(root.querySelector('.pfm67-print-all-finance')?'<link rel="stylesheet" href="./v52-finance.css"/><link rel="stylesheet" href="./pfm-v67-finance-print.css"/>':'')+(android?'<link rel="stylesheet" href="./pfm-v736-android-print.css"/>':'')+'<style>html,body{background:#fff!important;margin:0!important;padding:0!important;}body.pfm59-printing #pfm59PrintRoot{display:block!important;}@media print{@page{size:A4 landscape;margin:11mm 11mm 24mm;}html,body{height:auto!important;overflow:visible!important;}}@media screen{body.pfm59-printing #pfm59PrintRoot{display:block!important;}}</style></head><body class="pfm59-printing">'+printCopy.outerHTML+identityFooter+'</body></html>';
  }
  // Use a full-sized printable document; a 1px iframe can clip print pages in Chrome.
  function waitForReady(doc){return Promise.all([

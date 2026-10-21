@@ -1,6 +1,6 @@
 /* Android V7.3.14: ONLY native WebView PrintDocumentAdapter loads this CSS.
    Chromium paginates real HTML/text; never print a one-page WebView snapshot. */
-@page { size: A4 landscape; margin: 11mm 11mm 19mm; }
+@page { size: A4 landscape; margin: 11mm 11mm 24mm; }
 @media screen {
  html,body,body.pfm59-printing{width:1050px!important;min-width:1050px!important;max-width:1050px!important;min-height:0!important;height:auto!important;overflow:visible!important;background:white!important;margin:0!important;padding:0!important}
  body.pfm59-printing #pfm59PrintRoot{display:block!important;position:static!important;visibility:visible!important;transform:none!important;overflow:visible!important;width:100%!important;max-width:100%!important;min-height:0!important;height:auto!important;margin:0!important;padding:0!important}
@@ -22,8 +22,8 @@
  #pfm59PrintRoot tr{break-inside:avoid!important;page-break-inside:avoid!important}
  #pfm59PrintRoot th,#pfm59PrintRoot td{overflow-wrap:anywhere!important;white-space:normal!important}
  #pfm59PrintRoot button,#pfm59PrintRoot input,#pfm59PrintRoot select,#pfm59PrintRoot textarea,#pfm59PrintRoot .no-print{display:none!important}
- .pfm-native-a4-footer{position:fixed!important;bottom:0!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;width:max-content!important;max-width:calc(100% - 22mm)!important;height:13mm!important;text-align:center!important;display:flex!important;align-items:center!important;justify-content:center!important}
- .pfm-native-a4-footer{gap:2.5mm!important;direction:ltr!important;font-family:Arial,sans-serif!important;color:#193a5d!important;font-size:10pt!important;font-weight:600!important;white-space:nowrap!important}
- .pfm-native-a4-footer img{display:block!important;height:11mm!important;width:11mm!important;object-fit:contain!important}
+ .pfm-native-a4-footer{position:fixed!important;bottom:0!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;width:max-content!important;max-width:calc(100% - 22mm)!important;height:7mm!important;text-align:center!important;display:flex!important;align-items:center!important;justify-content:center!important}
+ .pfm-native-a4-footer{gap:1.8mm!important;direction:ltr!important;font-family:Arial,sans-serif!important;color:#193a5d!important;font-size:8pt!important;font-weight:600!important;white-space:nowrap!important}
+ .pfm-native-a4-footer img{display:block!important;height:7mm!important;width:7mm!important;object-fit:contain!important}
 }
 @media screen { .pfm-native-a4-footer{display:none!important} }

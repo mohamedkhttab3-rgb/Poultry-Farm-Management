@@ -11,12 +11,15 @@ assert(shared.includes('<span>Poultry Farm Management M.K™</span>'),'Approved 
 assert(shared.includes('<img src="./pfm-logo.png"'),'Original app logo missing');
 assert(shared.includes("printCopy.outerHTML+identityFooter+'</body></html>'"),'Shared footer not appended to each print document');
 assert(shared.includes('body.pfm59-printing > .pfm-native-a4-footer:not(#pfm59PrintRoot)'), 'Legacy print hide rule still hides the shared footer');
-assert(shared.includes('@page{size:A4 landscape;margin:11mm 11mm 19mm;}'),'Printable footer strip not reserved');
+assert(shared.includes('@bottom-center{'),'Chromium A4 footer must use page margin box, not overlay rows');
+assert(shared.includes('margin:11mm 11mm 24mm;'),'Printable footer strip not reserved');
 // Native WebView uses this same HTML and allows the footer style at the page bottom.
 const footer=nativeCss.match(/\.pfm-native-a4-footer\{position:fixed[^}]*\}/)?.[0]||'';
 assert(footer,'Native A4 footer position missing');
-assert(footer.includes('bottom:0!important'),'Footer outside A4 printable region');
-assert(!/bottom:\s*-/.test(footer),'Negative offset clips print footer');
+assert(footer.includes('bottom:0!important'),'Footer must be within printable A4 page bounds');
+assert(footer.includes('height:7mm!important'),'Footer must fit in a small safe band');
+assert(nativeCss.includes('font-size:8pt!important'),'Footer brand font must be smaller');
+assert(nativeCss.includes('height:7mm!important;width:7mm!important'),'Original footer logo must be reduced');
 assert(native.includes('web.createPrintDocumentAdapter(filename)'),'Android print adapter missing');
 assert(native.includes('writePaginatedA4('),'Android PDF Save and Share must paginate');
 assert(native.includes('paper.drawBitmap(logo,null,rect,footerPaint);'),'Android must stamp the original centered logo on each saved/shared page');
@@ -40,7 +43,12 @@ for(const mode of ['android','windows']){
  assert(html.includes('<img src="./pfm-logo.png"'),mode+' original logo absent');
  assert(html.includes('</article><div class="pfm-native-a4-footer"'),mode+' footer is hidden inside report root');
  assert(html.includes('body.pfm59-printing > .pfm-native-a4-footer:not(#pfm59PrintRoot)'),mode+' legacy hide-rule override absent');
- assert(html.includes('@page{size:A4 landscape;margin:11mm 11mm 19mm;}'),mode+' footer margin absent');
+ assert(html.includes('@bottom-center{'),mode+' printable margin box missing');
+ assert(html.includes('margin:11mm 11mm 24mm;'),mode+' footer margin absent');
+ assert(html.includes('background-image:url("./pfm-logo.png")'),mode+' original image missing from margin footer');
+ assert(html.includes('bottom:0!important'),mode+' reserved footer-band placement missing');
+ assert(html.includes('font:600 8pt Arial'),mode+' footer brand font is not reduced');
+ assert(html.includes('width:7mm!important;height:7mm!important'),mode+' footer logo is not reduced');
  assert.equal(html.split('class="pfm-native-a4-footer"').length,2,mode+' footer duplicated');
 }
 console.log('PASS: Original logo and approved text in repeated A4 footer of shared Android + Windows reports.');
