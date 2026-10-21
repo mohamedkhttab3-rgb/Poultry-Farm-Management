@@ -11,7 +11,8 @@ assert(shared.includes('<span>Poultry Farm Management M.K™</span>'),'Approved 
 assert(shared.includes('<img src="./pfm-logo.png"'),'Original app logo missing');
 assert(shared.includes("printCopy.outerHTML+identityFooter+'</body></html>'"),'Shared footer not appended to each print document');
 assert(shared.includes('body.pfm59-printing > .pfm-native-a4-footer:not(#pfm59PrintRoot)'), 'Legacy print hide rule still hides the shared footer');
-assert(shared.includes('@page{size:A4 landscape;margin:11mm 11mm 24mm;}'),'Printable footer strip not reserved');
+assert(shared.includes('@bottom-center{'),'Chromium A4 footer must use page margin box, not overlay rows');
+assert(shared.includes('margin:11mm 11mm 24mm;'),'Printable footer strip not reserved');
 // Native WebView uses this same HTML and allows the footer style at the page bottom.
 const footer=nativeCss.match(/\.pfm-native-a4-footer\{position:fixed[^}]*\}/)?.[0]||'';
 assert(footer,'Native A4 footer position missing');
@@ -42,7 +43,9 @@ for(const mode of ['android','windows']){
  assert(html.includes('<img src="./pfm-logo.png"'),mode+' original logo absent');
  assert(html.includes('</article><div class="pfm-native-a4-footer"'),mode+' footer is hidden inside report root');
  assert(html.includes('body.pfm59-printing > .pfm-native-a4-footer:not(#pfm59PrintRoot)'),mode+' legacy hide-rule override absent');
- assert(html.includes('@page{size:A4 landscape;margin:11mm 11mm 24mm;}'),mode+' footer margin absent');
+ assert(html.includes('@bottom-center{'),mode+' printable margin box missing');
+ assert(html.includes('margin:11mm 11mm 24mm;'),mode+' footer margin absent');
+ assert(html.includes('background-image:url("./pfm-logo.png")'),mode+' original image missing from margin footer');
  assert(html.includes('bottom:0!important'),mode+' reserved footer-band placement missing');
  assert(html.includes('font:600 8pt Arial'),mode+' footer brand font is not reduced');
  assert(html.includes('width:7mm!important;height:7mm!important'),mode+' footer logo is not reduced');
