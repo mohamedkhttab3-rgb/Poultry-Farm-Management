@@ -207,7 +207,7 @@ let activePrint=null,activeFrame=null;
    // Unified V8 A4 footer, owned by the printable document itself.
    // Chromium/WebKit repeat fixed elements on each physical print page.
    // Reserve 24mm below the body and put the 7mm-tall footer inside that
-   // reserved page margin: the logo must NEVER overlay table rows/signatures.
+   // bottom of the protected print content box; verify against every page's rows.
    // Uses the app's ORIGINAL pfm-logo.png; never a generated substitute.
    const identityFooter='<div class="pfm-native-a4-footer" aria-label="Poultry Farm Management M.K™">'+
      '<img src="./pfm-logo.png" alt="Poultry Farm Management"/>'+
@@ -218,7 +218,7 @@ let activePrint=null,activeFrame=null;
      'body.pfm59-printing #pfm59PrintRoot .pfm59-print-head .pfm59-print-brand{direction:ltr!important;justify-content:flex-end!important;}'+
      '#pfm59PrintRoot .pfm59-print-brand > div{direction:rtl!important;text-align:right!important;}'+
      '#pfm59PrintRoot .pfm59-print-brand img{display:block!important;width:34px!important;height:34px!important;flex:0 0 34px!important;object-fit:contain!important;}'+
-     'body.pfm59-printing > .pfm-native-a4-footer:not(#pfm59PrintRoot){position:fixed!important;display:flex!important;bottom:-12mm!important;left:50%!important;right:auto!important;'+
+     'body.pfm59-printing > .pfm-native-a4-footer:not(#pfm59PrintRoot){position:fixed!important;display:flex!important;bottom:0!important;left:50%!important;right:auto!important;'+
      'transform:translateX(-50%)!important;display:flex!important;align-items:center!important;'+
      'justify-content:center!important;gap:1.8mm!important;direction:ltr!important;'+
      'width:max-content!important;max-width:95%!important;height:7mm!important;'+
