@@ -64,7 +64,7 @@ assert.equal(accounting.charges(db,'A1','2026-09-30').total,0,'Prior-date report
 assert.equal(accounting.validateLedger(db).length,0);
 assert.throws(()=>accounting.postDepreciation(db,{assetId:fixed.id,month:'2026-10',cycleIds:['A1','A2']},{...ctx,persist:()=>{}}),/DUPLICATE_DEPRECIATION/);
 assert.equal(db.v410.depreciationPostings.length,1);
-assert.throws(()=>accounting.planDepreciation(db,{assetId:fixed.id,month:'2026-12',cycleIds:['A1']},ctx),/previous month/i);
+assert.throws(()=>accounting.planDepreciation(db,{assetId:fixed.id,month:'2026-12',cycleIds:['A1']},{...ctx,currentMonth:'2026-12'}),/previous month/i);
 db.v410.close.A2={status:'closed'};
 assert.throws(()=>accounting.allocate(db,{farmId:'farm-A',cycleIds:['A2'],amount:10}),/closed/);
 assert.throws(()=>accounting.planDepreciation(db,{assetId:fixed.id,month:'2026-11',cycleIds:['A1','A2']},{...ctx,currentMonth:'2026-11'}),/closed/);
