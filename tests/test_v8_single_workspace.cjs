@@ -28,7 +28,7 @@ function scenario(){
   ],movements:[],expenses:{},close:{}}};
  const controls={};
  for(const [id,value] of Object.entries({'pfm-v8-issue-lot':'l-feed','pfm-v8-issue-cycle':c,
- 'pfm-v8-issue-qty':'100','pfm-v8-issue-date':date,'pfm-v8-issue-state':''}))
+ 'pfm-v8-issue-qty':'100','pfm-v8-issue-date':date,'pfm-v8-issue-ref':'ISS-1','pfm-v8-issue-state':''}))
   controls[id]={value,textContent:''};
  let serial=0,persist=()=>{},refresh=0,issued=0;
  const ctx=vm.createContext({
@@ -50,22 +50,33 @@ assert.equal(x.db.feed.length,1,'Feed issue must create exactly one cycle record
 assert.equal(x.db.feed[0].price,2,'Issue must use purchase batch unit cost, not a second entered price');
 assert.equal(x.db.v410.movements.length,1,'Issue must create exactly one stock movement');
 assert.equal(x.db.v410.movements[0].qty,100);
+assert.equal(x.db.v410.movements[0].operationRef,'ISS-1','Original document reference must be retained');
 assert.equal(x.db.v410.lots[0].qty,1000,'Original purchase must never be overwritten');
 assert(!x.db.finance.c1?.expenses?.length,'Feed issue must not add a second direct expense');
 assert.equal(x.info().issued,1,'Successful issue should update the visible balances');
-x.controls['pfm-v8-issue-qty'].value='10';x.ctx.perform();
-assert.equal(x.db.v410.movements.length,1,'Duplicate feed issue for same date blocked');
-assert.match(x.controls['pfm-v8-issue-state'].textContent,/مسجل بالفعل/);
+x.controls['pfm-v8-issue-qty'].value='10';
+x.controls['pfm-v8-issue-ref'].value=' ISS-1 ';
+x.ctx.perform();
+assert.equal(x.db.v410.movements.length,1,'Repeated issue reference must be blocked');
+assert.match(x.controls['pfm-v8-issue-state'].textContent,/رقم إذن الصرف مسجل بالفعل/);
+x.controls['pfm-v8-issue-ref'].value='ISS-2';
+x.ctx.perform();
+assert.equal(x.db.v410.movements.length,2,'A distinct valid issue on same day must be accepted');
+assert.equal(x.db.feed.length,2,'Both genuine feed issues must be charged to same cycle');
+assert.equal(x.db.feed.reduce((sum,row)=>sum+row.qty*row.price,0),220,'Cycle feed cost must equal both actual issues');
+assert.equal(x.db.v410.movements[1].operationRef,'ISS-2');
+x.controls['pfm-v8-issue-ref'].value='MED-1';
 x.controls['pfm-v8-issue-lot'].value='l-med';
 x.controls['pfm-v8-issue-qty'].value='20';x.ctx.perform();
 assert.equal(x.db.meds.length,1,'Medicines must be issued from same page');
 assert.equal(x.db.meds[0].cost,60);
-assert.equal(x.db.v410.movements.length,2);
+assert.equal(x.db.v410.movements.length,3);
+x.controls['pfm-v8-issue-ref'].value='BED-1';
 x.controls['pfm-v8-issue-lot'].value='l-bedding';
 x.controls['pfm-v8-issue-qty'].value='10';x.ctx.perform();
 assert.equal(x.db.finance.c1.expenses.length,1,'Bedding should charge cycle once');
 assert.equal(x.db.finance.c1.expenses[0].amount,15);
-assert.equal(x.db.v410.movements.length,3);
+assert.equal(x.db.v410.movements.length,4);
 const beforeInvalid=JSON.stringify(x.db);
 x.controls['pfm-v8-issue-qty'].value='1000';x.ctx.perform();
 assert.equal(JSON.stringify(x.db),beforeInvalid,'Overdrawn stock may not mutate records');
@@ -81,4 +92,5 @@ const y=scenario();const beforeFailure=JSON.stringify(y.db);
 y.setPersist(()=>{throw Error('Storage failed')});y.ctx.perform();
 assert.equal(JSON.stringify(y.db),beforeFailure,'Failed persistence must roll back all three operational ledgers');
 assert.match(y.controls['pfm-v8-issue-state'].textContent,/Storage failed/);
-console.log('PASS: unified categories, old-entry guards, quantity-only issue, one-time financial charge, duplicate/foreign stock/closed-cycle checks and rollback.');
+assert.equal(y.controls['pfm-v8-issue-ref'].value,'ISS-1','Failure must not clear draft reference');
+console.log('PASS: unified invoice categories, multiple valid issues/day, stable reference dedupe, cycle costs, stock balance, closed-cycle checks and failed-save rollback.');
