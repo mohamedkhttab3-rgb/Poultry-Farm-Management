@@ -212,7 +212,19 @@ let activePrint=null,activeFrame=null;
    const identityFooter='<div class="pfm-native-a4-footer" aria-label="Poultry Farm Management M.K™">'+
      '<img src="./pfm-logo.png" alt="Poultry Farm Management"/>'+
      '<span>Poultry Farm Management M.K™</span></div>';
-   const identityCss='<style>@page{size:A4 landscape;margin:11mm 11mm 24mm;}@media print{'+
+   // Desktop Chromium and Android WebView: put the brand in the actual A4
+   // print margin instead of laying a fixed element over report table rows.
+   // iOS WebKit retains the legacy fixed footer until signed device QA.
+   const marginBoxFooter=!window.Capacitor?.isNativePlatform?.()||
+     window.Capacitor?.getPlatform?.()==='android';
+   const marginBoxCss=marginBoxFooter?
+     '@page{size:A4 landscape;margin:11mm 11mm 24mm;@bottom-center{'+
+     'content:"Poultry Farm Management M.K™";font:600 8pt Arial,sans-serif;color:#193a5d;'+
+     'background-image:url("./pfm-logo.png");background-repeat:no-repeat;'+
+     'background-size:7mm 7mm;background-position:left center;padding-left:9mm;}}':
+     '@page{size:A4 landscape;margin:11mm 11mm 24mm;}';
+   const identityCss='<style>'+marginBoxCss+'@media print{'+
+     (marginBoxFooter?'body.pfm59-printing > .pfm-native-a4-footer{display:none!important;}':'')+
      // The logo is on the LEFT of the upper heading, while the whole brand
      // remains in its existing top-right position for Arabic reports.
      'body.pfm59-printing #pfm59PrintRoot .pfm59-print-head .pfm59-print-brand{direction:ltr!important;justify-content:flex-end!important;}'+
