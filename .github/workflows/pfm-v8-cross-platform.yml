@@ -193,10 +193,12 @@ jobs:
           TAG: v8.1.0-qa-${{ github.run_id }}
         run: |
           set -euo pipefail
-          assets=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq '.assets[].name')
+          # Draft releases return 404 from /releases/tags/{tag}; list first.
+          release_id=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq ".[] | select(.tag_name == \"$TAG\") | .id")
+          test -n "$release_id"
+          assets=$(gh api "repos/$GITHUB_REPOSITORY/releases/$release_id/assets?per_page=100" --jq '.[].name')
           echo "$assets"
-          grep -q 'PFM-V8.1-Android-debug.apk' <<< "$assets"
-          grep -q 'PFM-V8.1-iOS-Xcode-Source.zip' <<< "$assets"
-          grep -q '8.1.0' <<< "$assets"
-          grep -q '\.exe' <<< "$assets"
-          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease
+          grep -Fxq 'PFM-V8.1-Android-debug.apk' <<< "$assets"
+          grep -Fxq 'PFM-V8.1-iOS-Xcode-Source.zip' <<< "$assets"
+          grep -Fxq 'PoultryFarmManagement-8.1.0-win-x64.exe' <<< "$assets"
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$release_id" -F draft=false -F prerelease=true --jq '{url: .html_url, draft: .draft, prerelease: .prerelease}'
