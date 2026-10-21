@@ -43,3 +43,22 @@ jobs:
           node tests/test_v8_pdf_footer_bounds.cjs
           node tests/test_v8_logo_order_only.cjs
           node tests/test_v8_unified_navigation.cjs
+
+  pdf-pagination:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Print real shared report HTML to multipage A4 PDF
+        run: |
+          set -euo pipefail
+          command -v google-chrome
+          command -v pdftotext
+          node tests/build_v81_pdf_footer_fixture.cjs /tmp/pfm-v81-pdf-fixture.html
+          timeout 90s google-chrome --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --no-pdf-header-footer --print-to-pdf=/tmp/pfm-v81-check.pdf file:///tmp/pfm-v81-pdf-fixture.html
+          test -s /tmp/pfm-v81-check.pdf
+          pdftotext -bbox /tmp/pfm-v81-check.pdf /tmp/pfm-v81-layout.xml
+          node tests/verify_v81_pdf_footer_bbox.cjs /tmp/pfm-v81-layout.xml
