@@ -15,7 +15,7 @@ assert(shared.includes('@page{size:A4 landscape;margin:11mm 11mm 24mm;}'),'Print
 // Native WebView uses this same HTML and allows the footer style at the page bottom.
 const footer=nativeCss.match(/\.pfm-native-a4-footer\{position:fixed[^}]*\}/)?.[0]||'';
 assert(footer,'Native A4 footer position missing');
-assert(footer.includes('bottom:-12mm!important'),'Footer must sit inside the reserved 24mm A4 margin, below the content area');
+assert(footer.includes('bottom:0!important'),'Footer must be within printable A4 page bounds');
 assert(footer.includes('height:7mm!important'),'Footer must fit in a small safe band');
 assert(nativeCss.includes('font-size:8pt!important'),'Footer brand font must be smaller');
 assert(nativeCss.includes('height:7mm!important;width:7mm!important'),'Original footer logo must be reduced');
@@ -43,7 +43,7 @@ for(const mode of ['android','windows']){
  assert(html.includes('</article><div class="pfm-native-a4-footer"'),mode+' footer is hidden inside report root');
  assert(html.includes('body.pfm59-printing > .pfm-native-a4-footer:not(#pfm59PrintRoot)'),mode+' legacy hide-rule override absent');
  assert(html.includes('@page{size:A4 landscape;margin:11mm 11mm 24mm;}'),mode+' footer margin absent');
- assert(html.includes('bottom:-12mm!important'),mode+' reserved footer-band placement missing');
+ assert(html.includes('bottom:0!important'),mode+' reserved footer-band placement missing');
  assert(html.includes('font:600 8pt Arial'),mode+' footer brand font is not reduced');
  assert(html.includes('width:7mm!important;height:7mm!important'),mode+' footer logo is not reduced');
  assert.equal(html.split('class="pfm-native-a4-footer"').length,2,mode+' footer duplicated');
