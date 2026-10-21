@@ -42,7 +42,10 @@ for(const mode of ['android','windows']){
  assert(html.includes('<img src="./pfm-logo.png"'),mode+' original logo absent');
  assert(html.includes('</article><div class="pfm-native-a4-footer"'),mode+' footer is hidden inside report root');
  assert(html.includes('body.pfm59-printing > .pfm-native-a4-footer:not(#pfm59PrintRoot)'),mode+' legacy hide-rule override absent');
- assert(html.includes('@page{size:A4 landscape;margin:11mm 11mm 19mm;}'),mode+' footer margin absent');
+ assert(html.includes('@page{size:A4 landscape;margin:11mm 11mm 24mm;}'),mode+' footer margin absent');
+ assert(html.includes('bottom:-12mm!important'),mode+' reserved footer-band placement missing');
+ assert(html.includes('font:600 8pt Arial'),mode+' footer brand font is not reduced');
+ assert(html.includes('width:7mm!important;height:7mm!important'),mode+' footer logo is not reduced');
  assert.equal(html.split('class="pfm-native-a4-footer"').length,2,mode+' footer duplicated');
 }
 console.log('PASS: Original logo and approved text in repeated A4 footer of shared Android + Windows reports.');
