@@ -470,13 +470,13 @@ public final class PFMNativeExportPlugin extends Plugin {
       android.graphics.Paint footerPaint=new android.graphics.Paint(
         android.graphics.Paint.ANTI_ALIAS_FLAG|android.graphics.Paint.FILTER_BITMAP_FLAG);
       footerPaint.setColor(Color.rgb(25,58,93));
-      footerPaint.setTextSize(11f);
+      footerPaint.setTextSize(8.7f);
       footerPaint.setTypeface(android.graphics.Typeface.create(
         android.graphics.Typeface.DEFAULT,android.graphics.Typeface.BOLD));
-      final float logoSize=42f,gap=9f;
+      final float logoSize=28f,gap=6f;
       final float textWidth=footerPaint.measureText(footerText);
       final float groupLeft=(PAGE_W-textWidth-gap-logoSize)/2f;
-      final float footerCenterY=PAGE_H-37f;
+      final float footerCenterY=PAGE_H-29f;
       RectF rect=new RectF(groupLeft,footerCenterY-logoSize/2f,
         groupLeft+logoSize,footerCenterY+logoSize/2f);
       web.scrollTo(0,0);
@@ -501,7 +501,7 @@ public final class PFMNativeExportPlugin extends Plugin {
         paper.restore();
         // Original logo and brand, centred at the foot of every A4 page.
         paper.drawBitmap(logo,null,rect,footerPaint);
-        paper.drawText(footerText,groupLeft+logoSize+gap,footerCenterY+4f,footerPaint);
+        paper.drawText(footerText,groupLeft+logoSize+gap,footerCenterY+3f,footerPaint);
         pdf.finishPage(page);
         start=end;
       }
