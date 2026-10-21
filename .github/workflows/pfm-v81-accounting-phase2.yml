@@ -1,0 +1,43 @@
+name: PFM V8.1 Phase 2 — shared allocations, depreciation, reporting and closing
+on:
+  push:
+    branches: ['feature/pfm-v81-accounting-phase2']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  accounting:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check app and accounting source
+        run: |
+          node --check www/pfm-v81-accounting-core.js
+          node --check www/pfm-v81-accounting-ui.js
+          node --check www/pfm-v8-invoice-core.js
+          node --check www/pfm-v8-invoice-ui.js
+          node --check www/pfm-v8-purchases-workspace.js
+          node --check www/v410-finance.js
+          node scripts/verify-source.cjs
+          node scripts/verify-public.cjs
+          node scripts/verify-native.cjs
+      - name: Execute accounting, purchasing and production regressions
+        run: |
+          node tests/test_v81_shared_costs_depreciation.cjs
+          node tests/test_v8_single_purchase_invoice.cjs
+          node tests/test_v8_single_workspace.cjs
+          node tests/test_v8_shared_purchases.cjs
+          node tests/test_v410_vat_contract.cjs
+          node tests/test_poultry_cycle_economics.cjs
+          node tests/test_unified_sync.cjs
+          node tests/test_v8_realtime.cjs
+      - name: Preserve PDFs, logos, navigation and native export contracts
+        run: |
+          node tests/test_android_export_bridge.cjs
+          node tests/test_v8_pdf_footer_bounds.cjs
+          node tests/test_v8_logo_order_only.cjs
+          node tests/test_v8_unified_navigation.cjs
