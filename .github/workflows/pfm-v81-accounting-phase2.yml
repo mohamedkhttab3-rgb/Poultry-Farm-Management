@@ -28,6 +28,7 @@ jobs:
       - name: Execute accounting, purchasing and production regressions
         run: |
           node tests/test_v81_shared_costs_depreciation.cjs
+          node tests/test_v81_financial_close_integration.cjs
           node tests/test_v8_single_purchase_invoice.cjs
           node tests/test_v8_single_workspace.cjs
           node tests/test_v8_shared_purchases.cjs
