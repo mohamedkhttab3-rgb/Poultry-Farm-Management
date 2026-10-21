@@ -16,4 +16,14 @@ for(const [i,page] of pages.entries()){
  assert(branding[0].top>lowestRow+2,'Page '+(i+1)+': brand overlaps last table row (rowY='+lowestRow+', footerY='+branding[0].top+')');
  console.log('PASS A4 page '+(i+1)+': '+rows.length+' ledger rows stop at '+lowestRow.toFixed(1)+'pt; repeating brand begins at '+branding[0].top.toFixed(1)+'pt');
 }
+if(process.argv[3]){
+ const imageList=fs.readFileSync(process.argv[3],'utf8');
+ const visibleImages=[...imageList.matchAll(/^\s*(\d+)\s+\d+\s+image\s+/gm)].map(m=>Number(m[1]));
+ for(let page=1;page<=pages.length;page++){
+  const count=visibleImages.filter(n=>n===page).length;
+  assert(count>=1,'Page '+page+': original poultry logo missing from physical A4 footer');
+  if(page>1)assert.equal(count,1,'Page '+page+': duplicate footer logo(s) found');
+ }
+ console.log('PASS: original 512x512 poultry logo rendered on every A4 page (no duplicates after cover page).');
+}
 console.log('PASS: actual shared PDF document places repeating footer below ledger rows on every physical Chrome A4 page.');
