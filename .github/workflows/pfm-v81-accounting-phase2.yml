@@ -65,3 +65,4 @@ jobs:
           test -s /tmp/pfm-v81-check.pdf
           pdftotext -bbox /tmp/pfm-v81-check.pdf /tmp/pfm-v81-layout.xml
           node tests/verify_v81_pdf_footer_bbox.cjs /tmp/pfm-v81-layout.xml
+          pdfimages -list /tmp/pfm-v81-check.pdf | head -40
