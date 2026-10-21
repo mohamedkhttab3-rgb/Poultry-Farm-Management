@@ -66,32 +66,53 @@ function farmChange(){
 function issue(){
  if(issuing)return;
  issuing=true;
- let checkpoint=null;
+ let checkpoint=null,persisted=false;
  try{
   const lot=(stock().lots||[]).find(x=>x.id===$('pfm-v8-issue-lot').value);
   const cycle=(db.cycles||[]).find(x=>x.id===$('pfm-v8-issue-cycle').value);
   const qty=Number($('pfm-v8-issue-qty').value),date=$('pfm-v8-issue-date').value;
+  const issueRef=String($('pfm-v8-issue-ref').value||'').trim();
   if(!lot||!cycle||lot.farmId!==selectedFarm()||cycle.farmId!==lot.farmId)throw Error(tr('اختر دفعة ودورة من نفس المزرعة.','Choose a lot and cycle from the same farm.'));
   if(!Number.isFinite(qty)||qty<=0||qty>balance(lot)+0.0000001)throw Error(tr('الكمية غير صحيحة أو تتجاوز الرصيد.','Quantity is invalid or exceeds available stock.'));
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date<cycle.date||date>new Date().toISOString().slice(0,10))throw Error(tr('تاريخ الصرف يجب أن يكون داخل الدورة وحتى اليوم.','Issue date must be within the cycle and no later than today.'));
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||
+    Number.isNaN(Date.parse(date+'T12:00:00Z'))||
+    new Date(date+'T12:00:00Z').toISOString().slice(0,10)!==date||
+    date<cycle.date||date>new Date().toISOString().slice(0,10))
+    throw Error(tr('تاريخ الصرف يجب أن يكون صحيحًا وداخل الدورة وحتى اليوم.','Issue date must be valid, within the cycle and no later than today.'));
+  if(!issueRef||issueRef.length>64)throw Error(tr('أدخل رقم إذن صرف صحيحًا (حتى 64 حرفًا).','Enter a valid issue reference (up to 64 characters).'));
+  if(!['feed','med','vaccine','disinfectant','bedding'].includes(lot.kind))
+    throw Error(tr('هذه الدفعة ليست من الأصناف القابلة للصرف.','This is not an issuable stock lot.'));
+  if(!Number.isFinite(Number(lot.unitCost))||Number(lot.unitCost)<0)
+    throw Error(tr('سعر دفعة المخزون غير صالح.','Invalid purchase lot unit cost.'));
   if(stock().close?.[cycle.id]?.status==='closed')throw Error(tr('الدورة مغلقة ماليًا، لا يمكن الصرف عليها.','The cycle is financially closed.'));
   if(typeof can!=='function'||!can('finance',cycle.farmId))throw Error(tr('ليس لديك صلاحية مالية على المزرعة.','No finance permission for this farm.'));
   const kind=lot.kind,sourceType=kind==='feed'?'feed':kind==='bedding'?'expense':'med';
   if(typeof requireActionForRecord==='function'&&!requireActionForRecord('create',sourceType==='expense'?'finance':sourceType,cycle.farmId))return;
-  if(sourceType==='feed'&&db.feed.some(x=>x.cycleId===cycle.id&&x.date===date&&x.type===lot.item))
-   throw Error(tr('العلف مسجل بالفعل لهذه الدورة والنوع والتاريخ.','Feed is already recorded for this cycle, type and date.'));
-  if(sourceType==='med'&&db.meds.some(x=>x.cycleId===cycle.id&&x.date===date&&x.name===lot.item))
-   throw Error(tr('هذا الصنف مسجل بالفعل للدورة في نفس اليوم.','This item is already issued to the cycle on this date.'));
-  const ledger=stock(),cost=money(qty*Number(lot.unitCost||0)),now=new Date().toISOString();
+  // Multiple genuine issues on the same day are valid (different lots, shifts
+  // or quantities). An issue-reference, not date + item, is the identity.
+  const ledger=stock(),normalizedRef=issueRef.normalize('NFKC').replace(/\s+/g,' ').toLocaleLowerCase('en');
+  const alreadyIssued=(ledger.movements||[]).some(m=>{
+    if(m.kind!=='issue'||!m.operationRef)return false;
+    const old=String(m.operationRef).normalize('NFKC').replace(/\s+/g,' ').toLocaleLowerCase('en');
+    if(old!==normalizedRef)return false;
+    const previousLot=(ledger.lots||[]).find(l=>l.id===m.lotId);
+    return previousLot?.farmId===cycle.farmId;
+  });
+  if(alreadyIssued)throw Error(tr('رقم إذن الصرف مسجل بالفعل لهذه المزرعة؛ راجع الحركة قبل التكرار.','DUPLICATE_ISSUE: This issue reference is already recorded for this farm.'));
+  const cost=money(qty*Number(lot.unitCost)),now=new Date().toISOString();
   // Keep a complete in-memory checkpoint. If persisting fails, restore all
   // ledgers and avoid exposing a partial stock movement or duplicate expense.
   checkpoint={feed:db.feed.slice(),meds:db.meds.slice(),
    finance:db.finance[cycle.id],financeHad:Object.prototype.hasOwnProperty.call(db.finance,cycle.id),
    movements:Array.isArray(ledger.movements)?ledger.movements.slice():null,
    expenses:ledger.expenses?{...ledger.expenses}:null,
+   ledgerAudit:Array.isArray(ledger.audit)?ledger.audit.slice():null,
    audit:Array.isArray(db.auditLog)?db.auditLog.slice():null,
+   draftHad:typeof financeDraftExpenses!=='undefined'&&Object.prototype.hasOwnProperty.call(financeDraftExpenses,cycle.id),
+   draft:typeof financeDraftExpenses!=='undefined'?financeDraftExpenses[cycle.id]:undefined,
    cycleId:cycle.id,ledger};
-  const recId=uuid(),movement={id:uuid(),lotId:lot.id,cycleId:cycle.id,sourceType,sourceId:recId,
+  const recId=uuid(),movement={id:uuid(),operationRef:issueRef,farmId:cycle.farmId,
+    lotId:lot.id,cycleId:cycle.id,sourceType,sourceId:recId,
     kind:'issue',qty,unitCost:lot.unitCost,cost,date,createdAt:now};
   if(!Array.isArray(ledger.movements))ledger.movements=[];
   if(sourceType==='feed'){
@@ -113,13 +134,17 @@ function issue(){
   if(typeof audit==='function')audit('create','v410_issue',movement.id,{farmId:cycle.farmId,before:null,after:movement});
   if(typeof save!=='function')throw Error(tr('الحفظ غير متاح.','Saving is unavailable.'));
   save();
+  // Persistence is a commit boundary: a failed UI refresh must not roll
+  // back a transaction already saved to disk.
+  persisted=true;
   if(sourceType==='expense'&&typeof financeDraftExpenses!=='undefined')
    financeDraftExpenses[cycle.id]=normalizeFinanceExpenses(db.finance[cycle.id]);
   $('pfm-v8-issue-qty').value='';
-  $('pfm-v8-issue-state').textContent=tr('تم صرف الكمية للعنبر وتحديث المخزون وتكلفة الدورة مرة واحدة.','Issued to the house, with one stock deduction and one cycle cost.');
+  $('pfm-v8-issue-ref').value=uuid(); // new draft reference only after save
+  $('pfm-v8-issue-state').textContent=tr('تم صرف الكمية للعنبر وتحديث المخزون وتكلفة الدورة مرة واحدة. إذن: ','Stock issued with one inventory movement and one cycle cost. Reference: ')+issueRef;
   window.PFM_V410?.refresh?.();refreshIssues();
  }catch(err){
-  if(checkpoint){
+  if(checkpoint&&!persisted){
    db.feed=checkpoint.feed;db.meds=checkpoint.meds;
    if(checkpoint.financeHad)db.finance[checkpoint.cycleId]=checkpoint.finance;
    else delete db.finance[checkpoint.cycleId];
@@ -127,10 +152,15 @@ function issue(){
    else delete checkpoint.ledger.movements;
    if(checkpoint.expenses)checkpoint.ledger.expenses=checkpoint.expenses;
    else delete checkpoint.ledger.expenses;
+   if(checkpoint.ledgerAudit)checkpoint.ledger.audit=checkpoint.ledgerAudit;
+   else delete checkpoint.ledger.audit;
    if(checkpoint.audit)db.auditLog=checkpoint.audit;
-   if(typeof financeDraftExpenses!=='undefined')delete financeDraftExpenses[checkpoint.cycleId];
+   if(typeof financeDraftExpenses!=='undefined'){
+     if(checkpoint.draftHad)financeDraftExpenses[checkpoint.cycleId]=checkpoint.draft;
+     else delete financeDraftExpenses[checkpoint.cycleId];
+   }
   }
-  $('pfm-v8-issue-state').textContent=tr('تعذر الصرف: ','Issue failed: ')+err.message;
+  $('pfm-v8-issue-state').textContent=tr(persisted?'تم حفظ حركة الصرف، لكن تعذر تحديث العرض: ':'تعذر الصرف: ',persisted?'Issue saved but screen refresh failed: ':'Issue failed: ')+err.message;
  }finally{issuing=false;}
 }
 function build(){
@@ -161,7 +191,8 @@ function build(){
   '<div class="pfm-v8-fields"><label><span'+tag('الدورة / العنبر','Cycle / house')+'>'+tr('الدورة / العنبر','Cycle / house')+'</span><select id="pfm-v8-issue-cycle"></select></label>'+
   '<label><span'+tag('دفعة المخزون','Stock lot')+'>'+tr('دفعة المخزون','Stock lot')+'</span><select id="pfm-v8-issue-lot"></select></label>'+
   '<label><span'+tag('الكمية المصروفة','Issued quantity')+'>'+tr('الكمية المصروفة','Issued quantity')+'</span><input id="pfm-v8-issue-qty" type="number" min="0.001" step="any"></label>'+
-  '<label><span'+tag('تاريخ الصرف','Issue date')+'>'+tr('تاريخ الصرف','Issue date')+'</span><input id="pfm-v8-issue-date" type="date"></label></div>'+
+  '<label><span'+tag('تاريخ الصرف','Issue date')+'>'+tr('تاريخ الصرف','Issue date')+'</span><input id="pfm-v8-issue-date" type="date"></label>'+
+  '<label><span'+tag('رقم إذن الصرف (يُنشأ تلقائيًا)','Issue reference (auto-generated)')+'>'+tr('رقم إذن الصرف (يُنشأ تلقائيًا)','Issue reference (auto-generated)')+'</span><input id="pfm-v8-issue-ref" maxlength="64" autocomplete="off"></label></div>'+
   '<div class="actions"><button type="button" class="btn primary" id="pfm-v8-issue-btn"'+tag('تسجيل الصرف مرة واحدة','Issue stock once')+'>'+tr('تسجيل الصرف مرة واحدة','Issue stock once')+'</button></div>'+
   '<p id="pfm-v8-issue-state" role="status" aria-live="polite"></p><p class="muted" id="pfm-v8-issue-hint"></p>';
  holder?.prepend(issuePanel);
@@ -184,6 +215,7 @@ function build(){
  ].join('\n');
  document.head.appendChild(style);
  $('pfm-v8-issue-date').value=new Date().toISOString().slice(0,10);
+ $('pfm-v8-issue-ref').value=uuid();
  $('pfm-v8-issue-btn').addEventListener('click',issue);
  $('pfm-v8-farm').addEventListener('change',farmChange);
  $('pfm-v8-issue-cycle').addEventListener('change',()=>{$('pfm-v8-issue-state').textContent=''});
