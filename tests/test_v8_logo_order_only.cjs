@@ -25,11 +25,14 @@ for(const platform of ['android','windows','ios']){
  assert(/^<img src="\.\/pfm-logo\.png"[^>]*><span>Poultry Farm Management M\.K™<\/span>$/.test(footer[1]),platform+' logo must appear LEFT of footer text');
  assert(html.includes('.pfm59-print-brand img{display:block!important'),platform+' top logo must be visible');
  assert(html.includes('.pfm59-print-brand{direction:ltr!important'),platform+' top logo must precede the title');
- assert(html.includes('@page{size:A4 landscape;margin:11mm 11mm 19mm;}'),platform+' footer positioning changed');
+ assert(html.includes('@page{size:A4 landscape;margin:11mm 11mm 24mm;}'),platform+' footer positioning changed');
 }
 const leftNative=native.indexOf('paper.drawBitmap(logo,null,rect,footerPaint);');
-const rightNative=native.indexOf('paper.drawText(footerText,groupLeft+logoSize+gap,footerCenterY+4f,footerPaint);');
+const rightNative=native.indexOf('paper.drawText(footerText,groupLeft+logoSize+gap,footerCenterY+3f,footerPaint);');
 assert(leftNative>=0&&rightNative>leftNative,'Android save/share PDF needs logo LEFT of text');
 assert(native.includes('final float groupLeft=(PAGE_W-textWidth-gap-logoSize)/2f;'),'Native centered group must stay unchanged');
+assert(native.includes('final float logoSize=28f,gap=6f;'),'Native footer icon and gap should be modest');
+assert(native.includes('footerPaint.setTextSize(8.7f);'),'Native PDF brand text should be reduced');
+assert(native.includes('final float footerCenterY=PAGE_H-29f;'),'Native footer must remain in protected page bottom');
 console.log('PASS V8 logo before title and before footer text on Android, Windows, iOS.');
 console.log('Note: actual packaged-device PDF visual inspection remains a release gate.');
