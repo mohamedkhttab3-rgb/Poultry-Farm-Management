@@ -10,9 +10,11 @@ const categories=[
  ['feed','الأعلاف','Feed','feed','أضف بادي أو نامي أو ناهي؛ فاتورة واحدة لكل مورد وتاريخ.','Add starter, grower or finisher feed on one supplier invoice.'],
  ['chicks','الصيصان','Chicks','chicks','تتوزع تكلفة الصيصان على عنابر دورة الاستقبال تلقائيًا.','Chick costs are allocated to reception houses automatically.'],
  ['health','الأدوية والتحصينات والمستلزمات','Medicines, vaccines & supplies','med','المخزون يُسجل عند الشراء، والتكلفة تتحملها الدورة عند الصرف الفعلي.','Stock is received on purchase and charged to the cycle when issued.'],
- ['expenses','المصروفات الداخلية والنثرية','Internal & petty expenses','other','إيجار، ديزل، كهرباء، مياه، عمال، نقل ومصاريف أخرى تخص دورة محددة.','Rent, diesel, electricity, water, labor, transport and other cycle expenses.']
+ ['expenses','المصروفات الداخلية والنثرية','Internal & petty expenses','other','إيجار، ديزل، كهرباء، مياه، عمال، نقل ومصاريف أخرى تخص دورة محددة.','Rent, diesel, electricity, water, labor, transport and other cycle expenses.'],
+ ['shared','المصروفات المشتركة','Shared farm costs','shared','فاتورة واحدة مع توزيع على العنابر المستفيدة بالتساوي أو حسب الطيور.','One invoice, allocated across beneficiary houses without duplication.'],
+ ['assets','الأصول الثابتة','Fixed assets','asset','قيمة الأصل تحفظ في سجل الأصول؛ يُحمَّل الإهلاك الشهري فقط.','Capital purchases enter the asset register; only depreciation charges cycles.']
 ];
-const categoryKinds={feed:['feed'],chicks:['chicks'],health:['med','vaccine','disinfectant','bedding'],expenses:['rent','diesel','electricity','water','labor','transport','loading','equipment_rent','other']};
+const categoryKinds={feed:['feed'],chicks:['chicks'],health:['med','vaccine','disinfectant','bedding'],expenses:['rent','diesel','electricity','water','labor','transport','loading','equipment_rent','other'],shared:['shared'],assets:['asset']};
 let installed=false,issuing=false;
 const escapes=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function nativeLang(){
@@ -40,7 +42,7 @@ function addLine(group,kind){
  picker.dispatchEvent(new Event('change',{bubbles:true}));
  const allowed=new Set(categoryKinds[group]||[]);
  [...picker.options].forEach(option=>{if(!allowed.has(option.value))option.remove()});
- if(group==='feed'||group==='chicks')picker.closest('label').hidden=true;
+ if(group==='feed'||group==='chicks'||group==='shared'||group==='assets')picker.closest('label').hidden=true;
  if(group==='chicks')line.querySelector('[data-k="item"]').value='صيصان';
 }
 function refreshIssues(){
