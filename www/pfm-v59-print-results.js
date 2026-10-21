@@ -237,6 +237,9 @@ let activePrint=null,activeFrame=null;
      'color:#193a5d!important;font:600 8pt Arial,sans-serif!important;white-space:nowrap!important;'+
      'visibility:visible!important;z-index:999999!important;}'+
      '.pfm-native-a4-footer img{width:7mm!important;height:7mm!important;object-fit:contain!important;display:block!important;}'+
+     // Same selector, AFTER the older fixed footer's visibility overrides;
+     // Chrome uses the @bottom-center margin brand, never two logos.
+     (marginBoxFooter?'body.pfm59-printing > .pfm-native-a4-footer:not(#pfm59PrintRoot){display:none!important;visibility:hidden!important;}':'')+
      '}@media screen{.pfm-native-a4-footer{display:none!important}}</style>';
    if(android){const foot=printCopy.querySelector('.pfm59-print-footer');if(foot){foot.replaceChildren();const img=document.createElement('img');img.src='./pfm-logo.png';img.alt='M.K™';foot.appendChild(img);}}
    const cssLink=css?'<style>'+css.replace(/<\/style/gi,'<\\/style')+'</style>':'<link rel="stylesheet" href="./pfm-v59-print-results.css"/>';
