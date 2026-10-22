@@ -282,7 +282,7 @@ let activePrint=null,activeFrame=null;
       if(activePrint?.isConnected)activePrint.remove();activePrint=null;
       document.body.classList.remove('pfm59-printing');
       printPending=true;
-      window.PFMDesktopPrint.savePDF(html,fileName).then(result=>{
+      window.PFMDesktopPrint.savePDF(html,fileName,action).then(result=>{
         if(!result?.ok&&!result?.canceled)alert(tr('تعذّر حفظ PDF: ','Could not save PDF: ')+(result?.error||'Unknown error'));
       }).catch(err=>{console.error('PFM desktop PDF:',err);alert(tr('تعذّر حفظ PDF: ','Could not save PDF: ')+err.message);})
       .finally(()=>{printPending=false;clean();});
