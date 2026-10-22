@@ -263,7 +263,7 @@ function configureDailyMedicines(){
  const view=$('meds'),control=$('v410MedLot');if(!view||!control)return;
  const cost=$('medCost')?.closest('.field');if(cost)cost.hidden=true;
  const medName=$('medName');if(medName)medName.readOnly=true;
- const selectLabel=control.closest('.field')?.querySelector('label,span');
+ const selectLabel=control.closest('label')?.querySelector('span')||control.closest('.field')?.querySelector(':scope > span');
  if(selectLabel)selectLabel.textContent=tr('دفعة الدواء/التحصين المشتراة *','Purchased medicine/vaccine lot *');
  const instructions=document.createElement('p');
  instructions.className='note';instructions.id='pfm-v81-health-help';
