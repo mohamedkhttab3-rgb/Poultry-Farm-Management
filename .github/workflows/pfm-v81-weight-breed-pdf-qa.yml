@@ -29,6 +29,7 @@ jobs:
         run: |
           npm install --no-save --ignore-scripts --no-audit --no-fund jsdom@26
           node tests/test_v81_purchase_dom.cjs
+          node tests/test_v81_report_actions_dom.cjs
       - name: Full fictional 80K financial scenario and all key regressions
         run: |
           set -euo pipefail
