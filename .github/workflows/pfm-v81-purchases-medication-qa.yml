@@ -22,6 +22,12 @@ jobs:
           node scripts/verify-native.cjs
       - name: Real invoice draft and medicine purchase-lot acceptance
         run: node tests/test_v81_purchases_medications.cjs
+      - name: Test actual purchase UI clicks in DOM (Save, listing, supplier validation, approval)
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+        run: |
+          npm install --no-save --ignore-scripts --no-audit --no-fund jsdom@26
+          node tests/test_v81_purchase_dom.cjs
       - name: Full 80K two-farm financial acceptance
         run: node tests/test_v81_two_farms_80k.cjs
       - name: Existing finance, VAT, branding and inventory regression
