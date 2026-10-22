@@ -31,8 +31,12 @@ w.eval(fs.readFileSync('www/pfm-v81-qa80k-profile.js','utf8'));
  assert.equal(w.localStorage.getItem('poultry_farm_management_v34_'+id),before);
  assert.equal(JSON.parse(w.localStorage.getItem('poultry_farm_manager_session_v32')).id,original.id);
  w.currentUser={id:'owner-test-uuid',role:'owner'};w.supabaseClient={connected:true};
+ w.stopV8Realtime=()=>{w.__stoppedRealtime=true};
  const previousCount=snapshots.length;await api.enter();
- assert.equal(snapshots.length,previousCount,'cloud account cannot enter isolated local QA');
+ assert.equal(snapshots.length,previousCount,'re-enter must not overwrite existing QA invoices');
+ assert.equal(JSON.parse(w.localStorage.getItem('poultry_farm_manager_session_v32')).id,id,
+  'cloud owner enters only the synthetic local user, not a cloud farm');
+ assert.equal(w.__stoppedRealtime,true,'cloud Realtime connection stopped before switching');
  clearInterval?.(w.__qaTimer);
  w.close();
  console.log('PASS DOM sandbox: preserve owner, isolate QA profile/80k data, restore owner, block Supabase');
