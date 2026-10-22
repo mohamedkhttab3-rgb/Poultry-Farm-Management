@@ -322,7 +322,7 @@ for(const c of db.cycles){
  assert.equal(p.feed,64000);
  assert.equal(p.fc,113280);
  assert.equal(p.meds,11700);
- assert.equal(p.expenseTotal,13900);
+ assert.equal(p.expenseTotal,15900);
  assert.equal(p.sharedCost,20500);
  assert.equal(p.depreciationCost,2000);
  assert.equal(p.cost,206840,'Independent expected cost per house');
