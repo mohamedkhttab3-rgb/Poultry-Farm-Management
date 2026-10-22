@@ -18,7 +18,7 @@ function localResource(url){
  if(!fs.existsSync(file)||!fs.statSync(file).isFile())throw new Error('not found');
  return file;
 }
-async function saveDesktopPDF(event,html,suggestedFileName){
+async function saveDesktopPDF(event,html,suggestedFileName,requestedAction='preview'){
  if(event.sender!==mainWindow?.webContents||event.sender.getURL()!=='pfm://app/index.html')throw new Error('Unauthorized PDF request');
  if(typeof html!=='string'||!/^<!doctype html>/i.test(html)||!html.includes('id="pfm59PrintRoot"')||html.length>24_000_000){
   throw new Error('Invalid printable report');
@@ -45,13 +45,10 @@ async function saveDesktopPDF(event,html,suggestedFileName){
   })()`);
   // Restore print/preview choices: do not force saving a PDF before printing.
   // Chromium-style preview is unavailable in Electron, so use the system PDF viewer.
-  const choice=await dialog.showMessageBox(mainWindow,{
-    type:'question',title:'Poultry Farm Management - PDF',
-    message:'ماذا تريد أن تفعل بالتقرير؟',
-    detail:'يمكنك معاينة التقرير ثم طباعته أو حفظه، أو الطباعة مباشرة من التطبيق.',
-    buttons:['معاينة PDF والطباعة','حفظ PDF على الجهاز','طباعة على الطابعة','إلغاء'],
-    defaultId:0,cancelId:3,noLink:true
-  });
+  // The single report button already asked for an action; never force
+  // the user through a second redundant four-button chooser.
+  const selected=['print','save','share','preview'].includes(requestedAction)?requestedAction:'preview';
+  const choice={response:selected==='print'?2:selected==='save'?1:selected==='share'?4:0};
   if(choice.response===3)return {ok:false,canceled:true};
   if(choice.response===2){
     const printed=await new Promise(resolve=>{
@@ -66,11 +63,23 @@ async function saveDesktopPDF(event,html,suggestedFileName){
   const pdf=await printWindow.webContents.printToPDF({pageSize:'A4',preferCSSPageSize:true,printBackground:true,landscape:true,displayHeaderFooter:false});
   if(!Buffer.isBuffer(pdf)||pdf.length<800||pdf.subarray(0,5).toString()!=='%PDF-')throw new Error('PDF output validation failed');
   const fileName=String(suggestedFileName||'Poultry-Farm-Management-Report.pdf').replace(/[<>:"/\\|?*\u0000-\u001f]/g,'_').slice(0,140);
-  if(choice.response===0){
+  if(choice.response===0||choice.response===4){
     const previewDir=path.join(app.getPath('temp'),'PoultryFarmManagement-PrintPreview');
     await fs.promises.mkdir(previewDir,{recursive:true});
     const previewPath=path.join(previewDir,nonce+'.pdf');
     await fs.promises.writeFile(previewPath,pdf);
+    if(choice.response===4){
+      // Electron has no portable OS file-share sheet. Expose a REAL PDF file in
+      // Windows Explorer, then the user can invoke Windows "Share" from there.
+      shell.showItemInFolder(previewPath);
+      await dialog.showMessageBox(mainWindow,{
+       type:'info',title:'مشاركة تقرير PDF',
+       message:'تم إنشاء ملف PDF للتشارك.',
+       detail:'الملف محدد في مستكشف الملفات. اختر مشاركة من قائمة الملف في Windows. لا يتم الادعاء بإرساله حتى تختار التطبيق.',
+       buttons:['حسنًا']
+      });
+      return {ok:true,shareFileReady:true};
+    }
     const viewerError=await shell.openPath(previewPath);
     if(viewerError)throw new Error('Could not open PDF viewer: '+viewerError+'; file: '+previewPath);
     return {ok:true,preview:true};

@@ -562,8 +562,15 @@ public final class PFMNativeExportPlugin extends Plugin {
         send.putExtra(Intent.EXTRA_STREAM,link);
         send.setClipData(ClipData.newRawUri(filename,link));
         send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        getActivity().startActivity(Intent.createChooser(send,"مشاركة تقرير PDF"));
+        // Pass the grant on BOTH send and chooser intents. Several Android
+        // recipient apps access the FileProvider URI from the chooser's clipData.
+        Intent chooser=Intent.createChooser(send,"مشاركة تقرير PDF");
+        chooser.setClipData(ClipData.newRawUri(filename,link));
+        chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        getActivity().startActivity(chooser);
         busy.set(false);
+        // This means the system chooser opened, not that the recipient completed
+        // delivery. The application must never claim a confirmed share.
         call.resolve(response("share-dialog-opened",false));
       }else{
         printPdf(call,file,filename);

@@ -922,7 +922,15 @@ html[lang="ar"] #printReport .report-meta,html[lang="ar"] #printReport .report-t
 </section>
 <section class="view" id="performance">
 <h2>مؤشرات أداء العنابر</h2><div class="muted">كل عنبر مرتبط بدورته الحالية، وتظهر مؤشرات الدورة دون خلط بيانات عنبر آخر.</div>
+<div class="panel"><div class="grid"><div class="field"><label>السلالة المرجعية للمقارنة (لا تغير سلالة الدورة)</label><select id="perfBreedCompare" onchange="renderPerformance()"></select></div></div><div class="note">مقارنة فنية بين الإنتاج الفعلي والمعايير المنشورة حسب عمر الدورة. القيم غير الصالحة أو الأعمار خارج الكتالوج تظهر غير متاحة، دون تغيير البيانات التاريخية.</div><div id="pfm81-breed-comparison"></div></div>
 <div class="panel"><div class="grid scope-pair-grid"><div class="field"><label>المزرعة — كل المزارع أو مزرعة محددة</label><select id="perfFarm" onchange="fillPerfHouse()"></select></div><div class="field"><label>العنبر</label><select id="perfHouse" onchange="renderPerformance()"></select><small>اختر كل العنابر أو عنبرًا محددًا من القائمة.</small></div></div><div class="note" id="performanceScopeHint" style="margin-top:10px"></div></div>
+<details class="panel" id="pfm81-qa-preview"><summary>عرض المزرعتين التجريبيتين — بيانات اختبار منفصلة (لا تُضاف لحسابك)</summary>
+<p class="note">هذه معاينة اختبار آمنة للبيانات الافتراضية، وليست مزارعك الفعلية ولا تُدرج في المزارع أو الحسابات أو مزامنة Supabase.</p>
+<div class="table-scroll"><table><thead><tr><th>المزرعة التجريبية</th><th>العنابر</th><th>الكتاكيت</th><th>التكاليف ر.س</th><th>الإيرادات ر.س</th><th>صافي الربح ر.س</th></tr></thead><tbody>
+<tr><td>المزرعة الشرقية — اختبار</td><td>2 × 20,000</td><td>40,000</td><td>415,380</td><td>595,012</td><td>179,632</td></tr>
+<tr><td>المزرعة الغربية — اختبار</td><td>2 × 20,000</td><td>40,000</td><td>415,380</td><td>595,012</td><td>179,632</td></tr>
+<tr><th>إجمالي الاختبار</th><th>4</th><th>80,000</th><th>830,760</th><th>1,190,024</th><th>359,264</th></tr></tbody></table></div>
+<p class="muted">34 فاتورة و32 حركة صرف و8 مبيعات و168 متابعة يومية. ملفا JSON قبل/بعد الإقفال متاحان في إصدار QA منفصل على GitHub؛ لا تستوردهما على بياناتك الأساسية.</p></details>
 <div id="performanceBox"></div><div class="panel"><h3>الدورات ضمن نطاق الأداء المحدد</h3><div class="muted" style="margin-bottom:8px">ترتيب الأعمدة مطابق تمامًا للبيانات المعروضة في كل صف: المزرعة ← العنبر ← تاريخ الدورة ← السلالة ← العمر ← الاستقبال ← الحي ← النفوق% ← الوزن ← معامل التحويل الغذائي (FCR) ← معدل الزيادة اليومية (ADG) ← معامل التباين (CV%) ← مؤشر الإنتاج (PI) ← مؤشر كفاءة الإنتاج (EPEF / EPI) ← مؤشر الكفاءة الاقتصادية (EBEF) ← المعامل الاقتصادي (EC) ← المبيعات ← الربح/الخسارة.</div><div class="table-scroll"><table class="performance-table"><thead><tr><th>المزرعة</th><th>العنبر</th><th>تاريخ الدورة</th><th>السلالة</th><th>العمر</th><th>الاستقبال</th><th>الحي</th><th>النفوق%</th><th>الوزن</th><th>معامل التحويل الغذائي (FCR)</th><th>معدل الزيادة اليومية (ADG)</th><th>معامل التباين (CV%)</th><th>مؤشر الإنتاج (PI)</th><th>مؤشر كفاءة الإنتاج (EPEF / EPI)</th><th>مؤشر الكفاءة الاقتصادية (EBEF)</th><th>المعامل الاقتصادي (EC)</th><th>المبيعات</th><th>الربح/الخسارة</th></tr></thead><tbody id="performanceTable"></tbody></table></div></div>
 </section>
 <section class="view" id="standards"><h2>معايير السلالات العالمية</h2>
@@ -939,7 +947,7 @@ html[lang="ar"] #printReport .report-meta,html[lang="ar"] #printReport .report-t
 <div class="field"><label>الدورة *</label><select id="saleCycle" onchange="updateCurrencyLabels();updateSaleBirdsFromCycle()"></select></div>
 <div class="field"><label>تاريخ البيع *</label><input id="saleDate" onchange="updateSaleBirdsFromCycle()" type="date"/></div>
 <div class="field"><label>عدد الطيور</label><input id="saleBirds" min="0" type="number"/><small class="muted" id="saleAvailableLive">اختر الدورة لمعرفة الحي المتاح.</small></div>
-<div class="field" id="saleWeightBox"><label>الوزن الحي / الكمية</label><input id="saleWeight" min="0" step=".001" type="number"/></div><div class="field"><label>وحدة الوزن/الكمية</label><select id="saleWeightUnit" onchange="updateSaleWeightUnitUI()"><option value="kg">كجم</option><option value="bird">حبة</option></select></div><div class="field" id="saleAvgWeightBox" style="display:none"><label>متوسط وزن الطائر عند البيع (كجم)</label><input id="saleAvgWeight" min="0" step=".001" type="number"/><small class="muted" id="saleAvgWeightHint">يُملأ تلقائيًا من أحدث وزن متاح قبل تاريخ البيع ويمكن تعديله.</small></div>
+<div class="field" id="saleWeightBox"><label>الوزن الحي / الكمية</label><input id="saleWeight" min="0" step=".001" type="number"/></div><div class="field"><label>وحدة الوزن/الكمية</label><select id="saleWeightUnit" onchange="updateSaleWeightUnitUI()"><option value="kg">كجم</option><option value="bird">حبة</option></select></div><div class="field" id="saleAvgWeightBox" style="display:none"><label>متوسط وزن الطائر عند البيع (كجم)</label><input id="saleAvgWeight" min="0.001" max="8" step=".001" type="number"/><small class="muted" id="saleAvgWeightHint">يُملأ تلقائيًا من أحدث وزن متاح قبل تاريخ البيع ويمكن تعديله.</small></div>
 <div class="field"><label>سعر الوحدة <span class="muted" id="saleCurrencyLabel">(SAR)</span></label><input id="salePrice" min="0" step=".01" type="number"/></div>
 <div class="field"><label>المشتري</label><input id="saleBuyer"/></div>
 </div><div class="actions"><button class="btn primary" id="saleSaveBtn" onclick="addSale()">تسجيل البيع</button><button class="btn" id="saleCancelBtn" onclick="cancelEdit()" style="display:none">إلغاء التعديل</button></div></div>
@@ -1592,19 +1600,39 @@ const weeklyWeightAtOrBefore=(c,date=today())=>db.weights.filter(x=>x.cycleId===
 const lastWeight=c=>weeklyWeightAtOrBefore(c,today());
 const currentWeight=c=>{const d=dailyWeightAtOrBefore(c,today());if(d)return +d.weight||0;const w=weeklyWeightAtOrBefore(c,today());return +w?.avg||0};
 const weightAtOrBefore=(c,date=today())=>{const d=dailyWeightAtOrBefore(c,date);if(d)return {avg:+d.weight||0,date:d.date,source:'daily'};const w=weeklyWeightAtOrBefore(c,date);if(w)return {avg:+w.avg||0,date:w.date,source:'weekly'};return null};
+function pfm81ValidBroilerWeightKg(value){
+  const n=Number(value);
+  // Conservative safety bound for one broiler. Never infer grams and silently
+  // rewrite previously frozen sales; request an explicit correction instead.
+  return Number.isFinite(n)&&n>0&&n<=8;
+}
+function pfm81SaleWeightProblem(c,x){
+  const birds=Number(x?.birds||0);
+  if(x?.weightUnit==='bird'){
+   const avg=Number(x?.avgWeight??x?.saleAvgWeight??0);
+   return avg>0&&!pfm81ValidBroilerWeightKg(avg);
+  }
+  if(x?.weightUnit==='kg'&&birds>0){
+   const total=Number(x.weightQty??x.weightKg??0);
+   return total>birds*8;
+  }
+  return false;
+}
 function saleAverageWeight(c,x){
   const explicit=Number(x?.avgWeight??x?.saleAvgWeight??0);
-  if(Number.isFinite(explicit)&&explicit>0)return explicit;
+  if(explicit>0&&!pfm81ValidBroilerWeightKg(explicit))return 0;
+  if(pfm81ValidBroilerWeightKg(explicit))return explicit;
   const w=weightAtOrBefore(c,x?.date||today());
-  if(w?.avg>0)return w.avg;
-  return currentWeight(c);
+  if(pfm81ValidBroilerWeightKg(w?.avg))return w.avg;
+  const current=currentWeight(c);
+  return pfm81ValidBroilerWeightKg(current)?current:0;
 }
 function saleWeightKg(c,x){
-  if(!x)return 0;
+  if(!x||pfm81SaleWeightProblem(c,x))return 0;
   const unit=x.weightUnit||'kg';
   if(unit==='kg')return Math.max(0,Number(x.weightQty??x.weightKg??0)||Number(x.weightKg||0));
   const explicitKg=Number(x.weightKg||0);
-  if(Number.isFinite(explicitKg)&&explicitKg>0)return explicitKg;
+  if(Number.isFinite(explicitKg)&&explicitKg>0&&(!Number(x.birds)||explicitKg<=Number(x.birds)*8))return explicitKg;
   const birds=Math.max(0,Math.floor(Number(x.birds)||0));
   const avg=saleAverageWeight(c,x);
   return birds*avg;
@@ -1670,11 +1698,15 @@ const age=(c,d)=>{if(!c)return 0;const target=String(d||cycleMetricDate(c,today(
 function currentWeightAtDate(c,d=today()){const daily=dailyWeightAtOrBefore(c,d);if(daily)return +daily.weight||0;const weekly=weeklyWeightAtOrBefore(c,d);return +weekly?.avg||0}
 function performanceWeight(c,d=today()){
   const liveNow=liveAtDate(c,d);
-  if(liveNow>0)return currentWeightAtDate(c,d);
+  if(liveNow>0){
+   const measured=currentWeightAtDate(c,d);
+   return pfm81ValidBroilerWeightKg(measured)?measured:0;
+  }
   const sales=db.sales.filter(x=>x.cycleId===c.id&&isPastOrToday(x.date,d));
   const birds=sales.reduce((s,x)=>s+saleRowBirds(c,x),0),kg=sales.reduce((s,x)=>s+saleWeightKg(c,x),0);
-  if(birds>0&&kg>0)return kg/birds;
-  return currentWeightAtDate(c,d);
+  if(birds>0&&kg>0&&pfm81ValidBroilerWeightKg(kg/birds))return kg/birds;
+  const fallback=currentWeightAtDate(c,d);
+  return pfm81ValidBroilerWeightKg(fallback)?fallback:0;
 }
 const CURRENCY_NAMES={ar:{SAR:'الريال السعودي',EGP:'الجنيه المصري',USD:'الدولار الأمريكي',AED:'الدرهم الإماراتي',KWD:'الدينار الكويتي',QAR:'الريال القطري',OMR:'الريال العماني',BHD:'الدينار البحريني',EUR:'اليورو'},en:{SAR:'Saudi Riyal',EGP:'Egyptian Pound',USD:'US Dollar',AED:'UAE Dirham',KWD:'Kuwaiti Dinar',QAR:'Qatari Riyal',OMR:'Omani Rial',BHD:'Bahraini Dinar',EUR:'Euro'}};
 const CURRENCIES=CURRENCY_NAMES.ar;
@@ -2035,12 +2067,13 @@ function calc(c){
   const metricDate=cycleMetricDate(c,today());
   const dead=deadTotal(c,metricDate),cul=cullTotal(c,metricDate),sales=db.sales.filter(s=>s.cycleId===c.id&&isPastOrToday(s.date,metricDate));
   const soldBirds=sales.reduce((sum,x)=>sum+saleRowBirds(c,x),0),soldKg=sales.reduce((sum,x)=>sum+saleWeightKg(c,x),0);
-  const liv=liveAtDate(c,metricDate),feed=feedForFcr(c,metricDate),w=performanceWeight(c,metricDate),liveKg=liv*Math.max(0,w);
+  const invalidSaleWeights=sales.some(x=>pfm81SaleWeightProblem(c,x));
+  const liv=liveAtDate(c,metricDate),feed=feedForFcr(c,metricDate),w=invalidSaleWeights?0:performanceWeight(c,metricDate),liveKg=liv*Math.max(0,w);
   const birdSalesWeight=sales.reduce((sum,x)=>x.weightUnit==='bird'?sum+saleWeightKg(c,x):sum,0);
   const totalLiveWeight=soldKg+liveKg,initialKg=(+c.birds||0)*(+c.initWeight||0),gain=Math.max(0,totalLiveWeight-initialKg);
   // Aviagen-style cumulative FCR = feed consumed / total live bodyweight produced, including sold birds.
   // Separate gain-based FCR is retained for production diagnosis; never compare it to catalog FCR.
-  const fcr=totalLiveWeight>0&&feed>0?feed/totalLiveWeight:0,gainFcr=gain>0&&feed>0?feed/gain:0;
+  const fcr=!invalidSaleWeights&&totalLiveWeight>0&&feed>0?feed/totalLiveWeight:0,gainFcr=!invalidSaleWeights&&gain>0&&feed>0?feed/gain:0;
   const livPct=c.birds?Math.max(0,(c.birds-dead-cul)/c.birds*100):0,ageDays=age(c);
   const adg=ageDays>0&&w>0?Math.max(0,(w-(+c.initWeight||0))*1000/ageDays):0;
   const pi=fcr>0&&adg>0?(livPct*adg)/(fcr*10):0,epef=fcr>0&&w>0&&ageDays>0?(livPct*w*100)/(ageDays*fcr):0;
@@ -2057,12 +2090,15 @@ function calc(c){
   const allocated=(typeof window!=='undefined'&&window.PFMV81Accounting?.charges(db,c.id,metricDate))||{shared:0,depreciation:0,total:0};
   const sharedCost=allocated.shared,depreciationCost=allocated.depreciation;
   const cost=fc+meds+(+fin.chicks||0)+expenseTotal+sharedCost+depreciationCost;
+  // A sale can be recorded before purchase/feed costs arrive. Keep the posted
+  // ledger arithmetic intact but warn clearly: this is NOT final cycle profit.
+  const incompleteCosts=soldBirds>0&&((+fin.chicks||0)<=0||fc<=0||feed<=0);
   const rev=saleRevenue+(+fin.otherRevenue||0),profit=rev-cost,producedWeight=totalLiveWeight>0?totalLiveWeight:0,costPerKg=producedWeight>0?cost/producedWeight:0;
   const realizedPriceKg=soldKg>0?saleRevenue/soldKg:0;
   const economicCoefficient=costPerKg>0&&realizedPriceKg>0?realizedPriceKg/costPerKg:0,ebef=epef>0&&economicCoefficient>0?epef*economicCoefficient:0;
   const marketableBirds=soldBirds+liv,costPerBird=marketableBirds>0?cost/marketableBirds:0;
   const liveBreak=liveSource(c,metricDate);
-  return {dead,cul,liv,feed,w,gain,fcr,gainFcr,metricDate,livPct,ageDays,pi,epef,adg,cv,ebef,economicCoefficient,meds,fc,expenseTotal,sharedCost,depreciationCost,cost,rev,profit,soldBirds,soldKg,saleRevenue,liveKg,totalLiveWeight,birdSalesWeight,costPerKg,costPerBird,realizedPriceKg,currency:cur,marketableBirds,missingCurrency:false,liveBreak};
+  return {dead,cul,liv,feed,w,gain,fcr,gainFcr,metricDate,livPct,ageDays,pi,epef,adg,cv,ebef,economicCoefficient,meds,fc,expenseTotal,sharedCost,depreciationCost,cost,rev,profit,soldBirds,soldKg,saleRevenue,liveKg,totalLiveWeight,birdSalesWeight,costPerKg,costPerBird,realizedPriceKg,currency:cur,marketableBirds,missingCurrency:false,incompleteCosts,invalidSaleWeights,liveBreak};
 }
 function cycleOrdinal(c){
   if(!c)return 0;
@@ -2219,7 +2255,10 @@ function addSale(){
   const c=cyc(saleCycle.value);if(!c||!Number.isInteger(+saleBirds.value)||(+saleBirds.value)<=0)return alert('عدد الطيور يجب أن يكون عددًا صحيحًا موجبًا.');if(editing&&(!old||old.cycleId!==c.id))return alert('لا يمكن نقل عملية حصاد قديمة إلى دورة أخرى أثناء التعديل.');
   const cur=getCycleCurrency(c),unit=saleWeightUnit.value||'kg',birds=Math.floor(+saleBirds.value),qty=unit==='kg'?+saleWeight.value:birds,avgWeight=unit==='bird'?+saleAvgWeight.value:0;
   if(unit==='kg'&&!qty)return alert('أدخل كمية البيع بالكيلو.');
-  if(unit==='bird'&&!(avgWeight>0))return alert('أدخل متوسط وزن الطائر عند البيع بالكيلو؛ يمكن تعديل القيمة التلقائية.');
+  if(unit==='bird'&&!pfm81ValidBroilerWeightKg(avgWeight))
+   return alert('متوسط وزن الطائر يجب أن يكون بالكيلو، مثال: 1.450 كجم وليس 1450 جم. راجع الوزن قبل الحفظ.');
+  if(unit==='kg'&&birds>0&&qty>birds*8)
+   return alert('الوزن الإجمالي يتجاوز الحد المنطقي لعدد الطيور. أدخل الوزن بالكيلوجرام، وليس الجرام، وراجع العدد.');
   const saleD=saleDate.value||today();const otherSold=old?db.sales.filter(s=>s.id!==old.id&&s.cycleId===c.id&&isPastOrToday(s.date,saleD)).reduce((s,x)=>s+saleRowBirds(c,x),0):soldBirdsAtDate(c,saleD);const available=Math.max(0,Math.floor(+c.birds||0)-deadTotal(c,saleD)-cullTotal(c,saleD)-otherSold);
   if(birds>available)return alert(`عدد الطيور للبيع (${birds}) أكبر من الحي المتاح (${available}).`);
   if(!Number.isFinite(qty)||qty<=0||!Number.isFinite(+salePrice.value)||+salePrice.value<0)return alert('تأكد من كمية البيع وسعر الوحدة؛ لا يُقبل سعر سالب أو كمية صفرية.');
@@ -2232,7 +2271,7 @@ function addSale(){
 function renderSales(){
   saleCycle.innerHTML=db.cycles.map(c=>`<option value="${c.id}">${esc(getFarmName(c.farmId))} — ${esc(getHouseName(c.houseId))} — ${c.date}${c.breed?' — '+esc(c.breed):''}</option>`).join('');
   updateCurrencyLabels();
-  saleTable.innerHTML=pfmPerfWindow(db.sales.slice().sort((a,b)=>b.date.localeCompare(a.date)),'sales',saleTable).map(s=>{const c=cyc(s.cycleId),cur=currencyCode(s.currency||getCycleCurrency(c)),wk=s.weightUnit==='bird'?saleWeightKg(c,s):(+s.weightQty||+s.weightKg||0),net=saleRowRevenue(s),vat=Number(s.v410Vat?.tax||0),gross=Number(s.v410Vat?.invoiceGross??s.v410Vat?.gross??net);return `<tr><td>${s.date}</td><td>${esc(getFarmName(c?.farmId))} — ${esc(getHouseName(c?.houseId))}</td><td>${(+s.birds||0).toLocaleString()}</td><td>${s.weightUnit==='bird'?`${Number(s.avgWeight||saleAverageWeight(c,s)||0).toFixed(3)} كجم/طائر<br><small class="muted">إجمالي ${wk.toFixed(2)} كجم</small>`:`${(+s.weightQty||+s.weightKg||0).toFixed(2)} كجم`}</td><td>${(+s.price||0).toFixed(2)} ${cur}</td><td>${gross.toFixed(2)} ${cur}</td><td>${vat.toFixed(2)} ${cur}</td><td>${net.toFixed(2)} ${cur}</td><td>${esc(s.buyer||'')}</td><td><button class="btn" data-action="edit" data-type="sale" data-id="${s.id}">تعديل</button> <button class="btn danger" data-action="delete" data-type="sales" data-id="${s.id}">حذف</button></td></tr>`}).join('')||'<tr><td colspan="10">لا توجد مبيعات مسجلة.</td></tr>';
+  saleTable.innerHTML=pfmPerfWindow(db.sales.slice().sort((a,b)=>b.date.localeCompare(a.date)),'sales',saleTable).map(s=>{const c=cyc(s.cycleId),cur=currencyCode(s.currency||getCycleCurrency(c)),wk=s.weightUnit==='bird'?saleWeightKg(c,s):(+s.weightQty||+s.weightKg||0),net=saleRowRevenue(s),vat=Number(s.v410Vat?.tax||0),gross=Number(s.v410Vat?.invoiceGross??s.v410Vat?.gross??net);return `<tr><td>${s.date}</td><td>${esc(getFarmName(c?.farmId))} — ${esc(getHouseName(c?.houseId))}</td><td>${(+s.birds||0).toLocaleString()}</td><td>${s.weightUnit==='bird'?pfm81SaleWeightProblem(c,s)?'<span class="badge">الوزن غير منطقي — يحتاج تصحيحًا معتمدًا</span>':`${Number(s.avgWeight||saleAverageWeight(c,s)||0).toFixed(3)} كجم/طائر<br><small class="muted">إجمالي ${wk.toFixed(2)} كجم</small>`:`${(+s.weightQty||+s.weightKg||0).toFixed(2)} كجم`}</td><td>${(+s.price||0).toFixed(2)} ${cur}</td><td>${gross.toFixed(2)} ${cur}</td><td>${vat.toFixed(2)} ${cur}</td><td>${net.toFixed(2)} ${cur}</td><td>${esc(s.buyer||'')}</td><td><button class="btn" data-action="edit" data-type="sale" data-id="${s.id}">تعديل</button> <button class="btn danger" data-action="delete" data-type="sales" data-id="${s.id}">حذف</button></td></tr>`}).join('')||'<tr><td colspan="10">لا توجد مبيعات مسجلة.</td></tr>';
 }
 function exportBackup(){let blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='poultry-farm-manager-v3-backup.json';a.click();URL.revokeObjectURL(a.href)}
 function importBackup(inp){let f=inp.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);db={farms:[],houses:[],cycles:[],daily:[],weights:[],feed:[],meds:[],inventory:[],finance:{},sales:[],tombstones:[],...x};normalizeDbIds();db.cycles.forEach(c=>c.currency=currencyCode(c.currency||db.finance?.[c.id]?.currency||'SAR'));save();alert('تم استيراد النسخة')}catch(e){alert('ملف النسخة غير صالح')}};r.readAsText(f)}
@@ -2299,7 +2338,7 @@ function setFarmOptions(sel,preserve=true){if(!sel)return;const old=sel.value;se
 function setCompareFarmOptions(preserve=true){if(!compareFarm)return;const old=compareFarm.value;compareFarm.innerHTML='<option value="">كل المزارع</option>'+db.farms.map(f=>`<option value="${f.id}">${esc(f.name)}</option>`).join('');if(preserve&&old&&[...compareFarm.options].some(o=>o.value===old))compareFarm.value=old;else compareFarm.value='';}
 function fillPerfHouse(preserve=true){if(!perfFarm||!perfHouse)return;populateHouseMulti(perfHouse,perfFarm.value||'',preserve);renderPerformance();}
 function fillCompareHouse(preserve=true){if(!compareHouse)return;const fid=compareFarm?.value||'',old=preserve?compareHouse.value:'';const houses=db.houses.filter(h=>!fid||h.farmId===fid);compareHouse.innerHTML='<option value="">كل العنابر</option>'+houses.map(h=>{const label=fid?getHouseName(h.id):`${getFarmName(h.farmId)} — ${getHouseName(h.id)}`;return `<option value="${h.id}">${esc(label)}</option>`}).join('');if(preserve&&old&&[...compareHouse.options].some(o=>o.value===old))compareHouse.value=old;else compareHouse.value='';renderComparison();}
-function cycleKpiRow(c){const x=calc(c);return `<tr><td data-no-translate>${esc(getFarmName(c.farmId))}</td><td data-no-translate>${esc(getHouseName(c.houseId))}</td><td>${c.date}</td><td data-no-translate>${esc(c.breed||'-')}</td><td>${age(c)} ${uiText("يوم")}</td><td>${(+c.birds||0).toLocaleString()}</td><td>${x.liv.toLocaleString()}</td><td>${((x.dead/(+c.birds||1))*100).toFixed(2)}%</td><td>${x.w?x.w.toFixed(3):'-'}</td><td>${x.fcr?x.fcr.toFixed(3):'-'}<br>${x.fcr?metricBadge('fcr',x.fcr,c):'—'}</td><td>${x.adg?x.adg.toFixed(1):'-'}<br>${x.adg?metricBadge('adg',x.adg,c):'—'}</td><td>${x.cv?x.cv.toFixed(2):'-'}<br>${x.cv?cvBadge(x.cv):'—'}</td><td>${x.pi?x.pi.toFixed(1):'-'}<br>${x.pi?metricBadge('pi',x.pi,c):'—'}</td><td>${x.epef?x.epef.toFixed(1):'-'}<br>${x.epef?metricBadge('epef',x.epef,c):'—'}</td><td>${x.ebef?x.ebef.toFixed(1):'-'}</td><td>${x.economicCoefficient?x.economicCoefficient.toFixed(3):'-'}</td><td>${x.saleRevenue.toFixed(2)} ${x.currency}</td><td>${x.profit.toFixed(2)} ${x.currency}</td></tr>`;}
+function cycleKpiRow(c){const x=calc(c);return `<tr><td data-no-translate>${esc(getFarmName(c.farmId))}</td><td data-no-translate>${esc(getHouseName(c.houseId))}</td><td>${c.date}</td><td data-no-translate>${esc(c.breed||'-')}</td><td>${age(c)} ${uiText("يوم")}</td><td>${(+c.birds||0).toLocaleString()}</td><td>${x.liv.toLocaleString()}</td><td>${((x.dead/(+c.birds||1))*100).toFixed(2)}%</td><td>${x.w?x.w.toFixed(3):'-'}</td><td>${x.fcr?x.fcr.toFixed(3):'-'}<br>${x.fcr?metricBadge('fcr',x.fcr,c):'—'}</td><td>${x.adg?x.adg.toFixed(1):'-'}<br>${x.adg?metricBadge('adg',x.adg,c):'—'}</td><td>${x.cv?x.cv.toFixed(2):'-'}<br>${x.cv?cvBadge(x.cv):'—'}</td><td>${x.pi?x.pi.toFixed(1):'-'}<br>${x.pi?metricBadge('pi',x.pi,c):'—'}</td><td>${x.epef?x.epef.toFixed(1):'-'}<br>${x.epef?metricBadge('epef',x.epef,c):'—'}</td><td>${x.ebef?x.ebef.toFixed(1):'-'}</td><td>${x.economicCoefficient?x.economicCoefficient.toFixed(3):'-'}</td><td>${x.saleRevenue.toFixed(2)} ${x.currency}</td><td>${x.incompleteCosts?'تكاليف غير مكتملة — ربح مبدئي '+x.profit.toFixed(2):x.profit.toFixed(2)} ${x.currency}</td></tr>`;}
 function aggregatePerformanceScope(cycles){const rows=cycles.map(c=>({c,x:calc(c)})),live=rows.reduce((s,r)=>s+r.x.liv,0),dead=rows.reduce((s,r)=>s+r.x.dead,0),cull=rows.reduce((s,r)=>s+r.x.cul,0),sold=rows.reduce((s,r)=>s+r.x.soldBirds,0),feed=rows.reduce((s,r)=>s+r.x.feed,0),revenue=rows.reduce((s,r)=>s+r.x.saleRevenue,0),profit=rows.reduce((s,r)=>s+r.x.profit,0),marketable=rows.reduce((s,r)=>s+Math.max(0,r.x.marketableBirds||0),0),producedWeight=rows.reduce((s,r)=>s+Math.max(0,r.x.totalLiveWeight||0),0),gain=rows.reduce((s,r)=>s+r.x.gain,0),cvRows=rows.filter(r=>r.x.cv>0);const wBase=marketable||live;return{live,dead,cull,sold,feed,revenue,profit,weight:wBase?producedWeight/wBase:0,fcr:producedWeight?feed/producedWeight:0,adg:wBase?rows.reduce((s,r)=>s+(r.x.adg||0)*Math.max(0,r.x.marketableBirds||0),0)/wBase:0,cv:cvRows.length?cvRows.reduce((s,r)=>s+r.x.cv,0)/cvRows.length:0,pi:wBase?rows.reduce((s,r)=>s+(r.x.pi||0)*Math.max(0,r.x.marketableBirds||0),0)/wBase:0,epef:wBase?rows.reduce((s,r)=>s+(r.x.epef||0)*Math.max(0,r.x.marketableBirds||0),0)/wBase:0,ebef:wBase?rows.reduce((s,r)=>s+(r.x.ebef||0)*Math.max(0,r.x.marketableBirds||0),0)/wBase:0,economicCoefficient:wBase?rows.reduce((s,r)=>s+(r.x.economicCoefficient||0)*Math.max(0,r.x.marketableBirds||0),0)/wBase:0};}
 function performanceCycleWord(n){return uiLanguage()==='en'?(n===1?'cycle':'cycles'):'دورة';}
 function performanceScopeText(farmId,houseIds){
@@ -2308,7 +2347,53 @@ function performanceScopeText(farmId,houseIds){
   return houseIds.length?`${farm} — ${houseIds.map(getHouseName).join(en?', ':'، ')}`:
     `${farm} — ${en?'All houses':'كل العنابر'}`;
 }
-function renderPerformance(){const en=uiLanguage()==='en';[perfFarm,perfHouse].forEach((sel,i)=>{if(!sel)return;const generic=[...sel.options].find(o=>o.value===''||o.value==='__ALL__');if(generic)generic.textContent=en?(i===0?'All farms':'All houses'):(i===0?'كل المزارع':'كل العنابر');});const fid=perfFarm?.value||'',hids=getMultiValues(perfHouse),cs=db.cycles.filter(c=>(!fid||c.farmId===fid)&&(!hids.length||hids.includes(c.houseId))&&(!window.PFMGlobalCycleScope||window.PFMGlobalCycleScope(c))).sort((a,b)=>b.date.localeCompare(a.date));const scope=performanceScopeText(fid,hids);if(performanceScopeHint)performanceScopeHint.innerHTML=`<b>نطاق الأداء:</b> <span data-no-translate>${esc(scope)}</span> — <b>${cs.length}</b> ${performanceCycleWord(cs.length)}`;if(!cs.length){performanceBox.innerHTML=`<div class="panel">لا توجد دورات ضمن النطاق المحدد: <b data-no-translate>${esc(scope)}</b>.</div>`;performanceTable.innerHTML='';translateDOM();return;}const current=cs.filter(c=>c.active),base=current.length?current:cs.slice(0,Math.min(cs.length,20)),a=aggregatePerformanceScope(base),cur=currencyCode(db.settings?.currency||'SAR');performanceBox.innerHTML=`<div class="cards"><div class="card">نطاق العرض<div class="kpi" data-no-translate>${esc(scope)}</div><div class="muted">${base.length} ${performanceCycleWord(base.length)}${en?" in summary":" في الملخص"}</div></div><div class="card">الحي الحالي<div class="kpi">${a.live.toLocaleString()}</div><div class="muted">${uiText("طائر")}</div></div><div class="card">النافق<div class="kpi">${a.dead.toLocaleString()}</div></div><div class="card">المستبعد<div class="kpi">${a.cull.toLocaleString()}</div></div><div class="card">المباع<div class="kpi">${a.sold.toLocaleString()}</div></div><div class="card">الوزن المرجح<div class="kpi">${a.weight?a.weight.toFixed(3):'-'} ${uiText('كجم')}</div></div><div class="card">معامل التحويل الغذائي (FCR)<div class="kpi">${a.fcr?a.fcr.toFixed(3):'-'}</div></div><div class="card">معدل الزيادة اليومية (ADG)<div class="kpi">${a.adg?a.adg.toFixed(1):'-'} ${uiText('جم')}</div></div><div class="card">معامل التباين (CV%)<div class="kpi">${a.cv?a.cv.toFixed(2):'-'}%</div></div><div class="card">مؤشر الإنتاج (PI)<div class="kpi">${a.pi?a.pi.toFixed(1):'-'}</div></div><div class="card">مؤشر كفاءة الإنتاج (EPEF / EPI)<div class="kpi">${a.epef?a.epef.toFixed(1):'-'}</div></div><div class="card">مؤشر الكفاءة الاقتصادية (EBEF)<div class="kpi">${a.ebef?a.ebef.toFixed(1):'-'}</div></div><div class="card">المعامل الاقتصادي (EC)<div class="kpi">${a.economicCoefficient?a.economicCoefficient.toFixed(3):'-'}</div></div><div class="card">المبيعات<div class="kpi">${a.revenue.toFixed(2)} ${cur}</div></div><div class="card">الربح/الخسارة<div class="kpi">${a.profit.toFixed(2)} ${cur}</div></div></div><div class="note">ملخص إداري للنطاق المحدد. الأولوية للدورات النشطة؛ وإذا لم توجد دورة نشطة يستخدم أحدث دورات النطاق. التفاصيل الفردية لكل دورة تبقى في الجدول.</div>`;performanceTable.innerHTML=cs.map(cycleKpiRow).join('')||'<tr><td colspan="18">لا توجد دورات.</td></tr>';translateDOM();}
+function renderPerformanceBreedComparison(cycles){
+ const el=document.getElementById('pfm81-breed-comparison'),select=document.getElementById('perfBreedCompare');
+ if(!el||!select)return;
+ const prev=select.value,keys=Object.keys(BROILER_STANDARD_CATALOG);
+ select.innerHTML='<option value="">سلالة كل دورة المسجلة (المرجع التاريخي)</option>'+
+  keys.map(key=>'<option value="'+esc(key)+'">'+esc(key)+'</option>').join('');
+ if(keys.includes(prev))select.value=prev;
+ if(!cycles.length){el.innerHTML='<p class="muted">لا توجد دورات للمقارنة؛ يمكنك معاينة المزرعتين التجريبيتين بالأسفل دون استيرادهما.</p>';return;}
+ const preview=cycles.slice(0,20).map(c=>{
+  const x=calc(c),key=select.value||c.standardSnapshot?.key||standardKeyForBreed(c.breed);
+  const cat=select.value?BROILER_STANDARD_CATALOG[select.value]:
+    c.standardSnapshot?.rows?.length?c.standardSnapshot:BROILER_STANDARD_CATALOG[key];
+  const ref=cat?standardAtAgeCatalog(cat,x.ageDays):null;
+  const warn=x.invalidSaleWeights;
+  const value=(v,d=2)=>!warn&&Number.isFinite(v)&&v>0?v.toFixed(d):'—';
+  const reference=(v,d=2)=>Number.isFinite(v)?v.toFixed(d):'—';
+  const name=esc(getFarmName(c.farmId)+' — '+getHouseName(c.houseId));
+  const label=esc(key||'السلالة غير محددة');
+  return '<tr><td>'+name+'</td><td>'+label+'</td><td>'+x.ageDays+'</td>'+
+   '<td>'+value(x.w,3)+'</td><td>'+reference(ref?.weight==null?null:ref.weight/1000,3)+'</td>'+
+   '<td>'+value(x.adg,1)+'</td><td>'+reference(ref?.adg,1)+'</td>'+
+   '<td>'+value(x.fcr,3)+'</td><td>'+reference(ref?.fcr,3)+'</td>'+
+   '<td>'+(warn?'⚠️ وزن بيع غير منطقي: يلزم تصحيح السجل':!ref?'العمر خارج نطاق الكتالوج أو لا توجد سلالة':'المقارنة إرشادية؛ راجع مصدر السلالة')+'</td></tr>';
+ }).join('');
+ el.innerHTML='<div class="table-scroll"><table><thead><tr><th>المزرعة / العنبر</th><th>السلالة المرجعية</th><th>العمر</th>'+
+  '<th>الوزن الفعلي كجم</th><th>الوزن القياسي كجم</th><th>ADG فعلي جم</th><th>ADG قياسي جم</th><th>FCR فعلي</th><th>FCR قياسي</th><th>الملاحظة</th>'+
+  '</tr></thead><tbody>'+preview+'</tbody></table></div>'+
+  '<p class="muted">الأهداف المقارنة تأتي من كتالوج السلالة المختار حسب العمر الفعلي. اختيار سلالة هنا للمعاينة فقط ولا يغيّر معايير الدورة المحفوظة.</p>';
+}
+function renderPerformance(){const en=uiLanguage()==='en';[perfFarm,perfHouse].forEach((sel,i)=>{if(!sel)return;const generic=[...sel.options].find(o=>o.value===''||o.value==='__ALL__');if(generic)generic.textContent=en?(i===0?'All farms':'All houses'):(i===0?'كل المزارع':'كل العنابر');});const fid=perfFarm?.value||'',hids=getMultiValues(perfHouse),cs=db.cycles.filter(c=>(!fid||c.farmId===fid)&&(!hids.length||hids.includes(c.houseId))&&(!window.PFMGlobalCycleScope||window.PFMGlobalCycleScope(c))).sort((a,b)=>b.date.localeCompare(a.date));const scope=performanceScopeText(fid,hids);if(performanceScopeHint)performanceScopeHint.innerHTML=`<b>نطاق الأداء:</b> <span data-no-translate>${esc(scope)}</span> — <b>${cs.length}</b> ${performanceCycleWord(cs.length)}`;if(!cs.length){performanceBox.innerHTML=`<div class="panel">لا توجد دورات ضمن النطاق المحدد: <b data-no-translate>${esc(scope)}</b>.</div>`;performanceTable.innerHTML='';renderPerformanceBreedComparison([]);translateDOM();return;}const current=cs.filter(c=>c.active),base=current.length?current:cs.slice(0,Math.min(cs.length,20)),a=aggregatePerformanceScope(base),cur=currencyCode(db.settings?.currency||'SAR'),anyIncomplete=base.some(c=>calc(c).incompleteCosts);performanceBox.innerHTML=`<div class="cards"><div class="card">نطاق العرض<div class="kpi" data-no-translate>${esc(scope)}</div><div class="muted">${base.length} ${performanceCycleWord(base.length)}${en?" in summary":" في الملخص"}</div></div><div class="card">الحي الحالي<div class="kpi">${a.live.toLocaleString()}</div><div class="muted">${uiText("طائر")}</div></div><div class="card">النافق<div class="kpi">${a.dead.toLocaleString()}</div></div><div class="card">المستبعد<div class="kpi">${a.cull.toLocaleString()}</div></div><div class="card">المباع<div class="kpi">${a.sold.toLocaleString()}</div></div><div class="card">الوزن المرجح<div class="kpi">${a.weight?a.weight.toFixed(3):'-'} ${uiText('كجم')}</div></div><div class="card">معامل التحويل الغذائي (FCR)<div class="kpi">${a.fcr?a.fcr.toFixed(3):'-'}</div></div><div class="card">معدل الزيادة اليومية (ADG)<div class="kpi">${a.adg?a.adg.toFixed(1):'-'} ${uiText('جم')}</div></div><div class="card">معامل التباين (CV%)<div class="kpi">${a.cv?a.cv.toFixed(2):'-'}%</div></div><div class="card">مؤشر الإنتاج (PI)<div class="kpi">${a.pi?a.pi.toFixed(1):'-'}</div></div><div class="card">مؤشر كفاءة الإنتاج (EPEF / EPI)<div class="kpi">${a.epef?a.epef.toFixed(1):'-'}</div></div><div class="card">مؤشر الكفاءة الاقتصادية (EBEF)<div class="kpi">${a.ebef?a.ebef.toFixed(1):'-'}</div></div><div class="card">المعامل الاقتصادي (EC)<div class="kpi">${a.economicCoefficient?a.economicCoefficient.toFixed(3):'-'}</div></div><div class="card">المبيعات<div class="kpi">${a.revenue.toFixed(2)} ${cur}</div></div><div class="card">الربح/الخسارة<div class="kpi">${anyIncomplete?'تكاليف غير مكتملة':a.profit.toFixed(2)+' '+cur}</div></div></div><div class="note">ملخص إداري للنطاق المحدد. الأولوية للدورات النشطة؛ وإذا لم توجد دورة نشطة يستخدم أحدث دورات النطاق. التفاصيل الفردية لكل دورة تبقى في الجدول.</div>`;performanceTable.innerHTML=cs.map(cycleKpiRow).join('')||'<tr><td colspan="18">لا توجد دورات.</td></tr>';
+ renderPerformanceBreedComparison(cs);
+ const missingCosts=cs.filter(c=>calc(c).incompleteCosts);
+ const existingMissing=document.getElementById('pfm81-incomplete-finance-warning');
+ if(existingMissing)existingMissing.remove();
+ if(missingCosts.length)performanceBox.insertAdjacentHTML('beforebegin',
+  '<div id="pfm81-incomplete-finance-warning" class="note" style="border:2px solid #b45309;color:#7c2d12">'+
+  'تحذير محاسبي: يوجد '+missingCosts.length+' دورة بها مبيعات لكن تكلفة الصيصان أو العلف غير مسجلة بالكامل. الربح الحالي مبدئي وغير صالح كصافي ربح نهائي. استكمل فواتير الشراء والصرف قبل تقييم الربحية.'+
+  '</div>');
+ const bad=cs.filter(c=>calc(c).invalidSaleWeights);
+ if(bad.length)performanceBox.insertAdjacentHTML('beforebegin',
+  '<div id="pfm81-invalid-weight-warning" class="note" style="border:2px solid #b45309;color:#7c2d12">'+
+  'تنبيه: يوجد '+bad.length+' دورة تحتوي على وزن بيع غير منطقي. يتم تعطيل مؤشرات الوزن والتحويل المرتبطة بهذه العمليات إلى حين تصحيحها، دون تعديل المبيعات أو أرباحها التاريخية تلقائيًا.'+
+  '</div>');
+ const stale=document.querySelectorAll('#performance #pfm81-invalid-weight-warning');
+ if(stale.length>1)stale[0].remove();
+ if(!bad.length)stale.forEach(n=>n.remove());
+ translateDOM();}
 function renderComparison(){const fid=compareFarm?.value||'',hid=compareHouse?.value||'',cs=db.cycles.filter(c=>(!fid||c.farmId===fid)&&(!hid||c.houseId===hid)&&(!window.PFMGlobalCycleScope||window.PFMGlobalCycleScope(c))).sort((a,b)=>a.date.localeCompare(b.date)),farmLabel=fid?getFarmName(fid):'كل المزارع',houseLabel=hid?getHouseName(hid):'كل العنابر',scopeLabel=fid?(hid?`${farmLabel} — ${houseLabel}`:`${farmLabel} — كل العنابر`):(hid?`${houseLabel} — عبر المزارع المتاحة`:'كل المزارع — كل العنابر');if(comparisonScopeHint)comparisonScopeHint.innerHTML=`<b>نطاق المقارنة:</b> ${esc(scopeLabel)} — <b>${cs.length}</b> دورة`;if(!cs.length){comparisonBox.innerHTML=`<div class="panel">لا توجد دورات ضمن النطاق المحدد: <b>${esc(scopeLabel)}</b>.</div>`;return;}const summary=cs.reduce((a,c)=>{const x=calc(c);a.received+=(+c.birds||0);a.live+=x.liv;a.dead+=x.dead;a.sold+=x.soldBirds;a.feed+=x.feed;a.revenue+=x.saleRevenue||0;a.profit+=x.profit||0;return a},{received:0,live:0,dead:0,sold:0,feed:0,revenue:0,profit:0});comparisonBox.innerHTML=`<div class="cards"><div class="card">الدورات<div class="num">${cs.length}</div></div><div class="card">إجمالي الاستقبال<div class="num">${summary.received.toLocaleString()}</div></div><div class="card">إجمالي الحي الحالي<div class="num">${summary.live.toLocaleString()}</div></div><div class="card">إجمالي النافق<div class="num">${summary.dead.toLocaleString()}</div></div><div class="card">إجمالي المباع<div class="num">${summary.sold.toLocaleString()}</div></div><div class="card">العلف المستخدم في FCR<div class="num">${summary.feed.toFixed(1)} كجم</div></div><div class="card">المبيعات الفعلية<div class="num">${summary.revenue.toFixed(2)}</div></div><div class="card">الربح/الخسارة<div class="num">${summary.profit.toFixed(2)}</div></div></div><div class="panel"><h3>مقارنة ${esc(scopeLabel)}</h3><div class="muted" style="margin-bottom:8px">كل صف يمثل دورة مستقلة، والمزرعة والعنبر ظاهرَان لتسهيل القراءة.</div><div style="overflow:auto"><table><thead><tr><th>المزرعة</th><th>العنبر</th><th>تاريخ الدورة</th><th>السلالة</th><th>العمر</th><th>الاستقبال</th><th>الحي</th><th>نفوق%</th><th>الوزن</th><th>معامل التحويل الغذائي (FCR)</th><th>معدل الزيادة اليومية (ADG)</th><th>معامل التباين (CV%)</th><th>مؤشر الإنتاج (PI)</th><th>مؤشر كفاءة الإنتاج (EPEF / EPI)</th><th>مؤشر الكفاءة الاقتصادية (EBEF)</th><th>المعامل الاقتصادي (EC)</th><th>المبيعات</th><th>الربح</th></tr></thead><tbody>${cs.map(c=>{const x=calc(c);return `<tr><td>${esc(getFarmName(c.farmId))}</td><td>${esc(getHouseName(c.houseId))}</td><td>${c.date}</td><td>${esc(c.breed||'-')}</td><td>${age(c)}</td><td>${(+c.birds||0).toLocaleString()}</td><td>${x.liv.toLocaleString()}</td><td>${((x.dead/(+c.birds||1))*100).toFixed(2)}%</td><td>${x.w?x.w.toFixed(3):'-'}</td><td>${x.fcr?x.fcr.toFixed(3):'-'}<br>${x.fcr?metricBadge('fcr',x.fcr,c):'—'}</td><td>${x.adg?x.adg.toFixed(1):'-'}<br>${x.adg?metricBadge('adg',x.adg,c):'—'}</td><td>${x.cv?x.cv.toFixed(2):'-'}<br>${x.cv?cvBadge(x.cv):'—'}</td><td>${x.pi?x.pi.toFixed(1):'-'}<br>${x.pi?metricBadge('pi',x.pi,c):'—'}</td><td>${x.epef?x.epef.toFixed(1):'-'}<br>${x.epef?metricBadge('epef',x.epef,c):'—'}</td><td>${x.ebef?x.ebef.toFixed(1):'-'}</td><td>${x.economicCoefficient?x.economicCoefficient.toFixed(3):'-'}</td><td>${x.saleRevenue.toFixed(2)} ${x.currency}</td><td>${x.profit.toFixed(2)} ${x.currency}</td></tr>`}).join('')}</tbody></table></div></div>`;}
 function renderAudit(){if(!auditTable)return;auditTable.innerHTML=(db.auditLog||[]).slice(0,300).map(a=>`<tr><td>${new Date(a.createdAt).toLocaleString('ar-EG')}</td><td>${esc(a.userName||a.userId||'-')}</td><td>${esc(getFarmName(a.farmId))}</td><td>${esc(a.action)}</td><td>${esc(a.entity)} ${a.recordId?String(a.recordId).slice(0,8):''}</td><td><pre style="white-space:pre-wrap;margin:0">${esc(JSON.stringify(a.details||{},null,2))}</pre></td></tr>`).join('')||'<tr><td colspan="6">لا توجد حركات.</td></tr>';}
 function standardStatus(actual,target,lowerIsBetter=false){if(actual==null||target==null||!isFinite(actual)||!isFinite(target)||target===0)return {label:'غير متاح',cls:'',diff:null};const pct=(actual-target)/target*100;const good=lowerIsBetter?actual<=target:actual>=target;const tolerance=7;const within=lowerIsBetter?actual<=target*(1+tolerance/100):actual>=target*(1-tolerance/100);return {label:good?'ضمن/أفضل من المعيار':within?'قريب من المعيار':'أقل من المعيار',cls:good?'standard-good':within?'standard-warn':'standard-bad',diff:pct};}
@@ -2804,5 +2889,5 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script><script src="./v410-finance.js"></script><script src="./pfm-v68-sa-training.js"></script><script src="./v52-finance.js"></script><script id="v53-dashboard-logic" src="./pfm-v53-reference.js"></script><script src="./pfm-v54-interior.js"></script>
 <script src="./pfm-v55-project-navigation.js"></script><!-- Demo seed disabled: never overwrite local production data --><script src="./pfm-excel-transfer.js"></script><link rel="stylesheet" href="./pfm-v57-data-controls.css"/><script src="./pfm-v57-data-controls.js"></script><link rel="stylesheet" href="./pfm-v59-print-results.css"/><script src="./pfm-v59-print-results.js"></script>
-<script src="./pfm-v65-mobile.js"></script><script src="./pfm-v72-android-export.js"></script><script src="./pfm-v72-android-login.js"></script><script src="./pfm-v8-purchases-loader.js"></script><script src="./pfm-v81-accounting-core.js"></script><script src="./pfm-v8-invoice-core.js"></script><script src="./pfm-v81-issue-corrections.js"></script><script src="./pfm-v81-purchase-drafts.js"></script><script src="./pfm-v8-invoice-ui.js"></script><script src="./pfm-v81-accounting-ui.js"></script>
+<script src="./pfm-v65-mobile.js"></script><script src="./pfm-v72-android-export.js"></script><script src="./pfm-v72-android-login.js"></script><script src="./pfm-v8-purchases-loader.js"></script><script src="./pfm-v81-accounting-core.js"></script><script src="./pfm-v8-invoice-core.js"></script><script src="./pfm-v81-issue-corrections.js"></script><script src="./pfm-v81-purchase-drafts.js"></script><script src="./pfm-v8-invoice-ui.js"></script><script src="./pfm-v81-accounting-ui.js"></script><script src="./pfm-v81-report-actions.js"></script>
 </body></html>

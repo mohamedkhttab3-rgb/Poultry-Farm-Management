@@ -383,7 +383,7 @@ const virtualContext={
  db,window:{PFMV81Accounting:accounting},financeDraftExpenses:{},today:()=>dateFinal,
  cycleMetricDate:c=>c.endedAt,isPastOrToday:(date,asOf=dateFinal)=>!date||date<=asOf,
  saleRowBirds:(_c,s)=>s.birds,
- saleWeightKg:(_c,s)=>s.weightKg,
+ saleWeightKg:(_c,s)=>s.weightKg,pfm81SaleWeightProblem:(_c,s)=>s.weightUnit==='bird'&&Number(s.avgWeight)>8,
  saleRowRevenue:s=>s.total,
  deadTotal:c=>db.daily.filter(d=>d.cycleId===c.id&&d.date<=c.endedAt).reduce((n,d)=>n+d.dead,0),
  cullTotal:c=>db.daily.filter(d=>d.cycleId===c.id&&d.date<=c.endedAt).reduce((n,d)=>n+d.cull,0),

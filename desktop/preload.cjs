@@ -2,5 +2,5 @@
 'use strict';
 const {contextBridge,ipcRenderer}=require('electron');
 contextBridge.exposeInMainWorld('PFMDesktopPrint',Object.freeze({
- savePDF:(html,fileName)=>ipcRenderer.invoke('pfm:save-report-pdf',html,fileName)
+ savePDF:(html,fileName,action='preview')=>ipcRenderer.invoke('pfm:save-report-pdf',html,fileName,action)
 }));

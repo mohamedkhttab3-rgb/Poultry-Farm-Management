@@ -91,7 +91,7 @@ const snapshot=JSON.stringify(frozen);
 const calcContext=vm.createContext({db,window:{PFMV81Accounting:accounting},financeDraftExpenses:{},
  today:()=> '2026-10-22',cycleMetricDate:()=> '2026-10-22',
  deadTotal:()=>0,cullTotal:()=>0,isPastOrToday:()=>true,
- saleRowBirds:(c,s)=>s.birds,saleWeightKg:(c,s)=>s.weightKg,
+ saleRowBirds:(c,s)=>s.birds,saleWeightKg:(c,s)=>s.weightKg,pfm81SaleWeightProblem:(_c,s)=>s.weightUnit==='bird'&&Number(s.avgWeight)>8,
  liveAtDate:()=>0,feedForFcr:()=>200,performanceWeight:()=>1.9,
  age:()=>21,getCycleCurrency:()=> 'SAR',saleRowRevenue:s=>s.total,
  financeExpenseTotal:f=>(f.expenses||[]).reduce((t,x)=>t+x.amount,0),liveSource:()=>({live:0})});
