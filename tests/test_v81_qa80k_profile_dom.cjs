@@ -1,0 +1,37 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const {JSDOM,VirtualConsole}=require('jsdom');
+const fixture=JSON.parse(fs.readFileSync('www/pfm-v81-qa80k.json','utf8'));
+const vc=new VirtualConsole();vc.on('jsdomError',()=>{});
+const dom=new JSDOM('<!doctype html><html lang="ar"><body><section id="settings"><h2>الإعدادات</h2></section></body></html>',
+ {url:'https://qa.local/',runScripts:'outside-only',virtualConsole:vc});
+const w=dom.window, id='pfm-v81-qa-80k-local',original={id:'owner-test-uuid',name:'Owner',role:'owner'};
+w.alert=()=>{};w.confirm=()=>true;w.structuredClone=x=>JSON.parse(JSON.stringify(x));
+w.fetch=async()=>({ok:true,json:async()=>structuredClone(fixture)});
+const snapshots=[];
+w.PFMV63={available:()=>true,persist:(uid,key,data)=>{w.localStorage.setItem(key,data);snapshots.push({uid,key})}};
+w.eval("let currentUser="+JSON.stringify(original)+"; let supabaseClient=null; function hasRealSupabaseConfig(){return false;} function persistLocal(){ window.__originalSaved=(window.__originalSaved||0)+1; }");
+w.eval(fs.readFileSync('www/pfm-v81-qa80k-profile.js','utf8'));
+(async()=>{
+ const api=w.PFMV81QA80K;assert(api);
+ api.install();
+ assert(w.document.getElementById('pfm81-qa-enter'),'sandbox chooser exists');
+ await api.enter();
+ const q=w.localStorage.getItem('poultry_farm_management_v34_'+id);
+ assert(q&&q.length>15000,'local QA fixture persisted under an isolated account key');
+ assert.equal(JSON.parse(q).farms.length,2);
+ assert.equal(JSON.parse(q).settings.localOnly,true);
+ assert.equal(JSON.parse(w.localStorage.getItem('poultry_farm_manager_session_v32')).id,id);
+ assert.equal(JSON.parse(w.localStorage.getItem('pfm-v81-qa80k-origin-session')).id,original.id);
+ assert.equal(w.__originalSaved,1,'original account persisted before switching');
+ const before=q;w.eval("currentUser={id:'pfm-v81-qa-80k-local',role:'owner',name:'Demo'}");
+ api.install();api.exit();
+ assert.equal(w.localStorage.getItem('poultry_farm_management_v34_'+id),before);
+ assert.equal(JSON.parse(w.localStorage.getItem('poultry_farm_manager_session_v32')).id,original.id);
+ w.eval("currentUser={id:'owner-test-uuid',role:'owner'}; supabaseClient={connected:true};");
+ const previousCount=snapshots.length;await api.enter();
+ assert.equal(snapshots.length,previousCount,'cloud account cannot enter isolated local QA');
+ clearInterval?.(w.__qaTimer);
+ w.close();
+ console.log('PASS DOM sandbox: preserve owner, isolate QA profile/80k data, restore owner, block Supabase');
+})().catch(e=>{console.error(e);w.close();process.exitCode=1});
