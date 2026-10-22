@@ -11,7 +11,7 @@ const financeJs=fs.readFileSync('www/v410-finance.js','utf8');
 const workspace=fs.readFileSync('www/pfm-v8-purchases-workspace.js','utf8');
 const calcSource=html.match(/function calc\(c\)\{[\s\S]*?(?=\nfunction cycleOrdinal\(c\))/)?.[0];
 const closeSource=financeJs.match(/function closeCycle\(\)\{[\s\S]*?(?=\n function reopenCycle\(\))/)?.[0];
-const issueSource=workspace.match(/function issue\(\)\{[\s\S]*?(?=\nfunction build\(\))/)?.[0];
+const issueSource=workspace.match(/function issue\(override\)\{[\s\S]*?(?=\nfunction dailyMedicine\(\))/)?.[0];
 for(const [name,src] of [['calc',calcSource],['close',closeSource],['issue',issueSource]])assert(src,'Missing real '+name+' handler');
 const db={
  farms:[{id:'F1',name:'Test broiler farm'}],houses:[{id:'H1',farmId:'F1'},{id:'H2',farmId:'F1'}],
