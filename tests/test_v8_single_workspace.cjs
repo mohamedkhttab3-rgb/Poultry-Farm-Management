@@ -9,7 +9,7 @@ new Function(workspace);
 assert(invoice.includes("script.src='./pfm-v8-purchases-workspace.js'"),'Unified workspace not activated');
 for(const id of ['feed','chicks','health','expenses'])
  assert(workspace.includes("'"+id+"'"),'Missing purchase category '+id);
-assert(workspace.includes('data-stage="7"')&&workspace.includes('data-stage="8"'),'Duplicate legacy screen links remain visible');
+assert(workspace.includes('data-stage="7"')&&workspace.includes("for(const stage of ['5','6','8'])"),'Hidden duplicate feed entry and daily medicine navigation must coexist');
 assert(workspace.includes('data-stage="9"'),'Unified navigation entry missing');
 assert(workspace.includes('pfm-v8-issue-cycle')&&workspace.includes('pfm-v8-issue-lot'),'Stock issue must be on same page');
 assert(workspace.includes('new MutationObserver(translate)'),'Languages must stay consistent');
