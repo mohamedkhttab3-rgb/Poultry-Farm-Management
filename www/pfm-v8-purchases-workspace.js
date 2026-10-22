@@ -324,9 +324,8 @@ function build(){
  '#pfm-v8-workspace label{display:flex;flex-direction:column;gap:6px}',
  '#pfm-v8-workspace input,#pfm-v8-workspace select{width:100%;min-height:40px}',
  'nav#v53-nav .v55-nav-items>button[data-stage="7"]{display:none!important}',
- 'nav#v53-nav .v55-nav-items>button[data-stage="9"]{font-size:0!important}',
- 'nav#v53-nav .v55-nav-items>button[data-stage="9"]::after{content:"المشتريات والمخزون";font-size:13px}',
- 'html[lang="en"] nav#v53-nav .v55-nav-items>button[data-stage="9"]::after{content:"Purchases & Inventory"}',
+ 'nav#v53-nav .v55-nav-items>button[data-stage="9"]{font-size:13px!important;white-space:normal;line-height:1.4;word-break:normal}',
+ 'nav#v53-nav .v55-nav-items>button[data-stage="9"]::after{content:none!important}',
  '@media(max-width:620px){#pfm-v8-workspace .pfm-v8-fields{grid-template-columns:1fr}}'
  ].join('\n');
  document.head.appendChild(style);
@@ -359,7 +358,12 @@ function build(){
  }
  const nav=$('v53-nav'),syncNav=()=>{
   const btn=nav?.querySelector('.v55-nav-items>button[data-stage="9"]');
-  if(btn)btn.setAttribute('aria-label',tr('المشتريات والمخزون','Purchases and inventory'));
+  if(btn){
+   const title=tr('المشتريات والمخزون','Purchases & Inventory');
+   if(btn.textContent.trim()!==title)btn.textContent=title;
+   btn.setAttribute('aria-label',title);
+   btn.dataset.noTranslate='1';
+  }
  };
  const translate=()=>{nativeLang();syncNav();};
  new MutationObserver(translate).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});

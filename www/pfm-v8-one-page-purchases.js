@@ -137,9 +137,15 @@
  function nav(){
   // Keep the original IDs and operating data intact, but route every old
   // Feed / Medication shortcut back to the one purchasing workspace.
-  if(typeof show==='function'){
+  if(typeof show==='function'&&!show.__pfmV81Menu){
    const old=show;
-   show=function(page,button){if(page==='feed'||page==='meds')page='inventory';return old.call(this,page,button);};
+   const route=function(page,button){
+    // The old Feed purchase form was a duplicate writer and must not reopen;
+    // technical medications stay under Daily Monitoring.
+    if(page==='feed')page='inventory';
+    return old.call(this,page,button);
+   };
+   route.__pfmV81Menu=true;show=route;
   }
   const update=()=>{
    const button=document.querySelector('#v53-nav button[data-stage="9"]');

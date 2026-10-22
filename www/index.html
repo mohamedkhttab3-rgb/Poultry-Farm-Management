@@ -1420,6 +1420,9 @@ async function loadCloudProfile(user){
 function setSyncStatus(msg,ok=false){const el=document.getElementById('syncStatus');if(el){el.textContent=msg;el.style.background=ok?'#ecfdf5':'#fff7ed';el.style.color=ok?'#047857':'#b45309'}}
 async function acceptInviteFromHash(){if(!supabaseClient||!currentUser)return;const m=location.hash.match(/#invite=([^&]+)/);if(!m)return;const token=decodeURIComponent(m[1]);const {data,error}=await supabaseClient.rpc('accept_farm_invitation',{p_token:token});if(!error&&data){history.replaceState(null,'',location.pathname+location.search);await loadCloudProfile((await supabaseClient.auth.getUser()).data.user);alert('تم قبول الدعوة وإضافة المزرعة إلى حسابك.');}else if(error)console.warn('Invitation:',error.message)}
 async function bootAuth(){
+  // A sandbox profile is NEVER a Supabase identity, even when the original
+  // owner account is cloud-backed. Skip cloud initialization while sandboxed.
+  const inQAProfile=currentUser?.id==='pfm-v81-qa-80k-local';
   // V4.2 rule: login/register UI is independent from Supabase and must render first.
   const overlay=document.getElementById('authOverlay');
   if(overlay)overlay.style.display='flex';
@@ -1427,8 +1430,9 @@ async function bootAuth(){
   authMode('login');
   setSyncStatus('وضع محلي — جاهز للدخول');
 
-  // Only attempt cloud startup when a real saved config exists. Never block the page on CDN/network.
-  if(hasRealSupabaseConfig()){
+  // Realtime and automatic cloud startup are disabled for the synthetic QA profile.
+  // The owner's original cloud session remains intact for returning from QA.
+  if(hasRealSupabaseConfig()&&!inQAProfile){
     try{
       await Promise.race([initSupabaseClient(),new Promise((_,rej)=>setTimeout(()=>rej(new Error('Supabase startup timeout')),2500))]);
       if(supabaseClient){
@@ -1449,7 +1453,7 @@ async function bootAuth(){
   }
 }
 
-const save=()=>{persistLocal();renderAll();if(supabaseClient&&currentUser){clearTimeout(syncTimer);syncTimer=setTimeout(()=>syncNow(),0)}};
+const save=()=>{persistLocal();renderAll();if(supabaseClient&&currentUser?.id!=='pfm-v81-qa-80k-local'&&!db?.qaOnly){clearTimeout(syncTimer);syncTimer=setTimeout(()=>syncNow(),0)}};
 function showCloudSetup(){const b=document.getElementById('cloudSetupBox');if(!b)return;b.style.display='block';b.innerHTML=supabaseClient?'<b>Supabase متصل.</b> تسجيل الدخول يتم عبر Supabase، وإذا تعذرت المزامنة فسيبقى البرنامج مفتوحًا ويعمل محليًا حتى تُصلح جداول/صلاحيات قاعدة البيانات.':'<b>Supabase غير مربوط.</b> ضع Project URL + Publishable/Anon Key الحقيقيين في <code>www/supabase-config.local.js</code> أو احفظهما في إعدادات التطبيق. لا تستخدم Secret/Service Role Key.'}
 function getFarmForRecord(type,x){if(!x)return null;if(type==='farms')return x.id;if(type==='houses'||type==='inventory')return x.farmId;if(type==='cycles')return x.farmId;const c=cyc(x.cycleId);return c?.farmId||null}
 function markDeleted(type,x){const farmId=getFarmForRecord(type,x);if(farmId&&isUuid(x.id)){db.tombstones.push({id:uuid(),farmId,entity:type,recordId:x.id,deletedAt:new Date().toISOString()})}}
@@ -1539,6 +1543,7 @@ function stopV8Realtime(){
  v8Realtime=null;v8RealtimeUser=null;
 }
 function startV8Realtime(){
+ if(currentUser?.id==='pfm-v81-qa-80k-local'||db?.qaOnly)return;
  if(!supabaseClient||!currentUser?.id||!window.PFMV8Realtime)return;
  if(v8Realtime&&v8RealtimeUser===currentUser.id)return;
  stopV8Realtime();
@@ -1553,6 +1558,7 @@ function startV8Realtime(){
  }catch(e){stopV8Realtime();console.warn('Realtime unavailable, periodic recovery still works:',e)}
 }
 async function syncNow(){
+ if(currentUser?.id==='pfm-v81-qa-80k-local'||db?.qaOnly)return;
  if(syncBusy){syncPending=true;return;}
  if(!supabaseClient||!currentUser)return;
  if(!navigator.onLine){setSyncStatus('بدون إنترنت — محفوظ محليًا');return}
@@ -2038,6 +2044,9 @@ function addWeight(){
   audit(editing?'update':'create','weight',target?.id||db.weights.at(-1)?.id,{farmId:getFarmForRecord('weights',target||db.weights.at(-1)),before:editState.snapshot||null,after:target||db.weights.at(-1)});clearEdit();save();alert(`تم حفظ الوزن — SD ${sd.toFixed(3)} كجم — CV ${cv.toFixed(2)}%`);
 }
 function addFeed(){
+  // No second feed expense/price path: stocked feed is purchased only from
+  // the approved unified invoice and consumed through purchased-lot issues.
+  if(window.PFMV8SingleEntryActive)return alert('تسجيل وشراء الأعلاف من فاتورة المشتريات الموحدة، ثم الصرف للعنبر من المخزون. لا يجوز إدخال التكلفة مرتين.');
   const editing=editState.type==='feed',ids=[...feedCycle.selectedOptions].map(o=>o.value).filter(Boolean);if(editing&&ids.length!==1)return alert('في وضع التعديل يجب اختيار دورة واحدة فقط.');if(!ids.length||!feedType.value.trim()||!Number.isFinite(+feedQty.value)||+feedQty.value<=0||!Number.isFinite(+feedPrice.value)||+feedPrice.value<0)return alert('اختر دورة واحدة على الأقل وأدخل نوع العلف والكمية الموجبة والسعر الصحيح');const cycles=ids.map(cyc).filter(Boolean);if(!cycles.length)return alert('لم يتم العثور على الدورات المحددة.');if(!editing&&cycles.some(c=>db.feed.some(x=>x.cycleId===c.id&&x.date===(feedDate.value||today())&&x.type===feedType.value.trim())))return alert('يوجد سجل علف بنفس الدورة والتاريخ والنوع. استخدم تعديل السجل بدل استبداله تلقائيًا.');if(!editing&&cycles.length>1&&!confirm(`سيتم تسجيل نفس العلف على ${cycles.length} دورات. هل تريد المتابعة؟`))return;for(const c of cycles)if(!requireActionForRecord(editing?'edit':'create','feed',c.farmId))return;const date=feedDate.value||today(),type=feedType.value.trim(),qty=+feedQty.value,price=+feedPrice.value||0;let count=0;cycles.forEach(c=>{const cur=getCycleCurrency(c),data={cycleId:c.id,date,type,qty,price,currency:cur,updatedAt:new Date().toISOString()},target=editing?db.feed.find(x=>x.id===editState.id):db.feed.find(x=>x.cycleId===c.id&&x.date===date&&x.type===type);if(target){const before=JSON.parse(JSON.stringify(target));Object.assign(target,data);audit('update','feed',target.id,{farmId:c.farmId,before,after:target});}else{const rec={id:uuid(),...data};db.feed.push(rec);audit('create','feed',rec.id,{farmId:c.farmId,before:null,after:rec});}count++});['feedType','feedQty','feedPrice'].forEach(x=>document.getElementById(x).value='');if(editing)clearEdit();save();alert(`تم حفظ ${count} سجل علف بنجاح.`);
 }
 function addMed(){
@@ -2887,7 +2896,7 @@ function init(){
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
-</script><script src="./v410-finance.js"></script><script src="./pfm-v68-sa-training.js"></script><script src="./v52-finance.js"></script><script id="v53-dashboard-logic" src="./pfm-v53-reference.js"></script><script src="./pfm-v54-interior.js"></script>
+</script><script src="./v410-finance.js"></script><!-- Removed obsolete destructive 240K Saudi demonstration panel. QA 80K has an isolated profile. --><script src="./v52-finance.js"></script><script id="v53-dashboard-logic" src="./pfm-v53-reference.js"></script><script src="./pfm-v54-interior.js"></script>
 <script src="./pfm-v55-project-navigation.js"></script><!-- Demo seed disabled: never overwrite local production data --><script src="./pfm-excel-transfer.js"></script><link rel="stylesheet" href="./pfm-v57-data-controls.css"/><script src="./pfm-v57-data-controls.js"></script><link rel="stylesheet" href="./pfm-v59-print-results.css"/><script src="./pfm-v59-print-results.js"></script>
-<script src="./pfm-v65-mobile.js"></script><script src="./pfm-v72-android-export.js"></script><script src="./pfm-v72-android-login.js"></script><script src="./pfm-v8-purchases-loader.js"></script><script src="./pfm-v81-accounting-core.js"></script><script src="./pfm-v8-invoice-core.js"></script><script src="./pfm-v81-issue-corrections.js"></script><script src="./pfm-v81-purchase-drafts.js"></script><script src="./pfm-v8-invoice-ui.js"></script><script src="./pfm-v81-accounting-ui.js"></script><script src="./pfm-v81-report-actions.js"></script>
+<script src="./pfm-v65-mobile.js"></script><script src="./pfm-v72-android-export.js"></script><script src="./pfm-v72-android-login.js"></script><script src="./pfm-v8-purchases-loader.js"></script><script src="./pfm-v81-accounting-core.js"></script><script src="./pfm-v8-invoice-core.js"></script><script src="./pfm-v81-issue-corrections.js"></script><script src="./pfm-v81-purchase-drafts.js"></script><script src="./pfm-v8-invoice-ui.js"></script><script src="./pfm-v81-accounting-ui.js"></script><script src="./pfm-v81-report-actions.js"></script><script src="./pfm-v81-qa80k-profile.js"></script>
 </body></html>

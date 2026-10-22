@@ -17,7 +17,7 @@ function alertError(t){window.alert(t)}
 function html(){
  const inv=$('inventory');if(!inv||!$('v410-lot-panel')||!$('v52-chick-root')||!$('v52-detailed-root')||!core())return false;
  const n=inv.querySelector(':scope > h2');if(n){n.textContent='المشتريات والمخزون';n.dataset.v410Ar='المشتريات والمخزون';n.dataset.v410En='Purchases & Inventory';}
- // Keep the sidebar item 'المخزون' under the Purchases category; screen heading remains 'المشتريات'.
+ // One unified purchases heading; no duplicate navigation label or price entry.
  const originals=[...inv.children].filter(x=>x.classList?.contains('panel')&&x.id!=='v410-lot-panel');
  const host=document.createElement('section');host.id='pfm75-purchases';
  host.innerHTML='<div class="pfm75-top panel"><h3>المشتريات — المزرعة</h3><div class="pfm75-grid"><label>المزرعة <select id="pfm75-farm"></select></label></div><p class="muted">العلف البادي والنامي والناهي يسجل للمزرعة بإجمالي الفاتورة والكميات الواردة مرة واحدة. الصرف الفعلي لكل عنبر يُسجل لاحقًا؛ لا نكرر الكمية أو التكلفة على كل عنبر.</p></div>'+
