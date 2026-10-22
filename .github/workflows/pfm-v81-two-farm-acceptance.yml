@@ -38,3 +38,33 @@ jobs:
           node tests/test_android_export_bridge.cjs
           node tests/test_unified_sync.cjs
           node tests/test_v8_realtime.cjs
+
+  publish-fixture:
+    needs: accounting-80k
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate two SAFE opt-in backups from passed scenario
+        run: |
+          set -euo pipefail
+          mkdir -p qa-dataset
+          node tests/test_v81_two_farms_80k.cjs --export-open qa-dataset/PFM-V8.1-80K-OPEN-FICTIONAL-QA.json
+          node tests/test_v81_two_farms_80k.cjs --export-closed qa-dataset/PFM-V8.1-80K-CLOSED-FICTIONAL-QA.json
+          cp tests/README_V81_TWO_FARMS_80K_AR.md qa-dataset/READ_ME_FIRST_AR.md
+          test -s qa-dataset/PFM-V8.1-80K-OPEN-FICTIONAL-QA.json
+          test -s qa-dataset/PFM-V8.1-80K-CLOSED-FICTIONAL-QA.json
+          sha256sum qa-dataset/*.json > qa-dataset/SHA256SUMS.txt
+          node -e "for(const f of process.argv.slice(1)){const d=require('./'+f);if(d.qaOnly!==true||d.cycles.length!==4||d.cycles.reduce((s,c)=>s+c.birds,0)!==80000)throw Error('Unsafe or incomplete QA backup: '+f); console.log('PASS standalone QA data',f)}" qa-dataset/PFM-V8.1-80K-OPEN-FICTIONAL-QA.json qa-dataset/PFM-V8.1-80K-CLOSED-FICTIONAL-QA.json
+      - name: Publish QA-only data separately; no Actions artifact storage
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v8.1-80k-fictitious-data-qa-${{ github.run_id }}
+        run: |
+          gh release create "$TAG" qa-dataset/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --latest=false --title "PFM V8.1 — fictional two-farm / 80K acceptance data" --notes-file tests/README_V81_TWO_FARMS_80K_AR.md
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json url,assets --jq '{url:.url,assets:[.assets[].name]}'
