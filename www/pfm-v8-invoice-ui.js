@@ -89,9 +89,11 @@ function line(){
 function refresh(){
  const f=$('pfm-v8-farm');if(!f)return;
  const old=f.value;
- f.innerHTML=(db.farms||[]).map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>').join('');
+ f.innerHTML='<option value="">'+tr('— اختر المزرعة قبل الشراء —','— Select a farm before purchasing —')+'</option>'+
+  (db.farms||[]).map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>').join('');
  if(db.farms.some(x=>x.id===old))f.value=old;
- else if(db.farms.some(x=>x.id===$('pfm75-farm')?.value))f.value=$('pfm75-farm').value;
+ else if((db.farms||[]).length===1)f.value=db.farms[0].id;
+ else f.value='';
  $('pfm-v8-lines').querySelectorAll('.pfm-v8-line').forEach(scope);
  const draft=currentDraft();
  if(draft){
@@ -136,6 +138,7 @@ function renderSaved(){
 }
 function saveDraftLine(el){
  try{
+  if(!farm())throw Error(tr('اختر المزرعة أولًا: لكل مزرعة مخزون وفواتير مستقلة.','Choose a farm first; each farm has independent purchase and stock ledgers.'));
   if(!window.PFMV81PurchaseDrafts)throw Error('Purchase draft module unavailable');
   const record=window.PFMV81PurchaseDrafts.saveLine(db,{
    farmId:farm(),lineId:el.dataset.editDraftId||null,header:header(),line:readLine(el)
@@ -198,6 +201,7 @@ function accounting(){
 function status(message,ok){const el=$('pfm-v8-invoice-status');el.textContent=message;el.dataset.valid=ok?'true':'false'}
 function preview(){
  try{
+  if(!farm())throw Error(tr('حدد المزرعة قبل مراجعة الفاتورة.','Select a farm before previewing.'));
   const values=input();if(!values.lines.length)throw Error(tr('احفظ بندًا واحدًا على الأقل أولًا.','Save at least one line first.'));
   const doc=window.PFMV8InvoiceCore.prepare(db,values,accounting()).document;
   status(tr('بنود: ','Lines: ')+doc.lines.length+tr(' — التكلفة المحاسبية: ',' — accounting cost: ')+doc.totals.accountingCost.toFixed(2)+' '+(db.settings?.currency||'SAR'),true);
@@ -242,7 +246,8 @@ function install(){
  div.className='panel';
  div.innerHTML='<h3>'+tr('فاتورة المشتريات الموحدة','Unified purchase invoice')+'</h3>'+
  '<p class="muted">'+tr('فاتورة واحدة بمورد ورقم وتاريخ ثابت، وبنود متعددة. مشتريات المخزون لا تُحسب تكلفة دورة إلا عند الصرف.', 'One invoice header and multiple lines. Stock purchases charge cycles only when issued.')+'</p>'+
- '<div class="pfm-v8-fields"><label><span>'+tr('المزرعة *','Farm *')+'</span><select id="pfm-v8-farm"></select></label>'+
+ '<div class="pfm-v8-fields"><label><span>'+tr('المزرعة المشترية *','Purchasing farm *')+'</span><select id="pfm-v8-farm" required></select>'+
+ '<small>'+tr('اختر المزرعة التي ستستلم العلف. تُسجل دفعة المخزون باسمها ولا تنتقل تلقائيًا لمزرعة أخرى.','Choose the receiving farm. Purchased feed stays in its own inventory.')+'</small></label>'+
  '<label><span>'+tr('رقم الفاتورة *','Invoice number *')+'</span><input id="pfm-v8-invoice-no" autocomplete="off"></label>'+
  '<label><span>'+tr('المورد *','Supplier *')+'</span><input id="pfm-v8-supplier" autocomplete="off"></label>'+
  '<label><span>'+tr('تاريخ الفاتورة *','Invoice date *')+'</span><input id="pfm-v8-date" type="date"></label></div>'+
@@ -280,7 +285,16 @@ function install(){
  ].join('\n');document.head.appendChild(sheet);
  $('pfm-v8-date').value=new Date().toISOString().slice(0,10);
  $('pfm-v8-lines').appendChild(line());refresh();
- $('pfm-v8-farm').addEventListener('change',()=>{$('pfm-v8-lines').querySelectorAll('.pfm-v8-line').forEach(scope)});
+ $('pfm-v8-farm').addEventListener('change',()=>{
+  // Prevent accidentally reusing another farm's invoice header.
+  $('pfm-v8-invoice-no').value='';
+  $('pfm-v8-supplier').value='';
+  const d=currentDraft();
+  if(d){$('pfm-v8-invoice-no').value=d.invoice||'';$('pfm-v8-supplier').value=d.supplier||'';}
+  $('pfm-v8-lines').querySelectorAll('.pfm-v8-line').forEach(scope);
+  renderSaved();
+  status(tr('تم اختيار مخزون المزرعة. تحقق من المستلم والمورد قبل الحفظ.','Farm selected. Verify purchase recipient and supplier before saving.'),true);
+ });
  $('pfm-v8-add').addEventListener('click',()=>{if($('pfm-v8-lines').querySelectorAll('.pfm-v8-line').length<60)$('pfm-v8-lines').appendChild(line())});
  $('pfm-v8-preview').addEventListener('click',preview);
  $('pfm-v8-submit').addEventListener('click',submit);
