@@ -51,7 +51,7 @@ function chickQty(el){
 }
 function line(){
  const el=document.createElement('div');el.className='pfm-v8-line';
- el.innerHTML='<div class="pfm-v8-linehead"><b>'+tr('بند مشتريات','Purchase item')+'</b><button type="button" data-remove>'+tr('حذف','Remove')+'</button></div><div class="pfm-v8-fields">'+
+ el.innerHTML='<div class="pfm-v8-linehead"><b>'+tr('بند مشتريات','Purchase item')+'</b><div class="pfm-v8-line-actions"><button type="button" data-line-save>'+tr('حفظ','Save')+'</button><button type="button" data-remove>'+tr('حذف','Remove')+'</button></div></div><div class="pfm-v8-fields">'+
  sel('kind','نوع البند','Type',kinds)+
  '<label class="v8-feed" hidden><span>'+tr('مرحلة العلف','Feed stage')+'</span><select data-k="feedStage"><option value="">'+tr('اختر المرحلة','Select stage')+'</option><option value="بادي">'+tr('بادي','Starter')+'</option><option value="نامي">'+tr('نامي','Grower')+'</option><option value="ناهي">'+tr('ناهي','Finisher')+'</option></select></label>'+
  inp('item','اسم الصنف','Item name')+
@@ -69,7 +69,33 @@ function line(){
  '<div class="v81-shared" hidden><label><span>'+tr('أساس التوزيع','Allocation basis')+'</span><select data-k="method"><option value="equal">'+tr('بالتساوي','Equal')+'</option><option value="birds">'+tr('حسب عدد الطيور','By birds')+'</option></select></label><p>'+tr('اختر العنابر المستفيدة — تسجّل الفاتورة مرة واحدة فقط','Select beneficiary houses; invoice is stored only once')+'</p><div class="v81-shared-cycles"></div></div>'+ 
  '<div class="v81-asset" hidden>'+inp('startDate','تاريخ بدء تشغيل الأصل','Asset service date','date')+inp('lifeMonths','العمر الإنتاجي بالشهور','Useful life (months)','number','60')+inp('residual','القيمة المتبقية','Residual value','number','0')+'</div>'+
  inp('note','ملاحظات','Notes')+'</div>';
- el.querySelector('[data-remove]').addEventListener('click',()=>{el.remove()});
+ // A line save is draft-only. The complete invoice is posted exactly once
+ // by the existing approved invoice core's explicit approval button.
+ el.querySelector('[data-line-save]').addEventListener('click',()=>{
+  const btn=el.querySelector('[data-line-save]'),locked=el.dataset.draftSaved==='true';
+  if(locked){
+   el.dataset.draftSaved='false';
+   el.querySelectorAll('.pfm-v8-fields input,.pfm-v8-fields select').forEach(x=>x.disabled=false);
+   btn.textContent=tr('حفظ','Save');
+   status(tr('البند مفتوح للتعديل، ولم يتم اعتماده ماليًا.','Line unlocked for editing; not financially posted.'),true);
+   scope(el);
+   return;
+  }
+  try{
+   const values=input();
+   const index=[...document.querySelectorAll('#pfm-v8-lines .pfm-v8-line')].indexOf(el);
+   if(index<0)throw Error(tr('لم يتم العثور على البند.','Line not found.'));
+   window.PFMV8InvoiceCore.prepare(db,{...values,lines:[values.lines[index]]},accounting());
+   el.dataset.draftSaved='true';
+   el.querySelectorAll('.pfm-v8-fields input,.pfm-v8-fields select').forEach(x=>x.disabled=true);
+   btn.textContent=tr('تعديل','Edit');
+   status(tr('تم حفظ البند في مسودة الفاتورة فقط؛ اضغط اعتماد الفاتورة لترحيلها مرة واحدة.','Line saved in invoice draft only; approve the invoice once to post.'),true);
+  }catch(e){status(tr('تعذر حفظ البند: ','Line not saved: ')+e.message,false);}
+ });
+ el.querySelector('[data-remove]').addEventListener('click',()=>{
+  if(el.dataset.draftSaved==='true'&&!confirm(tr('حذف هذا البند المحفوظ من مسودة الفاتورة؟','Remove this saved draft line?')))return;
+  el.remove();
+ });
  field(el,'kind').addEventListener('change',()=>{
   field(el,'item').value='';
   field(el,'quantity').value='1';
@@ -164,6 +190,8 @@ function install(){
  '#pfm-v8-invoice input,#pfm-v8-invoice select{width:100%;max-width:100%;min-height:39px;min-width:0}',
  '#pfm-v8-invoice .pfm-v8-line{border:1px solid #bfd5e6;border-radius:10px;padding:12px;margin:12px 0;background:#f6faff}',
  '#pfm-v8-invoice .pfm-v8-linehead{display:flex;align-items:center;justify-content:space-between}',
+ '#pfm-v8-invoice .pfm-v8-line-actions{display:flex;align-items:center;gap:8px}',
+ '#pfm-v8-invoice .pfm-v8-line[data-draft-saved="true"]{border-color:#258168}',
  '#pfm-v8-invoice [hidden]{display:none!important}',
  '#pfm-v8-invoice .v81-shared,#pfm-v8-invoice .v81-asset{grid-column:1/-1;padding:10px;border:1px solid #c5d6e2;border-radius:8px}',
  '#pfm-v8-invoice .v81-shared-cycles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}',

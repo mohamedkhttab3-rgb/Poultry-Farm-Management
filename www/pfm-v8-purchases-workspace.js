@@ -15,7 +15,7 @@ const categories=[
  ['assets','الأصول الثابتة','Fixed assets','asset','قيمة الأصل تحفظ في سجل الأصول؛ يُحمَّل الإهلاك الشهري فقط.','Capital purchases enter the asset register; only depreciation charges cycles.']
 ];
 const categoryKinds={feed:['feed'],chicks:['chicks'],health:['med','vaccine','disinfectant','bedding'],expenses:['rent','diesel','electricity','water','labor','transport','loading','equipment_rent','other'],shared:['shared'],assets:['asset']};
-let installed=false,issuing=false;
+let installed=false,issuing=false,issueEditingId='';
 const escapes=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function nativeLang(){
  for(const el of document.querySelectorAll('#pfm-v8-workspace [data-ar][data-en]'))
@@ -45,6 +45,69 @@ function addLine(group,kind){
  if(group==='feed'||group==='chicks'||group==='shared'||group==='assets')picker.closest('label').hidden=true;
  if(group==='chicks')line.querySelector('[data-k="item"]').value='صيصان';
 }
+function renderIssueHistory(){
+ const body=$('pfm-v8-issue-history');if(!body)return;
+ const fid=selectedFarm(),ledger=stock();
+ const lotById=id=>(ledger.lots||[]).find(l=>l.id===id);
+ const rows=(ledger.movements||[]).filter(m=>m.kind==='issue'&&lotById(m.lotId)?.farmId===fid)
+  .slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,100);
+ body.innerHTML=rows.map(m=>{
+  const l=lotById(m.lotId),c=(db.cycles||[]).find(x=>x.id===m.cycleId);
+  return '<tr><td>'+escapes(m.date)+'</td><td>'+escapes(m.operationRef||m.id)+'</td><td>'+escapes(l?.item||'')+'</td><td>'+
+   escapes((typeof getHouseName==='function'?getHouseName(c?.houseId):c?.houseId)||'')+'</td><td>'+Number(m.qty).toLocaleString()+'</td><td>'+
+   money(m.cost||0).toFixed(2)+'</td><td><button type="button" class="btn" data-pfm-issue-edit="'+escapes(m.id)+'">'+tr('تعديل','Edit')+
+   '</button> <button type="button" class="btn danger" data-pfm-issue-delete="'+escapes(m.id)+'">'+tr('حذف','Delete')+'</button></td></tr>';
+ }).join('')||'<tr><td colspan="7">'+tr('لا توجد حركات صرف','No issue movements')+'</td></tr>';
+}
+function resetIssueEdit(){
+ issueEditingId='';
+ const btn=$('pfm-v8-issue-btn');if(btn)btn.textContent=tr('تسجيل الصرف مرة واحدة','Issue stock once');
+ const cancel=$('pfm-v8-issue-cancel');if(cancel)cancel.hidden=true;
+}
+function editIssue(id){
+ const m=(stock().movements||[]).find(x=>x.kind==='issue'&&x.id===id);
+ if(!m)return;
+ if(!window.PFMV81IssueCorrections)throw Error('Issue correction engine unavailable');
+ issueEditingId=id;refreshIssues();
+ $('pfm-v8-issue-cycle').value=m.cycleId;
+ $('pfm-v8-issue-lot').value=m.lotId;
+ $('pfm-v8-issue-qty').value=m.qty;
+ $('pfm-v8-issue-date').value=m.date;
+ $('pfm-v8-issue-ref').value=m.operationRef||'';
+ $('pfm-v8-issue-btn').textContent=tr('حفظ التعديل','Save changes');
+ $('pfm-v8-issue-cancel').hidden=false;
+ $('pfm-v8-issue-state').textContent=tr('تعديل حركة صرف موجودة؛ لن تنشأ فاتورة أو حركة إضافية.','Correcting one existing issue; no duplicate transaction.');
+}
+function correctIssue(id,remove){
+ if(issuing)return;
+ const m=(stock().movements||[]).find(x=>x.kind==='issue'&&x.id===id);
+ if(!m)return;
+ if(remove&&!confirm(tr('تأكيد حذف حركة الصرف وإرجاع رصيد الدفعة وإلغاء تكلفتها؟','Delete this issue and reverse its stock and cost?')))return;
+ issuing=true;
+ try{
+  const cycle=(db.cycles||[]).find(c=>c.id===m.cycleId);
+  if(!cycle||typeof can!=='function'||!can('finance',cycle.farmId))throw Error('Insufficient farm finance permission');
+  if(typeof requireActionForRecord==='function'&&!requireActionForRecord(remove?'delete':'edit','finance',cycle.farmId))return;
+  const replacement=remove?null:{cycleId:$('pfm-v8-issue-cycle').value,lotId:$('pfm-v8-issue-lot').value,
+   qty:Number($('pfm-v8-issue-qty').value),date:$('pfm-v8-issue-date').value,
+   operationRef:$('pfm-v8-issue-ref').value};
+  const result=window.PFMV81IssueCorrections.revise(db,{id,remove,replacement,
+   canFinance:fid=>typeof can==='function'&&can('finance',fid),
+   audit:typeof audit==='function'?audit:null,persist:save});
+  for(const id of [result.before.cycleId,result.after?.cycleId].filter(Boolean)){
+   if(typeof financeDraftExpenses!=='undefined')
+    financeDraftExpenses[id]=normalizeFinanceExpenses(db.finance[id]||{});
+  }
+  resetIssueEdit();
+  $('pfm-v8-issue-qty').value='';
+  $('pfm-v8-issue-ref').value=uuid();
+  $('pfm-v8-issue-state').textContent=tr(remove?'تم حذف حركة الصرف مع عكس المخزون والتكلفة.':'تم تعديل الحركة والمخزون والتكلفة دون تكرار.',
+   remove?'Issue deleted; inventory and cycle cost reversed.':'Issue updated without duplicated stock or cost.');
+  window.PFM_V410?.refresh?.();refreshIssues();
+ }catch(e){
+  $('pfm-v8-issue-state').textContent=tr('فشل تصحيح الصرف: ','Issue correction failed: ')+e.message;
+ }finally{issuing=false;}
+}
 function refreshIssues(){
  const fid=selectedFarm(),cycles=(db.cycles||[]).filter(x=>x.farmId===fid);
  const c=$('pfm-v8-issue-cycle'),l=$('pfm-v8-issue-lot');
@@ -52,20 +115,23 @@ function refreshIssues(){
  const oldCycle=c.value,oldLot=l.value;
  c.innerHTML=cycles.map(x=>'<option value="'+escapes(x.id)+'">'+escapes((typeof getHouseName==='function'?getHouseName(x.houseId):x.houseId)+' · '+(x.cycleNumber||1)+' · '+x.date)+'</option>').join('');
  if(cycles.some(x=>x.id===oldCycle))c.value=oldCycle;
- l.innerHTML=(stock().lots||[]).filter(x=>x.farmId===fid&&['feed','med','vaccine','disinfectant','bedding'].includes(x.kind)&&balance(x)>0)
+ l.innerHTML=(stock().lots||[]).filter(x=>x.farmId===fid&&['feed','med','vaccine','disinfectant','bedding'].includes(x.kind)&&(balance(x)>0||(stock().movements||[]).some(m=>m.id===issueEditingId&&m.lotId===x.id)))
   .map(x=>'<option value="'+escapes(x.id)+'">'+escapes(x.item+' · '+(x.invoice||'')+' · '+balance(x)+' '+x.unit)+'</option>').join('');
  if([...l.options].some(x=>x.value===oldLot))l.value=oldLot;
  const hint=$('pfm-v8-issue-hint');if(hint)hint.textContent=tr('الرصيد يعرض الكمية المتبقية من كل دفعة. لا توجد أسعار أو فواتير ثانية في الصرف.','Balances show remaining quantity per purchase lot; issuing does not create a second invoice.');
+ renderIssueHistory();
  const original=$('v410LotFarm');if(original&&[...original.options].some(x=>x.value===fid)){
   if(original.value!==fid){original.value=fid;window.PFM_V410?.refresh?.();}
  }
 }
 function farmChange(){
+ resetIssueEdit();
  const fid=selectedFarm(),legacy=$('pfm75-farm');
  if(legacy&&legacy.value!==fid)legacy.value=fid;
  refreshIssues();
 }
 function issue(){
+ if(typeof issueEditingId!=='undefined'&&issueEditingId){correctIssue(issueEditingId,false);return;}
  if(issuing)return;
  issuing=true;
  let checkpoint=null,persisted=false;
@@ -195,8 +261,9 @@ function build(){
   '<label><span'+tag('الكمية المصروفة','Issued quantity')+'>'+tr('الكمية المصروفة','Issued quantity')+'</span><input id="pfm-v8-issue-qty" type="number" min="0.001" step="any"></label>'+
   '<label><span'+tag('تاريخ الصرف','Issue date')+'>'+tr('تاريخ الصرف','Issue date')+'</span><input id="pfm-v8-issue-date" type="date"></label>'+
   '<label><span'+tag('رقم إذن الصرف (يُنشأ تلقائيًا)','Issue reference (auto-generated)')+'>'+tr('رقم إذن الصرف (يُنشأ تلقائيًا)','Issue reference (auto-generated)')+'</span><input id="pfm-v8-issue-ref" maxlength="64" autocomplete="off"></label></div>'+
-  '<div class="actions"><button type="button" class="btn primary" id="pfm-v8-issue-btn"'+tag('تسجيل الصرف مرة واحدة','Issue stock once')+'>'+tr('تسجيل الصرف مرة واحدة','Issue stock once')+'</button></div>'+
-  '<p id="pfm-v8-issue-state" role="status" aria-live="polite"></p><p class="muted" id="pfm-v8-issue-hint"></p>';
+  '<div class="actions"><button type="button" class="btn primary" id="pfm-v8-issue-btn"'+tag('تسجيل الصرف مرة واحدة','Issue stock once')+'>'+tr('تسجيل الصرف مرة واحدة','Issue stock once')+'</button><button type="button" class="btn" id="pfm-v8-issue-cancel" hidden'+tag('إلغاء التعديل','Cancel edit')+'>'+tr('إلغاء التعديل','Cancel edit')+'</button></div>'+
+  '<p id="pfm-v8-issue-state" role="status" aria-live="polite"></p><p class="muted" id="pfm-v8-issue-hint"></p>'+
+  '<div class="table-scroll"><table><thead><tr><th>'+tr('التاريخ','Date')+'</th><th>'+tr('إذن الصرف','Issue reference')+'</th><th>'+tr('الصنف','Item')+'</th><th>'+tr('العنبر','House')+'</th><th>'+tr('الكمية','Quantity')+'</th><th>'+tr('التكلفة','Cost')+'</th><th>'+tr('الإجراءات','Actions')+'</th></tr></thead><tbody id="pfm-v8-issue-history"></tbody></table></div>';
  holder?.prepend(issuePanel);
  const style=document.createElement('style');style.id='pfm-v8-workspace-css';
  style.textContent=[
@@ -209,7 +276,7 @@ function build(){
  '#pfm-v8-workspace .pfm-v8-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}',
  '#pfm-v8-workspace label{display:flex;flex-direction:column;gap:6px}',
  '#pfm-v8-workspace input,#pfm-v8-workspace select{width:100%;min-height:40px}',
- 'nav#v53-nav .v55-nav-items>button[data-stage="7"],nav#v53-nav .v55-nav-items>button[data-stage="8"]{display:none!important}',
+ 'nav#v53-nav .v55-nav-items>button[data-stage="7"]{display:none!important}',
  'nav#v53-nav .v55-nav-items>button[data-stage="9"]{font-size:0!important}',
  'nav#v53-nav .v55-nav-items>button[data-stage="9"]::after{content:"المشتريات والمخزون";font-size:13px}',
  'html[lang="en"] nav#v53-nav .v55-nav-items>button[data-stage="9"]::after{content:"Purchases & Inventory"}',
@@ -219,8 +286,30 @@ function build(){
  $('pfm-v8-issue-date').value=new Date().toISOString().slice(0,10);
  $('pfm-v8-issue-ref').value=uuid();
  $('pfm-v8-issue-btn').addEventListener('click',issue);
+ $('pfm-v8-issue-cancel').addEventListener('click',()=>{resetIssueEdit();refreshIssues();});
+ $('pfm-v8-issue-history').addEventListener('click',e=>{
+  const edit=e.target.closest('[data-pfm-issue-edit]'),del=e.target.closest('[data-pfm-issue-delete]');
+  try{if(edit)editIssue(edit.getAttribute('data-pfm-issue-edit'));
+   else if(del)correctIssue(del.getAttribute('data-pfm-issue-delete'),true);
+  }catch(err){$('pfm-v8-issue-state').textContent=err.message;}
+ });
  $('pfm-v8-farm').addEventListener('change',farmChange);
  $('pfm-v8-issue-cycle').addEventListener('change',()=>{$('pfm-v8-issue-state').textContent=''});
+ // Restore business ownership of each existing navigation item even if
+ // earlier runtime layouts moved buttons into the wrong group.
+ const navRoot=$('v53-nav');
+ if(navRoot){
+  const purchases=navRoot.querySelector('[data-v55-group="nutrition"] .v55-nav-items');
+  const daily=navRoot.querySelector('[data-v55-group="daily"] .v55-nav-items');
+  for(const stage of ['7','9']){
+   const item=navRoot.querySelector('button[data-stage="'+stage+'"]');
+   if(item&&purchases)purchases.appendChild(item);
+  }
+  for(const stage of ['5','6','8']){
+   const item=navRoot.querySelector('button[data-stage="'+stage+'"]');
+   if(item&&daily)daily.appendChild(item);
+  }
+ }
  const nav=$('v53-nav'),syncNav=()=>{
   const btn=nav?.querySelector('.v55-nav-items>button[data-stage="9"]');
   if(btn)btn.setAttribute('aria-label',tr('المشتريات والمخزون','Purchases and inventory'));
