@@ -22,7 +22,7 @@ const stockJS=fs.readFileSync(path.join(__dirname,'../www/pfm-v8-purchases-works
 const SOURCE={
  calc:index.match(/function calc\(c\)\{[\s\S]*?(?=\nfunction cycleOrdinal\(c\))/)?.[0],
  close:financeJS.match(/function closeCycle\(\)\{[\s\S]*?(?=\n function reopenCycle\(\))/)?.[0],
- issue:stockJS.match(/function issue\(\)\{[\s\S]*?(?=\nfunction build\(\))/)?.[0],
+ issue:stockJS.match(/function issue\(override\)\{[\s\S]*?(?=\nfunction dailyMedicine\(\))/)?.[0],
  live:index.match(/function liveBreakdown\(c,d=today\(\)\)\{[\s\S]*?(?=\nfunction liveSource\()/)?.[0],
  sale:index.match(/function addSale\(\)\{[\s\S]*?(?=\nfunction renderSales\()/)?.[0]
 };
