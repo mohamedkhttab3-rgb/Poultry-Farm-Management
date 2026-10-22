@@ -131,7 +131,7 @@ function farmChange(){
  refreshIssues();
 }
 function issue(){
- if(issueEditingId){correctIssue(issueEditingId,false);return;}
+ if(typeof issueEditingId!=='undefined'&&issueEditingId){correctIssue(issueEditingId,false);return;}
  if(issuing)return;
  issuing=true;
  let checkpoint=null,persisted=false;
