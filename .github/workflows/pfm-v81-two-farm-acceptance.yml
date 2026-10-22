@@ -1,0 +1,70 @@
+name: PFM V8.1 acceptance — two simulated farms 80,000 broilers
+on:
+  push:
+    branches: ['feature/pfm-v81-two-farm-80k-validation']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  accounting-80k:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate V8.1 app code without changing approved build
+        run: |
+          node --check www/pfm-v8-invoice-core.js
+          node --check www/pfm-v8-purchases-workspace.js
+          node --check www/pfm-v81-accounting-core.js
+          node --check tests/test_v81_two_farms_80k.cjs
+          node scripts/verify-source.cjs
+          node scripts/verify-native.cjs
+      - name: Test both 40,000-DOC farms through four cycle closes
+        run: node tests/test_v81_two_farms_80k.cjs
+      - name: Preserve earlier single-invoice finance and PDF tests
+        run: |
+          node tests/test_v81_shared_costs_depreciation.cjs
+          node tests/test_v81_financial_close_integration.cjs
+          node tests/test_v81_broiler_full_lifecycle.cjs
+          node tests/test_v8_single_workspace.cjs
+          node tests/test_v8_single_purchase_invoice.cjs
+          node tests/test_v410_vat_contract.cjs
+          node tests/test_poultry_cycle_economics.cjs
+          node tests/test_v8_pdf_footer_bounds.cjs
+          node tests/test_v8_logo_order_only.cjs
+          node tests/test_android_export_bridge.cjs
+          node tests/test_unified_sync.cjs
+          node tests/test_v8_realtime.cjs
+
+  publish-fixture:
+    needs: accounting-80k
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate two SAFE opt-in backups from passed scenario
+        run: |
+          set -euo pipefail
+          mkdir -p qa-dataset
+          node tests/test_v81_two_farms_80k.cjs --export-open qa-dataset/PFM-V8.1-80K-OPEN-FICTIONAL-QA.json
+          node tests/test_v81_two_farms_80k.cjs --export-closed qa-dataset/PFM-V8.1-80K-CLOSED-FICTIONAL-QA.json
+          cp tests/README_V81_TWO_FARMS_80K_AR.md qa-dataset/READ_ME_FIRST_AR.md
+          test -s qa-dataset/PFM-V8.1-80K-OPEN-FICTIONAL-QA.json
+          test -s qa-dataset/PFM-V8.1-80K-CLOSED-FICTIONAL-QA.json
+          sha256sum qa-dataset/*.json > qa-dataset/SHA256SUMS.txt
+          node -e "for(const f of process.argv.slice(1)){const d=require('./'+f);if(d.qaOnly!==true||d.cycles.length!==4||d.cycles.reduce((s,c)=>s+c.birds,0)!==80000)throw Error('Unsafe or incomplete QA backup: '+f); console.log('PASS standalone QA data',f)}" qa-dataset/PFM-V8.1-80K-OPEN-FICTIONAL-QA.json qa-dataset/PFM-V8.1-80K-CLOSED-FICTIONAL-QA.json
+      - name: Publish QA-only data separately; no Actions artifact storage
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v8.1-80k-fictitious-data-qa-${{ github.run_id }}
+        run: |
+          gh release create "$TAG" qa-dataset/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --latest=false --title "PFM V8.1 — fictional two-farm / 80K acceptance data" --notes-file tests/README_V81_TWO_FARMS_80K_AR.md
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json url,assets --jq '{url:.url,assets:[.assets[].name]}'
