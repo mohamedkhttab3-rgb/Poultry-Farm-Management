@@ -10,16 +10,16 @@
  const $=id=>document.getElementById(id);
  const tr=(a,e)=>document.documentElement.lang==='en'?e:a;
  const demo=()=>typeof currentUser!=='undefined'&&currentUser?.id===QA_ID;
- function safeOffline(){
-  return typeof currentUser!=='undefined'&&currentUser&&!supabaseClient&&
-   typeof hasRealSupabaseConfig==='function'&&!hasRealSupabaseConfig()&&
-   !!window.PFMV63?.available?.();
+ function safeSandbox(){
+  return typeof currentUser!=='undefined'&&!!currentUser&&
+   !!window.PFMV63?.available?.()&&
+   (typeof syncBusy==='undefined'||!syncBusy);
  }
  async function enter(){
   if(demo())return;
-  if(!safeOffline())return alert(tr(
-   'لا يمكن بدء تجربة الـ80 ألف صوص من حساب سحابي أو تخزين غير متاح. استخدم تسجيل دخول محلي دون Supabase على جهاز اختبار.',
-   'The 80k test cannot run from a cloud account or unavailable storage. Use local-only sign-in on a test device.'));
+  if(!safeSandbox())return alert(tr(
+   'لا يمكن تبديل الحساب أثناء المزامنة أو عند تعذر التخزين الدائم. أوقف المزامنة ثم حاول.',
+   'Switching is disabled during active sync or when durable storage is unavailable.'));
   if(!confirm(tr('فتح حساب تجريبي مستقل يحتوي على مزرعتين و4 عنابر و80,000 صوص؟ لن يتم خلط البيانات التجريبية أو فواتيرها ببيانات حسابك الحالي.',
    'Open an isolated 2-farm, 4-house, 80k-bird local test profile? Your current account will stay separate.')))return;
   const button=$('pfm81-qa-enter');if(button)button.disabled=true;
@@ -35,6 +35,10 @@
    // Preserve the current local account under its own key before any switch.
    if(typeof persistLocal!=='function')throw Error('Safe account persistence unavailable');
    persistLocal();
+   // Stop cloud watchers and pending writes BEFORE leaving the owner's
+   // session. On next launch bootAuth skips Supabase entirely in the QA ID.
+   if(typeof stopV8Realtime==='function')stopV8Realtime();
+   if(typeof syncTimer!=='undefined')clearTimeout(syncTimer);
    const original=JSON.stringify(currentUser);
    if(!JSON.parse(original)?.id)throw Error('Could not identify current account');
    // Only create the QA profile on first entry. Returning keeps QA changes.
@@ -84,7 +88,7 @@
   $('pfm81-qa-exit').hidden=!entered;
   $('pfm81-qa-status').textContent=entered?
    tr('أنت داخل ملف الاختبار المنفصل: جميع المزارع والفواتير هنا تجريبية فقط.','You are in the separate QA profile. All farms and invoices are fictional.'):
-   online?tr('ملف الاختبار متاح للحسابات المحلية فقط؛ لن يتم استبدال البيانات السحابية.','QA is restricted to offline local accounts.'):
+   online?tr('يمكن الانتقال من الحساب السحابي أيضًا؛ تُعلّق المزامنة أثناء التجربة ولا تُرفع بيانات الاختبار.','Cloud users may enter too; sync stops while the fictional profile is active.'):
    tr('اضغط فتح المزرعتين، ثم جرّب الفواتير والصرف والربحية والتقارير من الشاشات المعتادة.','Open the two farms and use the normal purchases, inventory, financial and reporting screens.');
   if(entered&&!$('pfm81-qa-exit-fixed')){
    const fixed=document.createElement('div');fixed.id='pfm81-qa-exit-fixed';
