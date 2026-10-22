@@ -50,7 +50,12 @@
     busy=true;
     try{
      if(typeof window.PFMPrintResults59!=='function')throw Error('PDF renderer unavailable');
-     window.PFMPrintResults59(action);
+     const ios=window.Capacitor?.isNativePlatform?.()&&window.Capacitor?.getPlatform?.()==='ios';
+     if(ios&&action==='share'){
+      alert(tr('على iOS افتح معاينة الطباعة، ثم استخدم زر المشاركة في عارض PDF الخاص بالنظام. لم يتم إرسال ملف تلقائيًا.',
+       'On iOS, open the system PDF print preview and use its Share option. No file has been automatically sent.'));
+      window.PFMPrintResults59('print');
+     }else window.PFMPrintResults59(action);
     }catch(err){alert(tr('تعذر تصدير PDF: ','PDF export failed: ')+err.message)}
     finally{busy=false}
    });
