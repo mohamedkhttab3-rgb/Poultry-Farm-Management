@@ -80,7 +80,7 @@ function addInvoice(farm,code,supplier,items,date){
  assert.equal(preview.document.farmId,farm.id,'Invoice must remain inside farm');
  const saved=invoice.commit(db,input,ctx);
  assert.equal(db.v410.purchaseDocuments.length,before+1);
- assert.equal(saved.id,preview.document.id===saved.id?preview.document.id:saved.id);
+ assert.deepEqual(saved.totals,preview.document.totals,'Plan and commit must have equal VAT/cost totals');
  docs.push(saved);
  assert.throws(()=>invoice.prepare(db,input,ctx),/DUPLICATE_INVOICE/,'Reject duplicate supplier+invoice+farm');
  return saved;
@@ -255,7 +255,17 @@ assert.equal(db.sales.length,8,'Two partial sales per house');
 assert.equal(db.v410.movements.length,32,'8 distinct stock issues per cycle');
 assert.equal(new Set(db.v410.movements.map(x=>x.farmId+'|'+x.operationRef)).size,32);
 const frozenSaleState=JSON.stringify(db.sales);
+// Execute the real app's occupancy ledger with actual 42-day mortality and
+// partial sales, not a hand-written "20000 - 700 - 19300" stand-in.
+const liveCtx=vm.createContext({db,
+ isPastOrToday:(date,asOf)=>!date||date<=asOf,
+ saleRowBirds:(_cycle,sale)=>sale.birds});
+vm.runInContext(SOURCE.live+'\nthis.actualLive=liveBreakdown;',liveCtx);
 for(const c of db.cycles){
+ const live=liveCtx.actualLive(c,c.endedAt);
+ assert.deepEqual([live.received,live.dead,live.cull,live.sold,live.live,live.raw],
+  [20000,600,100,19300,0,0],
+  'Real liveBreakdown must reconcile EVERY bird for each house');
  const daily=db.daily.filter(x=>x.cycleId===c.id),sales=db.sales.filter(x=>x.cycleId===c.id);
  assert.equal(daily.reduce((n,d)=>n+d.dead,0),600);
  assert.equal(daily.reduce((n,d)=>n+d.cull,0),100);
@@ -352,6 +362,15 @@ for(const c of db.cycles){
  assert.equal(round(p.costPerBird),round(p.cost/19300));
 }
 assert.equal(JSON.stringify(db),beforeCalc,'Calc must not mutate fixture or frozen sales');
+function exportQA(destination){
+ const filepath=path.resolve(destination);
+ fs.mkdirSync(path.dirname(filepath),{recursive:true});
+ // This JSON is a realistic but FICTIONAL dataset. Import would REPLACE
+ // current data, so ONLY use in a disposable, offline QA profile.
+ fs.writeFileSync(filepath,JSON.stringify(db,null,2));
+ console.log('Exported FICTIONAL QA backup (DANGER: importing replaces account data): '+filepath);
+}
+if(process.argv[2]==='--export-open')exportQA(process.argv[3]||'PFM_V81_TWO_FARMS_80K_OPEN_QA.json');
 assert.equal(Object.values(computed).reduce((n,p)=>n+p.cost,0),830760);
 assert.equal(Object.values(computed).reduce((n,p)=>n+p.rev,0),1190024);
 assert.equal(Object.values(computed).reduce((n,p)=>n+p.profit,0),359264);
@@ -402,12 +421,8 @@ const byFarm=farms.map(f=>{
   profit:ccFarm.reduce((n,p)=>n+p.profit,0)};
 });
 assert.deepEqual(byFarm.map(x=>[x.costs,x.revenue,x.profit]),[[415380,595012,179632],[415380,595012,179632]]);
-if(process.argv[2]==='--export'){
- const destination=path.resolve(process.argv[3]||'PFM_V81_TWO_FARMS_80K_FICTIONAL_QA.json');
- fs.mkdirSync(path.dirname(destination),{recursive:true});
- fs.writeFileSync(destination,JSON.stringify(db,null,2));
- console.log('Exported FICTIONAL QA-only backup (import would REPLACE user data): '+destination);
-}
+if(process.argv[2]==='--export-closed'||process.argv[2]==='--export')
+ exportQA(process.argv[3]||'PFM_V81_TWO_FARMS_80K_CLOSED_QA.json');
 console.log('PASS 80K TWO-FARM acceptance: 2 farms, 4 houses, 20,000 DOC each, 168 daily entries, 34 supplier invoices (ALL supported expense categories), 32 stock issues, mixed VAT, 8 partial sales, 4 depreciation postings, 4 financial closes.');
 console.log('COST 830,760 SAR; REVENUE 1,190,024 SAR; PROFIT 359,264 SAR; purchased unused stock remains 47,440 SAR and is NOT expensed.');
 console.log('DISCLAIMER: Realistic SYNTHETIC test data, never real customer/farm records. No device installation or cloud sync executed.');
