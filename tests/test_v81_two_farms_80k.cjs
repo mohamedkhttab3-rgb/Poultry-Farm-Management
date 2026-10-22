@@ -248,7 +248,7 @@ for(const c of db.cycles){
  assert.equal(db.feed.filter(x=>x.cycleId===c.id).reduce((n,r)=>n+r.qty*r.price,0),113280);
  assert.equal(db.meds.filter(x=>x.cycleId===c.id).reduce((n,r)=>n+r.cost,0),11700);
  assert.equal(db.finance[c.id].chicks,43460);
- assert.equal(db.finance[c.id].expenses.reduce((n,r)=>n+r.amount,0),13900,
+ assert.equal(db.finance[c.id].expenses.reduce((n,r)=>n+r.amount,0),15900,
   'Direct house 8,000 labor + 2,000 heating + 2,500 sale transport + 1,000 loading + 2,400 bedding');
 }
 for(const lot of db.v410.lots){
