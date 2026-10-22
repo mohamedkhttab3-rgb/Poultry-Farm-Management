@@ -65,9 +65,9 @@ async function saveDesktopPDF(event,html,suggestedFileName,requestedAction='prev
   if(!Buffer.isBuffer(pdf)||pdf.length<800||pdf.subarray(0,5).toString()!=='%PDF-')throw new Error('PDF output validation failed');
   const fileName=String(suggestedFileName||'Poultry-Farm-Management-Report.pdf').replace(/[<>:"/\\|?*\u0000-\u001f]/g,'_').slice(0,140);
   if(choice.response===0||choice.response===4){
-    const previewDir=path.join(app.getPath('temp'),'PoultryFarmManagement-PrintPreview');
+    const previewDir=path.join(app.getPath('temp'),'PoultryFarmManagement-PrintPreview',nonce);
     await fs.promises.mkdir(previewDir,{recursive:true});
-    const previewPath=path.join(previewDir,nonce+'.pdf');
+    const previewPath=path.join(previewDir,fileName.toLowerCase().endsWith('.pdf')?fileName:fileName+'.pdf');
     await fs.promises.writeFile(previewPath,pdf);
     if(choice.response===4){
       // Invoke the Windows 10/11 Share Sheet through a bundled, per-window
