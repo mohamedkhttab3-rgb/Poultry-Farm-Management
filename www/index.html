@@ -1420,6 +1420,15 @@ async function loadCloudProfile(user){
 function setSyncStatus(msg,ok=false){const el=document.getElementById('syncStatus');if(el){el.textContent=msg;el.style.background=ok?'#ecfdf5':'#fff7ed';el.style.color=ok?'#047857':'#b45309'}}
 async function acceptInviteFromHash(){if(!supabaseClient||!currentUser)return;const m=location.hash.match(/#invite=([^&]+)/);if(!m)return;const token=decodeURIComponent(m[1]);const {data,error}=await supabaseClient.rpc('accept_farm_invitation',{p_token:token});if(!error&&data){history.replaceState(null,'',location.pathname+location.search);await loadCloudProfile((await supabaseClient.auth.getUser()).data.user);alert('تم قبول الدعوة وإضافة المزرعة إلى حسابك.');}else if(error)console.warn('Invitation:',error.message)}
 async function bootAuth(){
+  // Never allow the offline fictional QA identity to become a cloud identity
+  // if a real Supabase configuration is added to this build later.
+  if(currentUser?.id==='pfm-v81-qa-80k-local'&&hasRealSupabaseConfig()){
+   let orig=null;
+   try{orig=JSON.parse(localStorage.getItem('pfm-v81-qa80k-origin-session')||'null')}catch(_){}
+   currentUser=orig?.id?orig:null;
+   if(currentUser)localStorage.setItem(SESSION_KEY,JSON.stringify(currentUser));
+   else localStorage.removeItem(SESSION_KEY);
+  }
   // V4.2 rule: login/register UI is independent from Supabase and must render first.
   const overlay=document.getElementById('authOverlay');
   if(overlay)overlay.style.display='flex';
@@ -2892,5 +2901,5 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script><script src="./v410-finance.js"></script><!-- Removed obsolete destructive 240K Saudi demonstration panel. QA 80K has an isolated profile. --><script src="./v52-finance.js"></script><script id="v53-dashboard-logic" src="./pfm-v53-reference.js"></script><script src="./pfm-v54-interior.js"></script>
 <script src="./pfm-v55-project-navigation.js"></script><!-- Demo seed disabled: never overwrite local production data --><script src="./pfm-excel-transfer.js"></script><link rel="stylesheet" href="./pfm-v57-data-controls.css"/><script src="./pfm-v57-data-controls.js"></script><link rel="stylesheet" href="./pfm-v59-print-results.css"/><script src="./pfm-v59-print-results.js"></script>
-<script src="./pfm-v65-mobile.js"></script><script src="./pfm-v72-android-export.js"></script><script src="./pfm-v72-android-login.js"></script><script src="./pfm-v8-purchases-loader.js"></script><script src="./pfm-v81-accounting-core.js"></script><script src="./pfm-v8-invoice-core.js"></script><script src="./pfm-v81-issue-corrections.js"></script><script src="./pfm-v81-purchase-drafts.js"></script><script src="./pfm-v8-invoice-ui.js"></script><script src="./pfm-v81-accounting-ui.js"></script><script src="./pfm-v81-report-actions.js"></script>
+<script src="./pfm-v65-mobile.js"></script><script src="./pfm-v72-android-export.js"></script><script src="./pfm-v72-android-login.js"></script><script src="./pfm-v8-purchases-loader.js"></script><script src="./pfm-v81-accounting-core.js"></script><script src="./pfm-v8-invoice-core.js"></script><script src="./pfm-v81-issue-corrections.js"></script><script src="./pfm-v81-purchase-drafts.js"></script><script src="./pfm-v8-invoice-ui.js"></script><script src="./pfm-v81-accounting-ui.js"></script><script src="./pfm-v81-report-actions.js"></script><script src="./pfm-v81-qa80k-profile.js"></script>
 </body></html>
