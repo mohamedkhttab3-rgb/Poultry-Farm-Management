@@ -922,7 +922,15 @@ html[lang="ar"] #printReport .report-meta,html[lang="ar"] #printReport .report-t
 </section>
 <section class="view" id="performance">
 <h2>مؤشرات أداء العنابر</h2><div class="muted">كل عنبر مرتبط بدورته الحالية، وتظهر مؤشرات الدورة دون خلط بيانات عنبر آخر.</div>
+<div class="panel"><div class="grid"><div class="field"><label>السلالة المرجعية للمقارنة (لا تغير سلالة الدورة)</label><select id="perfBreedCompare" onchange="renderPerformance()"></select></div></div><div class="note">مقارنة فنية بين الإنتاج الفعلي والمعايير المنشورة حسب عمر الدورة. القيم غير الصالحة أو الأعمار خارج الكتالوج تظهر غير متاحة، دون تغيير البيانات التاريخية.</div><div id="pfm81-breed-comparison"></div></div>
 <div class="panel"><div class="grid scope-pair-grid"><div class="field"><label>المزرعة — كل المزارع أو مزرعة محددة</label><select id="perfFarm" onchange="fillPerfHouse()"></select></div><div class="field"><label>العنبر</label><select id="perfHouse" onchange="renderPerformance()"></select><small>اختر كل العنابر أو عنبرًا محددًا من القائمة.</small></div></div><div class="note" id="performanceScopeHint" style="margin-top:10px"></div></div>
+<details class="panel" id="pfm81-qa-preview"><summary>عرض المزرعتين التجريبيتين — بيانات اختبار منفصلة (لا تُضاف لحسابك)</summary>
+<p class="note">هذه معاينة اختبار آمنة للبيانات الافتراضية، وليست مزارعك الفعلية ولا تُدرج في المزارع أو الحسابات أو مزامنة Supabase.</p>
+<div class="table-scroll"><table><thead><tr><th>المزرعة التجريبية</th><th>العنابر</th><th>الكتاكيت</th><th>التكاليف ر.س</th><th>الإيرادات ر.س</th><th>صافي الربح ر.س</th></tr></thead><tbody>
+<tr><td>المزرعة الشرقية — اختبار</td><td>2 × 20,000</td><td>40,000</td><td>415,380</td><td>595,012</td><td>179,632</td></tr>
+<tr><td>المزرعة الغربية — اختبار</td><td>2 × 20,000</td><td>40,000</td><td>415,380</td><td>595,012</td><td>179,632</td></tr>
+<tr><th>إجمالي الاختبار</th><th>4</th><th>80,000</th><th>830,760</th><th>1,190,024</th><th>359,264</th></tr></tbody></table></div>
+<p class="muted">34 فاتورة و32 حركة صرف و8 مبيعات و168 متابعة يومية. ملفا JSON قبل/بعد الإقفال متاحان في إصدار QA منفصل على GitHub؛ لا تستوردهما على بياناتك الأساسية.</p></details>
 <div id="performanceBox"></div><div class="panel"><h3>الدورات ضمن نطاق الأداء المحدد</h3><div class="muted" style="margin-bottom:8px">ترتيب الأعمدة مطابق تمامًا للبيانات المعروضة في كل صف: المزرعة ← العنبر ← تاريخ الدورة ← السلالة ← العمر ← الاستقبال ← الحي ← النفوق% ← الوزن ← معامل التحويل الغذائي (FCR) ← معدل الزيادة اليومية (ADG) ← معامل التباين (CV%) ← مؤشر الإنتاج (PI) ← مؤشر كفاءة الإنتاج (EPEF / EPI) ← مؤشر الكفاءة الاقتصادية (EBEF) ← المعامل الاقتصادي (EC) ← المبيعات ← الربح/الخسارة.</div><div class="table-scroll"><table class="performance-table"><thead><tr><th>المزرعة</th><th>العنبر</th><th>تاريخ الدورة</th><th>السلالة</th><th>العمر</th><th>الاستقبال</th><th>الحي</th><th>النفوق%</th><th>الوزن</th><th>معامل التحويل الغذائي (FCR)</th><th>معدل الزيادة اليومية (ADG)</th><th>معامل التباين (CV%)</th><th>مؤشر الإنتاج (PI)</th><th>مؤشر كفاءة الإنتاج (EPEF / EPI)</th><th>مؤشر الكفاءة الاقتصادية (EBEF)</th><th>المعامل الاقتصادي (EC)</th><th>المبيعات</th><th>الربح/الخسارة</th></tr></thead><tbody id="performanceTable"></tbody></table></div></div>
 </section>
 <section class="view" id="standards"><h2>معايير السلالات العالمية</h2>
@@ -1592,19 +1600,39 @@ const weeklyWeightAtOrBefore=(c,date=today())=>db.weights.filter(x=>x.cycleId===
 const lastWeight=c=>weeklyWeightAtOrBefore(c,today());
 const currentWeight=c=>{const d=dailyWeightAtOrBefore(c,today());if(d)return +d.weight||0;const w=weeklyWeightAtOrBefore(c,today());return +w?.avg||0};
 const weightAtOrBefore=(c,date=today())=>{const d=dailyWeightAtOrBefore(c,date);if(d)return {avg:+d.weight||0,date:d.date,source:'daily'};const w=weeklyWeightAtOrBefore(c,date);if(w)return {avg:+w.avg||0,date:w.date,source:'weekly'};return null};
+function pfm81ValidBroilerWeightKg(value){
+  const n=Number(value);
+  // Conservative safety bound for one broiler. Never infer grams and silently
+  // rewrite previously frozen sales; request an explicit correction instead.
+  return Number.isFinite(n)&&n>0&&n<=8;
+}
+function pfm81SaleWeightProblem(c,x){
+  const birds=Number(x?.birds||0);
+  if(x?.weightUnit==='bird'){
+   const avg=Number(x?.avgWeight??x?.saleAvgWeight??0);
+   return avg>0&&!pfm81ValidBroilerWeightKg(avg);
+  }
+  if(x?.weightUnit==='kg'&&birds>0){
+   const total=Number(x.weightQty??x.weightKg??0);
+   return total>birds*8;
+  }
+  return false;
+}
 function saleAverageWeight(c,x){
   const explicit=Number(x?.avgWeight??x?.saleAvgWeight??0);
-  if(Number.isFinite(explicit)&&explicit>0)return explicit;
+  if(explicit>0&&!pfm81ValidBroilerWeightKg(explicit))return 0;
+  if(pfm81ValidBroilerWeightKg(explicit))return explicit;
   const w=weightAtOrBefore(c,x?.date||today());
-  if(w?.avg>0)return w.avg;
-  return currentWeight(c);
+  if(pfm81ValidBroilerWeightKg(w?.avg))return w.avg;
+  const current=currentWeight(c);
+  return pfm81ValidBroilerWeightKg(current)?current:0;
 }
 function saleWeightKg(c,x){
-  if(!x)return 0;
+  if(!x||pfm81SaleWeightProblem(c,x))return 0;
   const unit=x.weightUnit||'kg';
   if(unit==='kg')return Math.max(0,Number(x.weightQty??x.weightKg??0)||Number(x.weightKg||0));
   const explicitKg=Number(x.weightKg||0);
-  if(Number.isFinite(explicitKg)&&explicitKg>0)return explicitKg;
+  if(Number.isFinite(explicitKg)&&explicitKg>0&&(!Number(x.birds)||explicitKg<=Number(x.birds)*8))return explicitKg;
   const birds=Math.max(0,Math.floor(Number(x.birds)||0));
   const avg=saleAverageWeight(c,x);
   return birds*avg;
@@ -1670,11 +1698,15 @@ const age=(c,d)=>{if(!c)return 0;const target=String(d||cycleMetricDate(c,today(
 function currentWeightAtDate(c,d=today()){const daily=dailyWeightAtOrBefore(c,d);if(daily)return +daily.weight||0;const weekly=weeklyWeightAtOrBefore(c,d);return +weekly?.avg||0}
 function performanceWeight(c,d=today()){
   const liveNow=liveAtDate(c,d);
-  if(liveNow>0)return currentWeightAtDate(c,d);
+  if(liveNow>0){
+   const measured=currentWeightAtDate(c,d);
+   return pfm81ValidBroilerWeightKg(measured)?measured:0;
+  }
   const sales=db.sales.filter(x=>x.cycleId===c.id&&isPastOrToday(x.date,d));
   const birds=sales.reduce((s,x)=>s+saleRowBirds(c,x),0),kg=sales.reduce((s,x)=>s+saleWeightKg(c,x),0);
-  if(birds>0&&kg>0)return kg/birds;
-  return currentWeightAtDate(c,d);
+  if(birds>0&&kg>0&&pfm81ValidBroilerWeightKg(kg/birds))return kg/birds;
+  const fallback=currentWeightAtDate(c,d);
+  return pfm81ValidBroilerWeightKg(fallback)?fallback:0;
 }
 const CURRENCY_NAMES={ar:{SAR:'الريال السعودي',EGP:'الجنيه المصري',USD:'الدولار الأمريكي',AED:'الدرهم الإماراتي',KWD:'الدينار الكويتي',QAR:'الريال القطري',OMR:'الريال العماني',BHD:'الدينار البحريني',EUR:'اليورو'},en:{SAR:'Saudi Riyal',EGP:'Egyptian Pound',USD:'US Dollar',AED:'UAE Dirham',KWD:'Kuwaiti Dinar',QAR:'Qatari Riyal',OMR:'Omani Rial',BHD:'Bahraini Dinar',EUR:'Euro'}};
 const CURRENCIES=CURRENCY_NAMES.ar;
@@ -2035,12 +2067,13 @@ function calc(c){
   const metricDate=cycleMetricDate(c,today());
   const dead=deadTotal(c,metricDate),cul=cullTotal(c,metricDate),sales=db.sales.filter(s=>s.cycleId===c.id&&isPastOrToday(s.date,metricDate));
   const soldBirds=sales.reduce((sum,x)=>sum+saleRowBirds(c,x),0),soldKg=sales.reduce((sum,x)=>sum+saleWeightKg(c,x),0);
-  const liv=liveAtDate(c,metricDate),feed=feedForFcr(c,metricDate),w=performanceWeight(c,metricDate),liveKg=liv*Math.max(0,w);
+  const invalidSaleWeights=sales.some(x=>pfm81SaleWeightProblem(c,x));
+  const liv=liveAtDate(c,metricDate),feed=feedForFcr(c,metricDate),w=invalidSaleWeights?0:performanceWeight(c,metricDate),liveKg=liv*Math.max(0,w);
   const birdSalesWeight=sales.reduce((sum,x)=>x.weightUnit==='bird'?sum+saleWeightKg(c,x):sum,0);
   const totalLiveWeight=soldKg+liveKg,initialKg=(+c.birds||0)*(+c.initWeight||0),gain=Math.max(0,totalLiveWeight-initialKg);
   // Aviagen-style cumulative FCR = feed consumed / total live bodyweight produced, including sold birds.
   // Separate gain-based FCR is retained for production diagnosis; never compare it to catalog FCR.
-  const fcr=totalLiveWeight>0&&feed>0?feed/totalLiveWeight:0,gainFcr=gain>0&&feed>0?feed/gain:0;
+  const fcr=!invalidSaleWeights&&totalLiveWeight>0&&feed>0?feed/totalLiveWeight:0,gainFcr=!invalidSaleWeights&&gain>0&&feed>0?feed/gain:0;
   const livPct=c.birds?Math.max(0,(c.birds-dead-cul)/c.birds*100):0,ageDays=age(c);
   const adg=ageDays>0&&w>0?Math.max(0,(w-(+c.initWeight||0))*1000/ageDays):0;
   const pi=fcr>0&&adg>0?(livPct*adg)/(fcr*10):0,epef=fcr>0&&w>0&&ageDays>0?(livPct*w*100)/(ageDays*fcr):0;
@@ -2062,7 +2095,7 @@ function calc(c){
   const economicCoefficient=costPerKg>0&&realizedPriceKg>0?realizedPriceKg/costPerKg:0,ebef=epef>0&&economicCoefficient>0?epef*economicCoefficient:0;
   const marketableBirds=soldBirds+liv,costPerBird=marketableBirds>0?cost/marketableBirds:0;
   const liveBreak=liveSource(c,metricDate);
-  return {dead,cul,liv,feed,w,gain,fcr,gainFcr,metricDate,livPct,ageDays,pi,epef,adg,cv,ebef,economicCoefficient,meds,fc,expenseTotal,sharedCost,depreciationCost,cost,rev,profit,soldBirds,soldKg,saleRevenue,liveKg,totalLiveWeight,birdSalesWeight,costPerKg,costPerBird,realizedPriceKg,currency:cur,marketableBirds,missingCurrency:false,liveBreak};
+  return {dead,cul,liv,feed,w,gain,fcr,gainFcr,metricDate,livPct,ageDays,pi,epef,adg,cv,ebef,economicCoefficient,meds,fc,expenseTotal,sharedCost,depreciationCost,cost,rev,profit,soldBirds,soldKg,saleRevenue,liveKg,totalLiveWeight,birdSalesWeight,costPerKg,costPerBird,realizedPriceKg,currency:cur,marketableBirds,missingCurrency:false,invalidSaleWeights,liveBreak};
 }
 function cycleOrdinal(c){
   if(!c)return 0;
@@ -2219,7 +2252,10 @@ function addSale(){
   const c=cyc(saleCycle.value);if(!c||!Number.isInteger(+saleBirds.value)||(+saleBirds.value)<=0)return alert('عدد الطيور يجب أن يكون عددًا صحيحًا موجبًا.');if(editing&&(!old||old.cycleId!==c.id))return alert('لا يمكن نقل عملية حصاد قديمة إلى دورة أخرى أثناء التعديل.');
   const cur=getCycleCurrency(c),unit=saleWeightUnit.value||'kg',birds=Math.floor(+saleBirds.value),qty=unit==='kg'?+saleWeight.value:birds,avgWeight=unit==='bird'?+saleAvgWeight.value:0;
   if(unit==='kg'&&!qty)return alert('أدخل كمية البيع بالكيلو.');
-  if(unit==='bird'&&!(avgWeight>0))return alert('أدخل متوسط وزن الطائر عند البيع بالكيلو؛ يمكن تعديل القيمة التلقائية.');
+  if(unit==='bird'&&!pfm81ValidBroilerWeightKg(avgWeight))
+   return alert('متوسط وزن الطائر يجب أن يكون بالكيلو، مثال: 1.450 كجم وليس 1450 جم. راجع الوزن قبل الحفظ.');
+  if(unit==='kg'&&birds>0&&qty>birds*8)
+   return alert('الوزن الإجمالي يتجاوز الحد المنطقي لعدد الطيور. أدخل الوزن بالكيلوجرام، وليس الجرام، وراجع العدد.');
   const saleD=saleDate.value||today();const otherSold=old?db.sales.filter(s=>s.id!==old.id&&s.cycleId===c.id&&isPastOrToday(s.date,saleD)).reduce((s,x)=>s+saleRowBirds(c,x),0):soldBirdsAtDate(c,saleD);const available=Math.max(0,Math.floor(+c.birds||0)-deadTotal(c,saleD)-cullTotal(c,saleD)-otherSold);
   if(birds>available)return alert(`عدد الطيور للبيع (${birds}) أكبر من الحي المتاح (${available}).`);
   if(!Number.isFinite(qty)||qty<=0||!Number.isFinite(+salePrice.value)||+salePrice.value<0)return alert('تأكد من كمية البيع وسعر الوحدة؛ لا يُقبل سعر سالب أو كمية صفرية.');
@@ -2232,7 +2268,7 @@ function addSale(){
 function renderSales(){
   saleCycle.innerHTML=db.cycles.map(c=>`<option value="${c.id}">${esc(getFarmName(c.farmId))} — ${esc(getHouseName(c.houseId))} — ${c.date}${c.breed?' — '+esc(c.breed):''}</option>`).join('');
   updateCurrencyLabels();
-  saleTable.innerHTML=pfmPerfWindow(db.sales.slice().sort((a,b)=>b.date.localeCompare(a.date)),'sales',saleTable).map(s=>{const c=cyc(s.cycleId),cur=currencyCode(s.currency||getCycleCurrency(c)),wk=s.weightUnit==='bird'?saleWeightKg(c,s):(+s.weightQty||+s.weightKg||0),net=saleRowRevenue(s),vat=Number(s.v410Vat?.tax||0),gross=Number(s.v410Vat?.invoiceGross??s.v410Vat?.gross??net);return `<tr><td>${s.date}</td><td>${esc(getFarmName(c?.farmId))} — ${esc(getHouseName(c?.houseId))}</td><td>${(+s.birds||0).toLocaleString()}</td><td>${s.weightUnit==='bird'?`${Number(s.avgWeight||saleAverageWeight(c,s)||0).toFixed(3)} كجم/طائر<br><small class="muted">إجمالي ${wk.toFixed(2)} كجم</small>`:`${(+s.weightQty||+s.weightKg||0).toFixed(2)} كجم`}</td><td>${(+s.price||0).toFixed(2)} ${cur}</td><td>${gross.toFixed(2)} ${cur}</td><td>${vat.toFixed(2)} ${cur}</td><td>${net.toFixed(2)} ${cur}</td><td>${esc(s.buyer||'')}</td><td><button class="btn" data-action="edit" data-type="sale" data-id="${s.id}">تعديل</button> <button class="btn danger" data-action="delete" data-type="sales" data-id="${s.id}">حذف</button></td></tr>`}).join('')||'<tr><td colspan="10">لا توجد مبيعات مسجلة.</td></tr>';
+  saleTable.innerHTML=pfmPerfWindow(db.sales.slice().sort((a,b)=>b.date.localeCompare(a.date)),'sales',saleTable).map(s=>{const c=cyc(s.cycleId),cur=currencyCode(s.currency||getCycleCurrency(c)),wk=s.weightUnit==='bird'?saleWeightKg(c,s):(+s.weightQty||+s.weightKg||0),net=saleRowRevenue(s),vat=Number(s.v410Vat?.tax||0),gross=Number(s.v410Vat?.invoiceGross??s.v410Vat?.gross??net);return `<tr><td>${s.date}</td><td>${esc(getFarmName(c?.farmId))} — ${esc(getHouseName(c?.houseId))}</td><td>${(+s.birds||0).toLocaleString()}</td><td>${s.weightUnit==='bird'?pfm81SaleWeightProblem(c,s)?'<span class="badge">الوزن غير منطقي — يحتاج تصحيحًا معتمدًا</span>':`${Number(s.avgWeight||saleAverageWeight(c,s)||0).toFixed(3)} كجم/طائر<br><small class="muted">إجمالي ${wk.toFixed(2)} كجم</small>`:`${(+s.weightQty||+s.weightKg||0).toFixed(2)} كجم`}</td><td>${(+s.price||0).toFixed(2)} ${cur}</td><td>${gross.toFixed(2)} ${cur}</td><td>${vat.toFixed(2)} ${cur}</td><td>${net.toFixed(2)} ${cur}</td><td>${esc(s.buyer||'')}</td><td><button class="btn" data-action="edit" data-type="sale" data-id="${s.id}">تعديل</button> <button class="btn danger" data-action="delete" data-type="sales" data-id="${s.id}">حذف</button></td></tr>`}).join('')||'<tr><td colspan="10">لا توجد مبيعات مسجلة.</td></tr>';
 }
 function exportBackup(){let blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='poultry-farm-manager-v3-backup.json';a.click();URL.revokeObjectURL(a.href)}
 function importBackup(inp){let f=inp.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);db={farms:[],houses:[],cycles:[],daily:[],weights:[],feed:[],meds:[],inventory:[],finance:{},sales:[],tombstones:[],...x};normalizeDbIds();db.cycles.forEach(c=>c.currency=currencyCode(c.currency||db.finance?.[c.id]?.currency||'SAR'));save();alert('تم استيراد النسخة')}catch(e){alert('ملف النسخة غير صالح')}};r.readAsText(f)}
