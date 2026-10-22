@@ -69,32 +69,11 @@ function line(){
  '<div class="v81-shared" hidden><label><span>'+tr('أساس التوزيع','Allocation basis')+'</span><select data-k="method"><option value="equal">'+tr('بالتساوي','Equal')+'</option><option value="birds">'+tr('حسب عدد الطيور','By birds')+'</option></select></label><p>'+tr('اختر العنابر المستفيدة — تسجّل الفاتورة مرة واحدة فقط','Select beneficiary houses; invoice is stored only once')+'</p><div class="v81-shared-cycles"></div></div>'+ 
  '<div class="v81-asset" hidden>'+inp('startDate','تاريخ بدء تشغيل الأصل','Asset service date','date')+inp('lifeMonths','العمر الإنتاجي بالشهور','Useful life (months)','number','60')+inp('residual','القيمة المتبقية','Residual value','number','0')+'</div>'+
  inp('note','ملاحظات','Notes')+'</div>';
- // A line save is draft-only. The complete invoice is posted exactly once
- // by the existing approved invoice core's explicit approval button.
- el.querySelector('[data-line-save]').addEventListener('click',()=>{
-  const btn=el.querySelector('[data-line-save]'),locked=el.dataset.draftSaved==='true';
-  if(locked){
-   el.dataset.draftSaved='false';
-   el.querySelectorAll('.pfm-v8-fields input,.pfm-v8-fields select').forEach(x=>x.disabled=false);
-   btn.textContent=tr('حفظ','Save');
-   status(tr('البند مفتوح للتعديل، ولم يتم اعتماده ماليًا.','Line unlocked for editing; not financially posted.'),true);
-   scope(el);
-   return;
-  }
-  try{
-   const values=input();
-   const index=[...document.querySelectorAll('#pfm-v8-lines .pfm-v8-line')].indexOf(el);
-   if(index<0)throw Error(tr('لم يتم العثور على البند.','Line not found.'));
-   window.PFMV8InvoiceCore.prepare(db,{...values,lines:[values.lines[index]]},accounting());
-   el.dataset.draftSaved='true';
-   el.querySelectorAll('.pfm-v8-fields input,.pfm-v8-fields select').forEach(x=>x.disabled=true);
-   btn.textContent=tr('تعديل','Edit');
-   status(tr('تم حفظ البند في مسودة الفاتورة فقط؛ اضغط اعتماد الفاتورة لترحيلها مرة واحدة.','Line saved in invoice draft only; approve the invoice once to post.'),true);
-  }catch(e){status(tr('تعذر حفظ البند: ','Line not saved: ')+e.message,false);}
- });
+ el.querySelector('[data-line-save]').addEventListener('click',()=>saveDraftLine(el));
  el.querySelector('[data-remove]').addEventListener('click',()=>{
-  if(el.dataset.draftSaved==='true'&&!confirm(tr('حذف هذا البند المحفوظ من مسودة الفاتورة؟','Remove this saved draft line?')))return;
-  el.remove();
+  if(el.dataset.editDraftId){
+   el.remove();status(tr('تم إغلاق تعديل البند دون تغيير السجل المحفوظ.','Edit canceled; saved draft line unchanged.'),true);
+  }else el.remove();
  });
  field(el,'kind').addEventListener('change',()=>{
   field(el,'item').value='';
@@ -114,16 +93,97 @@ function refresh(){
  if(db.farms.some(x=>x.id===old))f.value=old;
  else if(db.farms.some(x=>x.id===$('pfm75-farm')?.value))f.value=$('pfm75-farm').value;
  $('pfm-v8-lines').querySelectorAll('.pfm-v8-line').forEach(scope);
+ const draft=currentDraft();
+ if(draft){
+  for(const [key,id] of [['invoice','pfm-v8-invoice-no'],['supplier','pfm-v8-supplier']]){
+   if(draft[key]&&!$(id).value)$(id).value=draft[key];
+  }
+  if(draft.date&&$('pfm-v8-date')&&!$('pfm-v8-date').value)$('pfm-v8-date').value=draft.date;
+ }
+ renderSaved();
  history();
 }
+function header(){
+ return {farmId:farm(),supplier:$('pfm-v8-supplier')?.value?.trim()||'',
+  invoice:$('pfm-v8-invoice-no')?.value?.trim()||'',
+  date:$('pfm-v8-date')?.value||''};
+}
+function readLine(el){
+ const o={};
+ for(const key of ['kind','item','quantity','unit','priceMode','amount','discount','vatMode','vatRate','reclaim','cycleId','cycleNumber','free','freight','note','method','startDate','lifeMonths','residual'])
+  o[key]=field(el,key)?.value??'';
+ o.cycleIds=[...el.querySelectorAll('.v81-shared-cycles [data-cycle]:checked')].map(c=>c.value);
+ return o;
+}
+function currentDraft(){return window.PFMV81PurchaseDrafts?.read(db,farm())||null;}
+function draftContext(){return {uuid:()=>uuid(),persist:()=>save(),
+ prepare:window.PFMV8InvoiceCore.prepare,accounting};}
 function input(){
- const get=key=>$(key)?.value||'';
- return {farmId:farm(),invoice:get('pfm-v8-invoice-no'),supplier:get('pfm-v8-supplier'),
-  date:get('pfm-v8-date'),lines:[...$('pfm-v8-lines').querySelectorAll('.pfm-v8-line')].map(el=>{
-   const o={};for(const key of ['kind','item','quantity','unit','priceMode','amount','discount','vatMode','vatRate','reclaim','cycleId','cycleNumber','free','freight','note','method','startDate','lifeMonths','residual'])o[key]=field(el,key)?.value??'';
-    o.cycleIds=[...el.querySelectorAll('.v81-shared-cycles [data-cycle]:checked')].map(c=>c.value);
-    return o;
-  })};
+ const d=currentDraft();
+ return {...header(),draftId:d?.id||null,lines:(d?.lines||[]).map(({draftLineId,...line})=>line)};
+}
+function renderSaved(){
+ const host=$('pfm-v8-saved-lines');if(!host)return;
+ const d=currentDraft(),lines=d?.lines||[];
+ host.hidden=!lines.length;
+ const list=$('pfm-v8-draft-rows');
+ list.innerHTML=lines.map((line,i)=>'<tr><td>'+String(i+1)+'</td><td>'+esc(line.item)+'</td><td>'+esc(line.quantity+' '+line.unit)+'</td><td>'+
+  esc(line.amount)+'</td><td>'+esc(tr('قيد اعتماد الفاتورة','Pending invoice approval'))+'</td>'+
+  '<td><button type="button" class="btn" data-v8-edit-draft="'+esc(line.draftLineId)+'">'+tr('تعديل','Edit')+'</button> '+
+  '<button type="button" class="btn danger" data-v8-remove-draft="'+esc(line.draftLineId)+'">'+tr('حذف','Delete')+'</button></td></tr>').join('');
+ const count=$('pfm-v8-draft-count');
+ if(count)count.textContent=tr('بنود محفوظة: ','Saved lines: ')+lines.length;
+}
+function saveDraftLine(el){
+ try{
+  if(!window.PFMV81PurchaseDrafts)throw Error('Purchase draft module unavailable');
+  const record=window.PFMV81PurchaseDrafts.saveLine(db,{
+   farmId:farm(),lineId:el.dataset.editDraftId||null,header:header(),line:readLine(el)
+  },draftContext());
+  el.remove();
+  renderSaved();
+  status(tr('تم حفظ البند في السجل أدناه. سيُرحّل للمصروفات والمخزون مرة واحدة عند اعتماد الفاتورة: ',
+   'Saved below. Inventory and expenses post once when invoice is approved: ')+record.draft.lines.length,true);
+ }catch(e){status(tr('تعذر حفظ البند: ','Line save failed: ')+e.message,false)}
+}
+function editDraft(id){
+ const saved=currentDraft()?.lines.find(l=>l.draftLineId===id);
+ if(!saved)return;
+ const kind=saved.kind;
+ const group=kind==='feed'?'feed':kind==='chicks'?'chicks':
+  ['med','vaccine','disinfectant','bedding'].includes(kind)?'health':
+  kind==='shared'?'shared':kind==='asset'?'assets':'expenses';
+ const original=$('pfm-v8-lines');
+ const before=new Set(original.querySelectorAll('.pfm-v8-line'));
+ const btn=original.querySelector('[data-pfm-v8-add-group="'+group+'"]');
+ if(!btn)throw Error('Purchase category unavailable');
+ btn.click();
+ const el=[...original.querySelectorAll('.pfm-v8-line')].find(x=>!before.has(x));
+ if(!el)throw Error('Could not reopen purchase line');
+ field(el,'kind').value=kind;
+ field(el,'kind').dispatchEvent(new Event('change',{bubbles:true}));
+ for(const [key,value] of Object.entries(saved)){
+  if(key==='draftLineId'||key==='cycleIds'||key==='weights')continue;
+  const item=field(el,key);if(item)item.value=value??'';
+ }
+ scope(el);
+ // Scope refresh populates selected farm cycles and feed stages; reapply the
+ // stored values after the update, keeping each line's financial basis intact.
+ for(const key of ['cycleId','cycleNumber','feedStage','quantity','item']){
+  const item=field(el,key);if(item&&saved[key]!==undefined)item.value=saved[key];
+ }
+ if(Array.isArray(saved.cycleIds))el.querySelectorAll('.v81-shared-cycles [data-cycle]').forEach(x=>x.checked=saved.cycleIds.includes(x.value));
+ el.dataset.editDraftId=id;
+ el.scrollIntoView?.({behavior:'smooth',block:'center'});
+ status(tr('عدّل البيانات ثم اضغط حفظ. لن تتغير المسودة حتى تحفظ التعديل.','Edit this line and save; the stored draft is unchanged until saved.'),true);
+}
+function deleteDraft(id){
+ if(!confirm(tr('هل تريد حذف البند من مسودة الفاتورة؟','Remove this draft line?')))return;
+ try{
+  window.PFMV81PurchaseDrafts.removeLine(db,{farmId:farm(),lineId:id},draftContext());
+  renderSaved();
+  status(tr('تم حذف البند من المسودة دون المساس بالحسابات.','Draft line removed; posted finances are unchanged.'),true);
+ }catch(e){status(e.message,false)}
 }
 function accounting(){
  const core=window.PFM74PurchaseCore;
@@ -138,7 +198,8 @@ function accounting(){
 function status(message,ok){const el=$('pfm-v8-invoice-status');el.textContent=message;el.dataset.valid=ok?'true':'false'}
 function preview(){
  try{
-  const doc=window.PFMV8InvoiceCore.prepare(db,input(),accounting()).document;
+  const values=input();if(!values.lines.length)throw Error(tr('احفظ بندًا واحدًا على الأقل أولًا.','Save at least one line first.'));
+  const doc=window.PFMV8InvoiceCore.prepare(db,values,accounting()).document;
   status(tr('بنود: ','Lines: ')+doc.lines.length+tr(' — التكلفة المحاسبية: ',' — accounting cost: ')+doc.totals.accountingCost.toFixed(2)+' '+(db.settings?.currency||'SAR'),true);
  }catch(e){status(tr('خطأ: ','Error: ')+e.message,false)}
 }
@@ -152,7 +213,16 @@ function submit(){
  if(busy)return;
  busy=true;const btn=$('pfm-v8-submit');btn.disabled=true;
  try{
-  const doc=window.PFMV8InvoiceCore.commit(db,input(),accounting());
+  const values=input();
+  if(!values.lines.length)throw Error(tr('احفظ بندًا واحدًا على الأقل قبل الاعتماد.','Save at least one line before approval.'));
+  for(const [key,id,name] of [['supplier','pfm-v8-supplier',tr('المورد','Supplier')],['invoice','pfm-v8-invoice-no',tr('رقم الفاتورة','Invoice number')]]){
+   if(!values[key]){
+    $(id).focus?.();
+    $(id).scrollIntoView?.({behavior:'smooth',block:'center'});
+    throw Error(name+tr(' مطلوب لاعتماد الفاتورة.',' is required for invoice approval.'));
+   }
+  }
+  const doc=window.PFMV8InvoiceCore.commit(db,values,accounting());
   // Clear financial form cache after successful commit; never mutate sales snapshots.
   if(typeof financeDraftExpenses!=='undefined'){
    for(const c of db.cycles||[]){
@@ -161,7 +231,7 @@ function submit(){
    }
   }
   status(tr('تم الحفظ بنجاح: ','Saved successfully: ')+doc.invoice,true);
-  $('pfm-v8-invoice-no').value='';$('pfm-v8-lines').querySelectorAll('.pfm-v8-line').forEach(el=>el.remove());history();
+  $('pfm-v8-invoice-no').value='';$('pfm-v8-supplier').value='';$('pfm-v8-lines').querySelectorAll('.pfm-v8-line').forEach(el=>el.remove());renderSaved();history();
   window.PFM_V410?.refresh?.();
  }catch(e){status(tr('لم يتم الحفظ: ','Not saved: ')+e.message,false)}
  finally{busy=false;btn.disabled=false}
@@ -180,6 +250,9 @@ function install(){
  '<button type="button" class="btn" id="pfm-v8-preview">'+tr('مراجعة الفاتورة','Preview')+'</button>'+
  '<button type="button" class="btn primary" id="pfm-v8-submit">'+tr('اعتماد الفاتورة مرة واحدة','Save once')+'</button></div>'+
  '<p class="muted" id="pfm-v8-invoice-status" aria-live="polite"></p>'+
+ '<div id="pfm-v8-saved-lines" class="panel" hidden><h4>'+tr('البنود والمصروفات المحفوظة بانتظار اعتماد الفاتورة','Saved purchase lines / pending cycle expenses')+'</h4>'+
+ '<p class="muted">'+tr('هنا تظهر البنود بعد الضغط على حفظ. لا تدخل هذه التكاليف في أرباح الدورة ولا يُنشأ المخزون حتى اعتماد الفاتورة مرة واحدة.','Saved lines appear here. No stock or financial posting until a single final invoice approval.')+'</p>'+
+ '<p id="pfm-v8-draft-count"></p><div class="table-scroll"><table><thead><tr><th>#</th><th>'+tr('الصنف','Item')+'</th><th>'+tr('الكمية','Quantity')+'</th><th>'+tr('القيمة','Amount')+'</th><th>'+tr('الحالة','Status')+'</th><th>'+tr('الإجراءات','Actions')+'</th></tr></thead><tbody id="pfm-v8-draft-rows"></tbody></table></div></div>'+
  '<details><summary>'+tr('سجل الفواتير الموحدة','Unified invoice register')+'</summary><div class="table-scroll"><table><thead><tr><th>'+tr('التاريخ','Date')+'</th><th>'+tr('الرقم','Number')+'</th><th>'+tr('المورد','Supplier')+'</th><th>'+tr('البنود','Lines')+'</th><th>'+tr('التكلفة','Cost')+'</th></tr></thead><tbody id="pfm-v8-history"></tbody></table></div></details>';
  $('pfm75-expenses').prepend(div);
  const sheet=document.createElement('style');sheet.id='pfm-v8-invoice-style';
@@ -198,6 +271,7 @@ function install(){
  '#pfm-v8-invoice .v81-shared-cycles label{display:flex;flex-direction:row;align-items:center}',
  '#pfm-v8-invoice .v81-shared-cycles input{min-height:0;width:auto}',
  '#pfm-v8-invoice-status[data-valid="false"]{color:#b91c1c}',
+ '#pfm-v8-saved-lines{margin-top:12px;border:1px solid #b4d9cf;background:#f6fcfa}',
  '#pfm-v8-invoice-status[data-valid="true"]{color:#047857}',
  '@media(max-width:620px){#pfm-v8-invoice .pfm-v8-fields{grid-template-columns:1fr}}',
  // Hide duplicate entry forms only. Existing stock movement and reports are retained.
@@ -210,6 +284,11 @@ function install(){
  $('pfm-v8-add').addEventListener('click',()=>{if($('pfm-v8-lines').querySelectorAll('.pfm-v8-line').length<60)$('pfm-v8-lines').appendChild(line())});
  $('pfm-v8-preview').addEventListener('click',preview);
  $('pfm-v8-submit').addEventListener('click',submit);
+ $('pfm-v8-saved-lines').addEventListener('click',e=>{
+  const edit=e.target.closest('[data-v8-edit-draft]'),remove=e.target.closest('[data-v8-remove-draft]');
+  try{if(edit)editDraft(edit.dataset.v8EditDraft);else if(remove)deleteDraft(remove.dataset.v8RemoveDraft)}
+  catch(err){status(err.message,false)}
+ });
  $('v53-nav')?.addEventListener('click',e=>{if(e.target?.closest('[onclick*="inventory"]'))refresh()});
  // Dashboard shortcuts can open Purchases without a navigation click.
  // Refresh farm/cycle options when the already-existing screen becomes active.
