@@ -1,0 +1,30 @@
+name: PFM V8.1 — purchases, inventory and daily medication integration
+on:
+  push:
+    branches: ['feature/pfm-v81-purchases-medication-fix-20261022']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check code and platform assets
+        run: |
+          set -euo pipefail
+          for f in www/pfm-v8-invoice-core.js www/pfm-v8-invoice-ui.js www/pfm-v81-purchase-drafts.js www/pfm-v8-purchases-workspace.js; do node --check "$f"; done
+          node scripts/verify-source.cjs
+          node scripts/verify-native.cjs
+      - name: Real invoice draft and medicine purchase-lot acceptance
+        run: node tests/test_v81_purchases_medications.cjs
+      - name: Full 80K two-farm financial acceptance
+        run: node tests/test_v81_two_farms_80k.cjs
+      - name: Existing finance, VAT, branding and inventory regression
+        run: |
+          set -euo pipefail
+          for t in tests/test_v8_single_workspace.cjs tests/test_v8_single_purchase_invoice.cjs tests/test_v81_shared_costs_depreciation.cjs tests/test_v81_financial_close_integration.cjs tests/test_v81_broiler_full_lifecycle.cjs tests/test_v81_five_fixes.cjs tests/test_v410_vat_contract.cjs tests/test_v8_unified_navigation.cjs tests/test_v8_pdf_footer_bounds.cjs tests/test_unified_sync.cjs; do node "$t"; done
