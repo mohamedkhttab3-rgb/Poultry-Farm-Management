@@ -8,7 +8,7 @@
  let busy=false;
  function install(){
   const view=$('reports');
-  const original=view?.querySelector('button[onclick*="PFMPrintResults59"]');
+  const original=$('pfm81-pdf-action')||view?.querySelector('button[onclick*="PFMPrintResults59"]');
   if(!original)return false;
   if(!$('pfm81-pdf-action')){
    original.id='pfm81-pdf-action';
