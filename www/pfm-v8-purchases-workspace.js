@@ -209,7 +209,7 @@ function build(){
  '#pfm-v8-workspace .pfm-v8-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}',
  '#pfm-v8-workspace label{display:flex;flex-direction:column;gap:6px}',
  '#pfm-v8-workspace input,#pfm-v8-workspace select{width:100%;min-height:40px}',
- 'nav#v53-nav .v55-nav-items>button[data-stage="7"],nav#v53-nav .v55-nav-items>button[data-stage="8"]{display:none!important}',
+ 'nav#v53-nav .v55-nav-items>button[data-stage="7"]{display:none!important}',
  'nav#v53-nav .v55-nav-items>button[data-stage="9"]{font-size:0!important}',
  'nav#v53-nav .v55-nav-items>button[data-stage="9"]::after{content:"المشتريات والمخزون";font-size:13px}',
  'html[lang="en"] nav#v53-nav .v55-nav-items>button[data-stage="9"]::after{content:"Purchases & Inventory"}',
@@ -221,6 +221,21 @@ function build(){
  $('pfm-v8-issue-btn').addEventListener('click',issue);
  $('pfm-v8-farm').addEventListener('change',farmChange);
  $('pfm-v8-issue-cycle').addEventListener('change',()=>{$('pfm-v8-issue-state').textContent=''});
+ // Restore business ownership of each existing navigation item even if
+ // earlier runtime layouts moved buttons into the wrong group.
+ const navRoot=$('v53-nav');
+ if(navRoot){
+  const purchases=navRoot.querySelector('[data-v55-group="nutrition"] .v55-nav-items');
+  const daily=navRoot.querySelector('[data-v55-group="daily"] .v55-nav-items');
+  for(const stage of ['7','9']){
+   const item=navRoot.querySelector('button[data-stage="'+stage+'"]');
+   if(item&&purchases)purchases.appendChild(item);
+  }
+  for(const stage of ['5','6','8']){
+   const item=navRoot.querySelector('button[data-stage="'+stage+'"]');
+   if(item&&daily)daily.appendChild(item);
+  }
+ }
  const nav=$('v53-nav'),syncNav=()=>{
   const btn=nav?.querySelector('.v55-nav-items>button[data-stage="9"]');
   if(btn)btn.setAttribute('aria-label',tr('المشتريات والمخزون','Purchases and inventory'));
