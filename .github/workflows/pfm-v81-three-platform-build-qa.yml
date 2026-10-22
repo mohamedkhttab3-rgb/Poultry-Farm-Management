@@ -1,5 +1,5 @@
 name: PFM V8.1 QA 80K — Android Windows iOS build verification
-# QA rerun: technical weight safeguards, standard selector and one PDF action 2026-10-22.
+# QA verified: 80K embedded independent demo accounts, purchase farm scope, single-feed entry and offline-only sandbox 2026-10-22.
 on:
   push:
     branches: ['feature/pfm-v81-pdf-finance-qa', 'feature/pfm-v81-five-fixes-20261022', 'feature/pfm-v81-purchases-medication-fix-20261022', 'feature/pfm-v81-weight-breed-pdf-qa-20261022', 'feature/pfm-v81-qa-80k-feed-unification-20261022']
