@@ -4,6 +4,7 @@ const {app,BrowserWindow,protocol,net,shell,session,ipcMain,dialog}=require('ele
 const path=require('node:path');
 const fs=require('node:fs');
 const crypto=require('node:crypto');
+const {spawn}=require('node:child_process');
 const {pathToFileURL}=require('node:url');
 const ROOT=path.resolve(__dirname,'..','www');
 const pendingPrintDocuments=new Map();
@@ -69,16 +70,35 @@ async function saveDesktopPDF(event,html,suggestedFileName,requestedAction='prev
     const previewPath=path.join(previewDir,nonce+'.pdf');
     await fs.promises.writeFile(previewPath,pdf);
     if(choice.response===4){
-      // Electron has no portable OS file-share sheet. Expose a REAL PDF file in
-      // Windows Explorer, then the user can invoke Windows "Share" from there.
-      shell.showItemInFolder(previewPath);
-      await dialog.showMessageBox(mainWindow,{
-       type:'info',title:'مشاركة تقرير PDF',
-       message:'تم إنشاء ملف PDF للتشارك.',
-       detail:'الملف محدد في مستكشف الملفات. اختر مشاركة من قائمة الملف في Windows. لا يتم الادعاء بإرساله حتى تختار التطبيق.',
-       buttons:['حسنًا']
-      });
-      return {ok:true,shareFileReady:true};
+      // Invoke the Windows 10/11 Share Sheet through a bundled, per-window
+      // DataTransferManagerInterop host. A file path alone is not a share.
+      const helper=app.isPackaged
+        ?path.join(process.resourcesPath,'windows-share','PFMWindowsShare.exe')
+        :path.join(__dirname,'windows-share','publish','PFMWindowsShare.exe');
+      try{
+        await fs.promises.access(helper,fs.constants.R_OK);
+        const child=spawn(helper,[previewPath],{
+          windowsHide:false,detached:true,stdio:'ignore',shell:false
+        });
+        const launched=await new Promise((resolve,reject)=>{
+          child.once('error',reject);
+          child.once('spawn',()=>resolve(true));
+        });
+        if(!launched)throw Error('Windows sharing helper did not start');
+        child.unref();
+        return {ok:true,shareSheetRequested:true};
+      }catch(shareErr){
+        // Only fallback when native sharing is unavailable. Do not say the
+        // document was shared or show a misleading success popup.
+        shell.showItemInFolder(previewPath);
+        await dialog.showMessageBox(mainWindow,{
+          type:'warning',title:'مشاركة تقرير PDF',
+          message:'تعذر فتح نافذة مشاركة Windows مباشرة.',
+          detail:'تم تحديد ملف PDF في مستكشف الملفات حتى تتمكن من اختيار مشاركة يدويًا. السبب: '+String(shareErr.message||shareErr),
+          buttons:['حسنًا']
+        });
+        return {ok:true,manualShareFallback:true};
+      }
     }
     const viewerError=await shell.openPath(previewPath);
     if(viewerError)throw new Error('Could not open PDF viewer: '+viewerError+'; file: '+previewPath);
