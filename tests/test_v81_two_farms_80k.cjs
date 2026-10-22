@@ -23,7 +23,8 @@ const SOURCE={
  calc:index.match(/function calc\(c\)\{[\s\S]*?(?=\nfunction cycleOrdinal\(c\))/)?.[0],
  close:financeJS.match(/function closeCycle\(\)\{[\s\S]*?(?=\n function reopenCycle\(\))/)?.[0],
  issue:stockJS.match(/function issue\(\)\{[\s\S]*?(?=\nfunction build\(\))/)?.[0],
- live:index.match(/function liveBreakdown\(c,d=today\(\)\)\{[\s\S]*?(?=\nfunction liveSource\()/)?.[0]
+ live:index.match(/function liveBreakdown\(c,d=today\(\)\)\{[\s\S]*?(?=\nfunction liveSource\()/)?.[0],
+ sale:index.match(/function addSale\(\)\{[\s\S]*?(?=\nfunction renderSales\()/)?.[0]
 };
 for(const [key,val] of Object.entries(SOURCE))assert(val,'Actual app handler absent: '+key);
 const round=n=>Math.round((n+Number.EPSILON)*100)/100;
@@ -207,6 +208,44 @@ function refuse(label,fn,needle){
  assert.equal(JSON.stringify({feed:db.feed,meds:db.meds,finance:db.finance,ledger:db.v410.movements,audit:db.auditLog}),
   before,'Rejected '+label+' must preserve all financial data');
 }
+const saleControls=Object.fromEntries([
+ 'saleCycle','saleBirds','saleWeightUnit','saleWeight','saleAvgWeight',
+ 'salePrice','saleDate','saleBuyer'].map(k=>[k,{value:''}]));
+const saleAlerts=[];
+const saleCtx=vm.createContext({db,uuid,editState:{type:null,id:null},
+ saleCycle:saleControls.saleCycle,saleBirds:saleControls.saleBirds,
+ saleWeightUnit:saleControls.saleWeightUnit,saleWeight:saleControls.saleWeight,
+ saleAvgWeight:saleControls.saleAvgWeight,salePrice:saleControls.salePrice,
+ saleDate:saleControls.saleDate,saleBuyer:saleControls.saleBuyer,
+ cyc:id=>db.cycles.find(c=>c.id===id),
+ getCycleCurrency:()=> 'SAR',requireActionForRecord:()=>true,
+ isPastOrToday:(date,asOf)=>!date||date<=asOf,
+ deadTotal:(c,asOf)=>db.daily.filter(d=>d.cycleId===c.id&&d.date<=asOf).reduce((n,d)=>n+d.dead,0),
+ cullTotal:(c,asOf)=>db.daily.filter(d=>d.cycleId===c.id&&d.date<=asOf).reduce((n,d)=>n+d.cull,0),
+ soldBirdsAtDate:(c,asOf)=>db.sales.filter(v=>v.cycleId===c.id&&v.date<=asOf).reduce((n,v)=>n+v.birds,0),
+ audit:(_op,_type,id)=>db.auditLog.push({id}),
+ refreshFinancialSnapshot:()=>{},clearEdit:()=>{},save:()=>{persists++},
+ updateSaleWeightUnitUI:()=>{},alert:message=>saleAlerts.push(message),Date});
+vm.runInContext(SOURCE.sale+'\nthis.postSale=addSale;',saleCtx);
+function actualSale(c,date,birds,kg,price,buyer,snapshot){
+ saleControls.saleCycle.value=c.id;
+ saleControls.saleBirds.value=String(birds);
+ saleControls.saleWeightUnit.value='kg';
+ saleControls.saleWeight.value=String(kg);
+ saleControls.salePrice.value=String(price);
+ saleControls.saleDate.value=date;
+ saleControls.saleBuyer.value=buyer;
+ const before=db.sales.length;
+ saleCtx.postSale();
+ assert.equal(db.sales.length,before+1,
+  'Actual addSale handler rejected '+c.id+': '+saleAlerts.at(-1));
+ const posted=db.sales.at(-1);
+ assert.equal(posted.birds,birds);
+ assert.equal(posted.weightKg,kg);
+ posted.v410Snapshot=snapshot;
+ return posted;
+}
+
 for(const farm of farms){
  const cycles=cyclesOf(farm);
  for(const c of cycles){
@@ -241,17 +280,30 @@ for(const farm of farms){
   db.weights.push({id:uuid(),cycleId:c.id,date:dateAdd(farm.first,41),
    avg:2.15,sample:100,total:215,cv:9.4});
   // Two partial/complete harvests with individually frozen historical sale costs.
-  const s1={id:uuid(),cycleId:c.id,date:dateAdd(farm.first,39),birds:9000,
-    weightUnit:'kg',weightQty:17460,weightKg:17460,price:7.4,total:129204,
-    buyer:'مشتري تجريبي أ',v410Snapshot:{cost:97000,margin:32204}};
-  const s2={id:uuid(),cycleId:c.id,date:dateAdd(farm.first,41),birds:10300,
-    weightUnit:'kg',weightQty:22145,weightKg:22145,price:7.6,total:168302,
-    buyer:'مشتري تجريبي ب',v410Snapshot:{cost:109840,margin:58462}};
-  db.sales.push(s1,s2);
+  // Use the real in-app addSale() handler, not fabricated records injected into db.sales.
+  actualSale(c,dateAdd(farm.first,39),9000,17460,7.4,'مشتري تجريبي أ',
+    {cost:97000,margin:32204});
+  actualSale(c,dateAdd(farm.first,41),10300,22145,7.6,'مشتري تجريبي ب',
+    {cost:109840,margin:58462});
  }
 }
 assert.equal(db.daily.length,168,'42 daily records in each of 4 houses');
-assert.equal(db.sales.length,8,'Two partial sales per house');
+assert.equal(db.sales.length,8,'Two sales via real UI save handler per house');
+const beforeOversale=db.sales.length;
+actualOversale();
+function actualOversale(){
+ const c=db.cycles[0];
+ saleControls.saleCycle.value=c.id;
+ saleControls.saleBirds.value='1';
+ saleControls.saleWeightUnit.value='kg';
+ saleControls.saleWeight.value='2.1';
+ saleControls.salePrice.value='7.5';
+ saleControls.saleDate.value=c.endedAt;
+ saleControls.saleBuyer.value='QA invalid over-sale';
+ saleCtx.postSale();
+ assert.equal(db.sales.length,beforeOversale,'Cannot sell a bird not available after final harvest');
+ assert.match(saleAlerts.at(-1),/أكبر من الحي المتاح/);
+}
 assert.equal(db.v410.movements.length,32,'8 distinct stock issues per cycle');
 assert.equal(new Set(db.v410.movements.map(x=>x.farmId+'|'+x.operationRef)).size,32);
 const frozenSaleState=JSON.stringify(db.sales);
