@@ -256,6 +256,14 @@
  function commit(db,input,ctx){
   if(typeof ctx?.persist!=='function')fail('Persistent local save is required');
   const plan=prepare(db,input,ctx),previousV410=db.v410,previousFinance=db.finance;
+  if(input?.draftId){
+   const id=String(input.draftId),saved=(plan.nextV410.purchaseDrafts||[]);
+   if(!saved.some(d=>d.id===id&&d.farmId===input.farmId))
+    fail('Saved draft not found for the selected farm');
+   // Remove the staged document IN THE SAME persist as the actual invoice.
+   // Only a successful final commit creates inventory and financial costs.
+   plan.nextV410.purchaseDrafts=saved.filter(d=>d.id!==id);
+  }
   try{
    db.v410=plan.nextV410;
    db.finance=plan.nextFinance;

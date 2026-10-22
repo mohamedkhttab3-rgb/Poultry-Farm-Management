@@ -15,7 +15,7 @@ assert(workspace.includes('pfm-v8-issue-cycle')&&workspace.includes('pfm-v8-issu
 assert(workspace.includes('new MutationObserver(translate)'),'Languages must stay consistent');
 assert(finance.includes("addFeed=function(){if(window.PFMV8SingleEntryActive)"),'Old feed direct-cost form not blocked');
 assert(finance.includes("addMed=function(){if(window.PFMV8SingleEntryActive)"),'Old medicine direct-cost form not blocked');
-const issueSource=workspace.match(/function issue\(\)\{[\s\S]*?(?=\nfunction build\(\))/)?.[0];
+const issueSource=workspace.match(/function issue\(override\)\{[\s\S]*?(?=\nfunction dailyMedicine\(\))/)?.[0];
 assert(issueSource,'Could not locate actual unified issue handler');
 function scenario(){
  const f='f1',c='c1',date='2026-04-02';

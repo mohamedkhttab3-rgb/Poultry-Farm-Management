@@ -130,17 +130,17 @@ function farmChange(){
  if(legacy&&legacy.value!==fid)legacy.value=fid;
  refreshIssues();
 }
-function issue(){
- if(typeof issueEditingId!=='undefined'&&issueEditingId){correctIssue(issueEditingId,false);return;}
+function issue(override){
+ if(!override&&typeof issueEditingId!=='undefined'&&issueEditingId){correctIssue(issueEditingId,false);return;}
  if(issuing)return;
  issuing=true;
  let checkpoint=null,persisted=false;
  try{
-  const lot=(stock().lots||[]).find(x=>x.id===$('pfm-v8-issue-lot').value);
-  const cycle=(db.cycles||[]).find(x=>x.id===$('pfm-v8-issue-cycle').value);
-  const qty=Number($('pfm-v8-issue-qty').value),date=$('pfm-v8-issue-date').value;
-  const issueRef=String($('pfm-v8-issue-ref').value||'').trim();
-  if(!lot||!cycle||lot.farmId!==selectedFarm()||cycle.farmId!==lot.farmId)throw Error(tr('اختر دفعة ودورة من نفس المزرعة.','Choose a lot and cycle from the same farm.'));
+  const lot=(stock().lots||[]).find(x=>x.id===(override?.lotId||$('pfm-v8-issue-lot').value));
+  const cycle=(db.cycles||[]).find(x=>x.id===(override?.cycleId||$('pfm-v8-issue-cycle').value));
+  const qty=Number(override?.qty??$('pfm-v8-issue-qty').value),date=override?.date||$('pfm-v8-issue-date').value;
+  const issueRef=String(override?.operationRef||$('pfm-v8-issue-ref').value||'').trim();
+  if(!lot||!cycle||lot.farmId!==(override?cycle.farmId:selectedFarm())||cycle.farmId!==lot.farmId)throw Error(tr('اختر دفعة ودورة من نفس المزرعة.','Choose a lot and cycle from the same farm.'));
   if(!Number.isFinite(qty)||qty<=0||qty>balance(lot)+0.0000001)throw Error(tr('الكمية غير صحيحة أو تتجاوز الرصيد.','Quantity is invalid or exceeds available stock.'));
   if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||
     Number.isNaN(Date.parse(date+'T12:00:00Z'))||
@@ -148,6 +148,8 @@ function issue(){
     date<cycle.date||date>new Date().toISOString().slice(0,10))
     throw Error(tr('تاريخ الصرف يجب أن يكون صحيحًا وداخل الدورة وحتى اليوم.','Issue date must be valid, within the cycle and no later than today.'));
   if(!issueRef||issueRef.length>64)throw Error(tr('أدخل رقم إذن صرف صحيحًا (حتى 64 حرفًا).','Enter a valid issue reference (up to 64 characters).'));
+  if(override?.medication&&!['med','vaccine','disinfectant'].includes(lot.kind))
+   throw Error(tr('اختر دفعة دواء أو تحصين أو مطهر من المشتريات.','Select a purchased medicine, vaccine or disinfectant lot.'));
   if(!['feed','med','vaccine','disinfectant','bedding'].includes(lot.kind))
     throw Error(tr('هذه الدفعة ليست من الأصناف القابلة للصرف.','This is not an issuable stock lot.'));
   if(!Number.isFinite(Number(lot.unitCost))||Number(lot.unitCost)<0)
@@ -189,7 +191,8 @@ function issue(){
   }else if(sourceType==='med'){
    db.meds.push({id:recId,cycleId:cycle.id,date,type:kind==='med'?'دواء':kind==='vaccine'?'تحصين':'مطهر',
      name:lot.item,qty,cost,currency:lot.currency||db.settings?.currency||'SAR',
-     dose:'',withdrawal:0,v410MovementId:movement.id,updatedAt:now});
+     dose:String(override?.medication?.dose||''),withdrawal:Number(override?.medication?.withdrawal||0),
+     v410MovementId:movement.id,updatedAt:now});
   }else{
    const current=db.finance[cycle.id]||{},existing=typeof normalizeFinanceExpenses==='function'?normalizeFinanceExpenses(current):current.expenses||[];
    const entry={id:recId,category:'نشارة',amount:cost,updatedAt:now};
@@ -207,9 +210,15 @@ function issue(){
   persisted=true;
   if(sourceType==='expense'&&typeof financeDraftExpenses!=='undefined')
    financeDraftExpenses[cycle.id]=normalizeFinanceExpenses(db.finance[cycle.id]);
-  $('pfm-v8-issue-qty').value='';
-  $('pfm-v8-issue-ref').value=uuid(); // new draft reference only after save
-  $('pfm-v8-issue-state').textContent=tr('تم صرف الكمية للعنبر وتحديث المخزون وتكلفة الدورة مرة واحدة. إذن: ','Stock issued with one inventory movement and one cycle cost. Reference: ')+issueRef;
+  if(override?.medication){
+   for(const id of ['medQty','medDose','medWithdrawal'])if($(id))$(id).value='';
+   if(typeof renderMedTable==='function')renderMedTable();
+   alert(tr('تم تسجيل المتابعة الصحية وصرف المخزون، وتحميل تكلفة الدواء مرة واحدة.','Medicine record and stock issue saved; cost posted once.'));
+  }else{
+   $('pfm-v8-issue-qty').value='';
+   $('pfm-v8-issue-ref').value=uuid(); // new draft reference only after save
+   $('pfm-v8-issue-state').textContent=tr('تم صرف الكمية للعنبر وتحديث المخزون وتكلفة الدورة مرة واحدة. إذن: ','Stock issued with one inventory movement and one cycle cost. Reference: ')+issueRef;
+  }
   window.PFM_V410?.refresh?.();refreshIssues();
  }catch(err){
   if(checkpoint&&!persisted){
@@ -228,8 +237,46 @@ function issue(){
      else delete financeDraftExpenses[checkpoint.cycleId];
    }
   }
-  $('pfm-v8-issue-state').textContent=tr(persisted?'تم حفظ حركة الصرف، لكن تعذر تحديث العرض: ':'تعذر الصرف: ',persisted?'Issue saved but screen refresh failed: ':'Issue failed: ')+err.message;
+  if(override?.medication)alert(tr('تعذر حفظ المتابعة الصحية: ','Medicine issue failed: ')+err.message);
+  else $('pfm-v8-issue-state').textContent=tr(persisted?'تم حفظ حركة الصرف، لكن تعذر تحديث العرض: ':'تعذر الصرف: ',persisted?'Issue saved but screen refresh failed: ':'Issue failed: ')+err.message;
  }finally{issuing=false;}
+}
+function dailyMedicine(){
+ const chosen=$('medCycle');
+ const cycles=[...(chosen?.selectedOptions||[])].map(o=>o.value).filter(Boolean);
+ if(cycles.length!==1){alert(tr('اختر دورة وعنبرًا واحدًا لتسجيل الاستخدام الفعلي.','Select exactly one house/cycle for medicine use.'));return;}
+ if(typeof editState!=='undefined'&&editState.type==='med'){
+  alert(tr('لتصحيح كمية أو تكلفة صرف مرتبط بالمخزون، استخدم تعديل حركة الصرف في المشتريات؛ لا تُنشأ فاتورة جديدة هنا.','Correct linked stock quantities from the inventory issue log, not the daily record.'));return;
+ }
+ const lotId=$('v410MedLot')?.value||'';
+ const lot=(stock().lots||[]).find(l=>l.id===lotId);
+ if(!lot||!['med','vaccine','disinfectant'].includes(lot.kind)){alert(tr('اختر دفعة مشتريات دواء أو تحصين أو مطهر.','Select a purchased medicine, vaccine or disinfectant lot.'));return;}
+ const qty=Number($('medQty')?.value);
+ const withdrawal=Number($('medWithdrawal')?.value||0);
+ if(!Number.isFinite(qty)||qty<=0||!Number.isInteger(withdrawal)||withdrawal<0){
+  alert(tr('أدخل كمية صحيحة موجبة وفترة سحب بالأيام.','Enter positive quantity and nonnegative withdrawal days.'));return;
+ }
+ issue({lotId,cycleId:cycles[0],qty,date:$('medDate')?.value||new Date().toISOString().slice(0,10),
+  operationRef:uuid(),medication:{dose:$('medDose')?.value?.trim()||'',withdrawal}});
+}
+function configureDailyMedicines(){
+ const view=$('meds'),control=$('v410MedLot');if(!view||!control)return;
+ const cost=$('medCost')?.closest('.field');if(cost)cost.hidden=true;
+ const medName=$('medName');if(medName)medName.readOnly=true;
+ const selectLabel=control.closest('label')?.querySelector('span')||control.closest('.field')?.querySelector(':scope > span');
+ if(selectLabel)selectLabel.textContent=tr('دفعة الدواء/التحصين المشتراة *','Purchased medicine/vaccine lot *');
+ const instructions=document.createElement('p');
+ instructions.className='note';instructions.id='pfm-v81-health-help';
+ instructions.textContent=tr('المورد والفاتورة والسعر والضريبة في المشتريات فقط. سجّل هنا الكمية والجرعة وفترة السحب؛ التكلفة تُحسب تلقائيًا من دفعة المخزون.','Supplier, invoice and VAT are recorded in Purchases only. Enter quantity, dose and withdrawal; stock batch determines the cost.');
+ view.querySelector('.scope-form-grid')?.after(instructions);
+ const style=document.createElement('style');style.id='pfm-v81-daily-med-css';
+ style.textContent='#meds .v410-direct-tax,#meds .field:has(#medCost){display:none!important}'+
+  '#meds table th:nth-child(8),#meds table td:nth-child(8){display:none!important}';
+ document.head.appendChild(style);
+ // Replace the legacy direct-cost medicine writer while preserving the same
+ // existing technical monitoring screen and its read-only historical data.
+ if(typeof addMed==='function')addMed=function(){return dailyMedicine()};
+ window.PFMV81DailyMedicineIssue=dailyMedicine;
 }
 function build(){
  if(installed||!window.PFMV8SingleEntryActive||!$('pfm-v8-lines')||!$('pfm75-stock')||!window.PFM_V410)return false;
@@ -272,7 +319,7 @@ function build(){
  '#pfm-v8-lines .pfm-v8-workspace-section h4{margin:0 0 5px}',
  '#pfm75-purchases .pfm75-top,#pfm75-purchases .pfm75-tabs{display:none!important}',
  '#pfm75-purchases #pfm75-stock{display:block!important}',
- '#pfm75-stock-old,#pfm75-stock-lots>.panel:not(#pfm-v8-workspace),#pfm75-house-consumption{display:none!important}',
+ '#pfm75-stock-old,#pfm75-lots-form,#pfm75-stock-lots>.panel:not(#pfm-v8-workspace),#pfm75-house-consumption{display:none!important}',
  '#pfm-v8-workspace .pfm-v8-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}',
  '#pfm-v8-workspace label{display:flex;flex-direction:column;gap:6px}',
  '#pfm-v8-workspace input,#pfm-v8-workspace select{width:100%;min-height:40px}',
@@ -316,7 +363,7 @@ function build(){
  };
  const translate=()=>{nativeLang();syncNav();};
  new MutationObserver(translate).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
- translate();farmChange();installed=true;
+ translate();farmChange();configureDailyMedicines();installed=true;
  return true;
 }
 let tries=0;

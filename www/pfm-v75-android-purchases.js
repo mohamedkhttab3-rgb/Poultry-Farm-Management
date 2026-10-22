@@ -16,7 +16,7 @@ let ready=false,tab='expenses';
 function alertError(t){window.alert(t)}
 function html(){
  const inv=$('inventory');if(!inv||!$('v410-lot-panel')||!$('v52-chick-root')||!$('v52-detailed-root')||!core())return false;
- const n=inv.querySelector(':scope > h2');if(n){n.textContent='المشتريات';n.dataset.v410Ar='المشتريات';n.dataset.v410En='Purchases';}
+ const n=inv.querySelector(':scope > h2');if(n){n.textContent='المشتريات والمخزون';n.dataset.v410Ar='المشتريات والمخزون';n.dataset.v410En='Purchases & Inventory';}
  // Keep the sidebar item 'المخزون' under the Purchases category; screen heading remains 'المشتريات'.
  const originals=[...inv.children].filter(x=>x.classList?.contains('panel')&&x.id!=='v410-lot-panel');
  const host=document.createElement('section');host.id='pfm75-purchases';
