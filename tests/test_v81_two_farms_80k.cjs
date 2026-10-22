@@ -133,10 +133,28 @@ for(const farm of farms){
   L('asset','شفاطات تهوية',1,120000,
     {startDate:farm.first,lifeMonths:60,residual:0,vatRate:15,reclaim:100})
  ]);
+ // Every remaining supported direct category must be exercised as an original
+ // source invoice, not added again as a legacy manual finance entry.
+ // Same supplier+invoice number in ANOTHER farm is valid scope isolation.
+ addInvoice(farm,'QA-RENT-COMMON-2026','مكتب إيجارات تجريبي',[
+  L('rent','إيجار خدمة عنبر خاصة',1,600,{cycleId:ids[0]})
+ ],dateAdd(farm.first,10));
+ addInvoice(farm,invoiceSet+'-H-POWER','صيانة كهربائية تجريبية',[
+  L('electricity','كهرباء مولد احتياطي خاصة',1,400,{cycleId:ids[1]})
+ ],dateAdd(farm.first,11));
+ addInvoice(farm,invoiceSet+'-H-WATER','شركة مياه محلية تجريبية',[
+  L('water','مياه معالجة خاصة',1,300,{cycleId:ids[0]})
+ ],dateAdd(farm.first,12));
+ addInvoice(farm,invoiceSet+'-EQ-RENT','تأجير معدات افتراضي',[
+  L('equipment_rent','إيجار معدة صيانة',1,250,{cycleId:ids[1]})
+ ],dateAdd(farm.first,13));
+ addInvoice(farm,invoiceSet+'-PETTY','مصروفات تشغيلية تجريبية',[
+  L('other','مصروفات نثرية',1,150,{cycleId:ids[0]})
+ ],dateAdd(farm.first,14));
 }
-assert.equal(docs.length,24,'12 real-shaped documents per farm');
-assert.equal(new Set(docs.map(d=>d.farmId+'|'+d.supplier+'|'+d.invoice)).size,24);
-assert.equal(db.v410.purchaseDocuments.length,24);
+assert.equal(docs.length,34,'17 real-shaped source documents per farm');
+assert.equal(new Set(docs.map(d=>d.farmId+'|'+d.supplier+'|'+d.invoice)).size,34);
+assert.equal(db.v410.purchaseDocuments.length,34);
 assert.equal(Object.keys(db.v410.chicks).length,4,'Four cycles have chick costs without duplication');
 assert.equal(db.v410.lots.length,14,'Seven purchased inventory batches per farm');
 assert.equal(db.v410.sharedExpenses.length,8,'4 farm-wide source documents per farm');
@@ -248,8 +266,9 @@ for(const c of db.cycles){
  assert.equal(db.feed.filter(x=>x.cycleId===c.id).reduce((n,r)=>n+r.qty*r.price,0),113280);
  assert.equal(db.meds.filter(x=>x.cycleId===c.id).reduce((n,r)=>n+r.cost,0),11700);
  assert.equal(db.finance[c.id].chicks,43460);
- assert.equal(db.finance[c.id].expenses.reduce((n,r)=>n+r.amount,0),15900,
-  'Direct house 8,000 labor + 2,000 heating + 2,500 sale transport + 1,000 loading + 2,400 bedding');
+ const extraDirect=c.houseId.endsWith('-H1')?1050:650;
+ assert.equal(db.finance[c.id].expenses.reduce((n,r)=>n+r.amount,0),15900+extraDirect,
+  'Direct house costs include every original invoice kind, plus one bedding stock issue');
 }
 for(const lot of db.v410.lots){
  assert.equal(originalLotQuantity.get(lot.id),lot.qty,'Purchase invoice quantity must never be changed');
@@ -322,20 +341,20 @@ for(const c of db.cycles){
  assert.equal(p.feed,64000);
  assert.equal(p.fc,113280);
  assert.equal(p.meds,11700);
- assert.equal(p.expenseTotal,15900);
+ assert.equal(p.expenseTotal,15900+(c.houseId.endsWith('-H1')?1050:650));
  assert.equal(p.sharedCost,20500);
  assert.equal(p.depreciationCost,2000);
- assert.equal(p.cost,206840,'Independent expected cost per house');
+ assert.equal(p.cost,c.houseId.endsWith('-H1')?207890:207490,'Independent expected cost per house');
  assert.equal(p.rev,297506,'Independent expected revenue per house');
- assert.equal(p.profit,90666);
+ assert.equal(p.profit,c.houseId.endsWith('-H1')?89616:90016);
  assert.equal(round(p.fcr),1.62,'Plausible FCR including sold weight');
- assert.equal(round(p.costPerKg),round(206840/39605));
- assert.equal(round(p.costPerBird),round(206840/19300));
+ assert.equal(round(p.costPerKg),round(p.cost/39605));
+ assert.equal(round(p.costPerBird),round(p.cost/19300));
 }
 assert.equal(JSON.stringify(db),beforeCalc,'Calc must not mutate fixture or frozen sales');
-assert.equal(Object.values(computed).reduce((n,p)=>n+p.cost,0),827360);
+assert.equal(Object.values(computed).reduce((n,p)=>n+p.cost,0),830760);
 assert.equal(Object.values(computed).reduce((n,p)=>n+p.rev,0),1190024);
-assert.equal(Object.values(computed).reduce((n,p)=>n+p.profit,0),362664);
+assert.equal(Object.values(computed).reduce((n,p)=>n+p.profit,0),359264);
 // Actual closeCycle() with its existing totalFrozen and available-bird guards.
 const closes=[],notifications=[];
 let selectedCycle=db.cycles[0].id;
@@ -357,12 +376,12 @@ db.v410.sharedExpenses[0].allocations[0].amount-=1;
 for(const c of db.cycles){
  selectedCycle=c.id;closeCtx.actualClose();
  assert.equal(db.v410.close[c.id].status,'closed');
- assert.equal(db.v410.close[c.id].cost,206840);
- assert.equal(db.v410.close[c.id].profit,90666);
+ assert.equal(db.v410.close[c.id].cost,c.houseId.endsWith('-H1')?207890:207490);
+ assert.equal(db.v410.close[c.id].profit,c.houseId.endsWith('-H1')?89616:90016);
 }
 assert.equal(closes.length,4,'Each house closes precisely once');
 assert.equal(JSON.stringify(db.sales),frozenSaleState,'Partial sales frozen costs remain unchanged');
-assert.equal(db.v410.purchaseDocuments.length,24,'No duplicated source invoices by closing');
+assert.equal(db.v410.purchaseDocuments.length,34,'No duplicated source invoices by closing');
 assert.equal(db.v410.movements.length,32,'No duplicated stock charges by closing');
 assert.deepEqual(accounting.validateLedger(db),[]);
 assert.throws(()=>accounting.allocate(db,{farmId:farms[0].id,cycleIds:[db.cycles[0].id],amount:10}),/closed/);
@@ -382,13 +401,13 @@ const byFarm=farms.map(f=>{
   costs:ccFarm.reduce((n,p)=>n+p.cost,0),revenue:ccFarm.reduce((n,p)=>n+p.rev,0),
   profit:ccFarm.reduce((n,p)=>n+p.profit,0)};
 });
-assert.deepEqual(byFarm.map(x=>[x.costs,x.revenue,x.profit]),[[413680,595012,181332],[413680,595012,181332]]);
+assert.deepEqual(byFarm.map(x=>[x.costs,x.revenue,x.profit]),[[415380,595012,179632],[415380,595012,179632]]);
 if(process.argv[2]==='--export'){
  const destination=path.resolve(process.argv[3]||'PFM_V81_TWO_FARMS_80K_FICTIONAL_QA.json');
  fs.mkdirSync(path.dirname(destination),{recursive:true});
  fs.writeFileSync(destination,JSON.stringify(db,null,2));
  console.log('Exported FICTIONAL QA-only backup (import would REPLACE user data): '+destination);
 }
-console.log('PASS 80K TWO-FARM acceptance: 2 farms, 4 houses, 20,000 DOC each, 168 daily entries, 24 supplier invoices, 32 stock issues, mixed VAT, 8 partial sales, 4 depreciation postings, 4 financial closes.');
-console.log('COST 827,360 SAR; REVENUE 1,190,024 SAR; PROFIT 362,664 SAR; purchased unused stock remains 47,440 SAR and is NOT expensed.');
+console.log('PASS 80K TWO-FARM acceptance: 2 farms, 4 houses, 20,000 DOC each, 168 daily entries, 34 supplier invoices (ALL supported expense categories), 32 stock issues, mixed VAT, 8 partial sales, 4 depreciation postings, 4 financial closes.');
+console.log('COST 830,760 SAR; REVENUE 1,190,024 SAR; PROFIT 359,264 SAR; purchased unused stock remains 47,440 SAR and is NOT expensed.');
 console.log('DISCLAIMER: Realistic SYNTHETIC test data, never real customer/farm records. No device installation or cloud sync executed.');
