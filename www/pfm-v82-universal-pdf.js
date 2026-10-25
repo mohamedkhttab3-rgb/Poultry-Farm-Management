@@ -239,7 +239,7 @@
    const lines=tab.rows.length?tab.rows:[[tr('لا توجد بيانات في النطاق المحدد','No records in selected scope')]];
    // At 8.5pt these caps leave 20+mm between the final row and footer, even
    // with varied Arabic table text (no arbitrary clipping across A4 pages).
-   const perPage=Math.max(12,Math.min(20,Math.floor(30/Math.max(1,tab.headers.length/6))));
+   const perPage=tab.headers.length>=8?13:tab.headers.length>=6?16:20;
    for(let start=0;start<lines.length;start+=perPage){
     const slice=lines.slice(start,start+perPage);
     const rows=slice.map(row=>'<tr>'+tab.headers.map((_,i)=>'<td>'+e(row[i]??'')+'</td>').join('')+'</tr>').join('');
