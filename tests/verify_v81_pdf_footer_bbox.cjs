@@ -3,6 +3,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
 const source=fs.readFileSync(process.argv[2]||'/tmp/pfm-v81-layout.xml','utf8');
 const pages=[...source.matchAll(/<page\b[^>]*>([\s\S]*?)<\/page>/g)];
 assert(pages.length>=2,'The real print fixture must paginate over at least two A4 pages');
+const expectedRows=Number(process.argv[4]||125);
+let totalRows=0;
 for(const [i,page] of pages.entries()){
  const words=[...page[1].matchAll(/<word\b([^>]*)>([\s\S]*?)<\/word>/g)].map(m=>{
  const y=m[1].match(/\byMin="([^"]+)"/)?.[1],last=m[1].match(/\byMax="([^"]+)"/)?.[1];
@@ -10,12 +12,14 @@ for(const [i,page] of pages.entries()){
  });
  const branding=words.filter(w=>w.text==='Management');
  const rows=words.filter(w=>w.text.startsWith('ROW-'));
+ totalRows+=rows.length;
  assert(branding.length===1,'Page '+(i+1)+': expected one branded footer, got '+branding.length);
  assert(rows.length>0,'Page '+(i+1)+': missing sample ledger table rows');
  const lowestRow=Math.max(...rows.map(w=>w.bottom));
  assert(branding[0].top>lowestRow+2,'Page '+(i+1)+': brand overlaps last table row (rowY='+lowestRow+', footerY='+branding[0].top+')');
  console.log('PASS A4 page '+(i+1)+': '+rows.length+' ledger rows stop at '+lowestRow.toFixed(1)+'pt; repeating brand begins at '+branding[0].top.toFixed(1)+'pt');
 }
+assert.equal(totalRows,expectedRows,'Printed PDF lost or duplicated ledger rows');
 if(process.argv[3]){
  const imageList=fs.readFileSync(process.argv[3],'utf8');
  const visibleImages=[...imageList.matchAll(/^\s*(\d+)\s+\d+\s+image\s+/gm)].map(m=>Number(m[1]));
