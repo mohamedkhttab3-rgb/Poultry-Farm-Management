@@ -12,6 +12,9 @@ for(const [i,p] of pages.entries()){
   value:m[2].trim(), y:Number(m[1].match(/yMin="([^"]+)"/)?.[1]),end:Number(m[1].match(/yMax="([^"]+)"/)?.[1])
  }));
  const brand=words.filter(x=>x.value==='Management'&&x.y>490);
+ console.log('A4 page',i+1,'identity tokens',words.filter(x=>/^(Management|Poultry|M\.K)/.test(x.value)).map(x=>({v:x.value,y:x.y})),
+  'last data',Math.max(0,...words.filter(x=>/2026/.test(x.value)).map(x=>x.end)),
+  'images',imgPages.filter(x=>x===i+1).length);
  assert(brand.length>=1,'Page '+(i+1)+' missing repeated bottom-centre company name');
  const anchor=brand[brand.length-1];
  const rows=words.filter(x=>x.value.includes('2026')&&x.y<anchor.y);
