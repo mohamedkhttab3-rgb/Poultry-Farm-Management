@@ -1,0 +1,41 @@
+name: PFM QA — real multipage A4 original-logo print verification
+on:
+  push:
+    branches: ['feature/pfm-v81-baseline80k-nav-a4-regression-20261025']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  physical-pdf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Render current shared renderer to physical A4 PDF
+        run: |
+          set -euo pipefail
+          node tests/build_v81_pdf_footer_fixture.cjs /tmp/pfm-smoke.html
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          test -n "$CHROME"
+          "$CHROME" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --no-pdf-header-footer --print-to-pdf=/tmp/pfm-smoke.pdf "file:///tmp/pfm-smoke.html"
+          test -s /tmp/pfm-smoke.pdf
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq poppler-utils
+          pdfinfo /tmp/pfm-smoke.pdf | grep -E 'Pages:|Page size:'
+          pdftotext -bbox /tmp/pfm-smoke.pdf /tmp/pfm-smoke.xml
+          pdfimages -list /tmp/pfm-smoke.pdf > /tmp/pfm-images.txt
+          node tests/verify_v81_pdf_footer_bbox.cjs /tmp/pfm-smoke.xml /tmp/pfm-images.txt
+      - name: Preserve PDF preview and footer extraction evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pfm-a4-original-logo-print-QA
+          path: |
+            /tmp/pfm-smoke.pdf
+            /tmp/pfm-smoke.xml
+            /tmp/pfm-images.txt
+          if-no-files-found: warn
