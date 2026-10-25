@@ -7,11 +7,11 @@
 (function(){
  'use strict';
  const $=id=>document.getElementById(id);
- const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','"':'&quot;',"'":'&#39;'}[c]));
+ const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const en=()=>document.documentElement.lang==='en';
  const tr=(ar,eng)=>en()?eng:ar;
  const txt=x=>String(x??'').replace(/\s+/g,' ').trim();
- const money=x=>Number.isFinite(Number(x))?new Intl.NumberFormat(en()?'en-US':'en-US',{maximumFractionDigits:2}).format(+x):'—';
+ const money=x=>Number.isFinite(Number(x))?new Intl.NumberFormat(en()?'en-US':'en-US',{maximumFractionDigits:3}).format(+x):'—';
  const date=x=>String(x||'—').slice(0,10);
  let exporting=false,modal=null;
  function env(){
@@ -42,6 +42,32 @@
   const fam=c=>r.farm(c?.farmId),hom=c=>r.house(c?.houseId);
   const common=(key,colsAr,colsEn,rows,note)=>({key,headers:cols(colsAr,colsEn),rows,note});
   switch(view.id){
+   case 'dash':{
+    const farmIds=new Set(r.cycles.map(c=>c.farmId));
+    const farmRows=(d.farms||[]).filter(f=>farmIds.has(f.id)).map(f=>{
+     const fc=r.cycles.filter(c=>c.farmId===f.id);
+     const ids=new Set(fc.map(c=>c.id));
+     const received=fc.reduce((n,c)=>n+(+c.birds||0),0);
+     const dead=(d.daily||[]).filter(x=>ids.has(x.cycleId)).reduce((n,x)=>n+(+x.dead||0),0);
+     const culled=(d.daily||[]).filter(x=>ids.has(x.cycleId)).reduce((n,x)=>n+(+x.cull||0),0);
+     const sold=(d.sales||[]).filter(x=>ids.has(x.cycleId)).reduce((n,x)=>n+(+x.birds||0),0);
+     return line([f.name,fc.length,received,dead,culled,sold,Math.max(0,received-dead-culled-sold)]);
+    });
+    const timeline=new Map();
+    for(const x of (d.daily||[]).filter(x=>r.ids.has(x.cycleId))){
+     const dt=date(x.date),val=timeline.get(dt)||{dead:0,cull:0,feed:0,water:0};
+     val.dead+=+x.dead||0;val.cull+=+x.cull||0;
+     val.feed+=+x.feed||0;val.water+=+x.water||0;timeline.set(dt,val);
+    }
+    return [
+     common('farm-status',
+      ['المزرعة','عدد العنابر','الصيصان المستلمة','النافق','الفرز','المباع','الرصيد الحسابي'],
+      ['Farm','Houses','Received DOC','Mortality','Culls','Sold','Reconciled birds'],farmRows),
+     common('daily-trends',['التاريخ','النافق','الفرز','العلف (كجم)','المياه (لتر)'],
+      ['Date','Mortality','Culls','Feed kg','Water L'],
+      [...timeline].sort((a,b)=>a[0].localeCompare(b[0])).map(([dt,v])=>line([dt,v.dead,v.cull,v.feed,v.water])))
+    ];
+   }
    case 'farms':return [common('farms',['المزرعة','الشركة','الموقع','المدير'],['Farm','Company','Location','Manager'],
     byFarm(d.farms).map(f=>line([f.name,f.companyName||f.company,f.location,f.manager])))];
    case 'houses':return [common('houses',['المزرعة','العنبر','السعة'],['Farm','House','Capacity'],
@@ -59,8 +85,10 @@
     perCycle(d.meds).map(x=>{const c=r.cycle(x.cycleId);return line([date(x.date),fam(c),hom(c),x.type,x.name,x.qty,x.withdrawal]);}),
     tr('السجل الفني لا يُنشئ فاتورة شراء ثانية.','Technical record does not create a duplicate purchase invoice.'))];
    case 'inventory':{
-    const docs=byFarm(d.v410?.purchaseDocuments).filter(x=>r.cycles.length?true:!ctx.filters.cycle&&!ctx.filters.house);
-    const lots=byFarm(d.v410?.lots).filter(x=>!ctx.filters.cycle&&!ctx.filters.house||r.ids.has(x.cycleId));
+    const docs=byFarm(d.v410?.purchaseDocuments).filter(x=>!ctx.filters.cycle&&!ctx.filters.house||
+       (x.lines||[]).some(line=>!line.cycleId||r.ids.has(line.cycleId)));
+    const lots=byFarm(d.v410?.lots).filter(x=>!ctx.filters.cycle&&!ctx.filters.house||
+       (d.v410?.movements||[]).some(m=>m.lotId===x.id&&r.ids.has(m.cycleId)));
     const movements=(d.v410?.movements||[]).filter(x=>{
      if(x.cycleId)return r.ids.has(x.cycleId);
      const lot=(d.v410?.lots||[]).find(y=>y.id===x.lotId);
@@ -68,9 +96,9 @@
     });
     return [
      common('invoices',['المزرعة','التاريخ','المورد','رقم الفاتورة','الإجمالي'],['Farm','Date','Supplier','Invoice','Total'],
-      docs.map(x=>line([r.farm(x.farmId),date(x.date),x.supplier||x.vendor,x.invoiceNo||x.number,x.total||x.grossTotal]))),
+      docs.map(x=>line([r.farm(x.farmId),date(x.date),x.supplier||x.vendor,x.invoice||x.invoiceNo||x.number,x.totals?.gross||x.totals?.total||x.total||x.grossTotal]))),
      common('lots',['المزرعة','الصنف','الكمية','المتبقي','التكلفة للوحدة'],['Farm','Stock Item','Quantity','Remaining','Unit Cost'],
-      lots.map(x=>line([r.farm(x.farmId),x.name||x.itemName||x.type,x.qty||x.quantity,x.remaining,x.unitCost]))),
+      lots.map(x=>line([r.farm(x.farmId),x.item||x.name||x.itemName||x.type,x.qty??x.quantity,x.remaining??x.balance,x.unitCost]))),
      common('issues',['التاريخ','دفعة المخزون','الدورة','الكمية','النوع'],['Date','Stock Lot','Cycle','Quantity','Type'],
       movements.map(x=>line([date(x.date),String(x.lotId||'').slice(0,12),r.cycle(x.cycleId)?.breed||'',x.qty||x.quantity,x.type])) )
     ];
@@ -142,17 +170,23 @@
   const scopeText=[tr('الدورة','Cycle')+': '+(scope('cycle')||tr('الكل','All')),
    tr('المزرعة','Farm')+': '+(scope('farm')||tr('الكل','All')),
    tr('العنبر','House')+': '+(scope('house')||tr('الكل','All'))].join(' • ');
-  const count=tables.reduce((a,s)=>a+s.rows.length,0);
+  const count=tables.reduce((a,s)=>a+(ctx.filters.search?
+   s.rows.filter(row=>row.join(' ').toLocaleLowerCase().includes(ctx.filters.search)).length:s.rows.length),0);
   const sections=tables.map(tab=>{
+   const rows=ctx.filters.search?
+    tab.rows.filter(row=>row.join(' ').toLocaleLowerCase().includes(ctx.filters.search)):tab.rows;
+   if(rows.length>12000)throw Error(tr('عدد الصفوف كبير جدًا للتصدير مرة واحدة؛ حدد دورة أو مزرعة.','Too many rows for one PDF; filter by farm or cycle.'));
    const heading=({daily:tr('المتابعة اليومية','Daily Records'),weights:tr('الأوزان الأسبوعية','Weekly Weights'),
     farms:tr('المزارع','Farms'),houses:tr('العنابر','Houses'),cycles:tr('دورات التربية','Cycles'),
     feed:tr('استهلاك العلف','Feed Consumption'),meds:tr('العلاج والتحصينات','Health Records'),
     invoices:tr('فواتير المشتريات','Purchase Invoices'),lots:tr('دفعات المخزون','Stock Lots'),
-    issues:tr('حركات صرف المخزون','Stock Issues'),sales:tr('المبيعات','Sales')}[tab.key]||tab.key);
+    issues:tr('حركات صرف المخزون','Stock Issues'),sales:tr('المبيعات','Sales'),
+    'farm-status':tr('ملخص الإنتاج حسب المزرعة','Farm Production Overview'),
+    'daily-trends':tr('ملخص المتابعة اليومية','Daily Monitoring Summary')}[tab.key]||tab.key);
    const head='<thead><tr>'+tab.headers.map(h=>'<th>'+e(h)+'</th>').join('')+'</tr></thead>';
-   const body=tab.rows.length?tab.rows.map(row=>'<tr>'+row.map(v=>'<td>'+e(v)+'</td>').join('')+'</tr>').join(''):
+   const body=rows.length?rows.map(row=>'<tr>'+row.map(v=>'<td>'+e(v)+'</td>').join('')+'</tr>').join(''):
     '<tr><td colspan="'+tab.headers.length+'" class="empty">'+tr('لا توجد سجلات في النطاق المحدد.','No records in selected scope.')+'</td></tr>';
-   return '<section class="report-section"><div class="section-heading"><h2>'+e(heading)+'</h2><span>'+tab.rows.length+' '+tr('سجل','records')+'</span></div>'+
+   return '<section class="report-section"><div class="section-heading"><h2>'+e(heading)+'</h2><span>'+rows.length+' '+tr('سجل','records')+'</span></div>'+
     (tab.note?'<p class="note">'+e(tab.note)+'</p>':'')+
     '<table>'+head+'<tbody>'+body+'</tbody></table></section>';
   }).join('');
