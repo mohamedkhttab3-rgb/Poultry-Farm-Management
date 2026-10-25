@@ -36,13 +36,13 @@ const write=async(screen)=>{
 (async()=>{
  let html=await write('dashboard');
  assert(html.includes('ملخص الإنتاج حسب المزرعة'));
- assert(html.includes('المزرعة الأولى')&&html.includes('المزرعة الثانية'));
+ assert(fixture.farms.every(f=>html.includes(f.name)),'both fixture farm names must appear in report');
  assert(html.includes('40,000')&&html.includes('80,000'));
  const select=w.document.querySelector('[data-pfm57-role="farm"]');
  select.value=fixture.farms[0].id;
  html=await write('farm');
- assert(html.includes('المزرعة الأولى'));
- assert(!html.includes('المزرعة الثانية'),'farm scope must not leak records');
+ assert(html.includes(fixture.farms[0].name));
+ assert(!html.includes(fixture.farms[1].name),'farm scope must not leak records');
  select.value='';
  const view=w.document.querySelector('main>section');
  view.id='daily';view.querySelector('#v53-overview')?.remove();
