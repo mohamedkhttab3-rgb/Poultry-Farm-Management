@@ -15,9 +15,10 @@ assert(cs.includes('TargetApplicationChosen')&&!cs.includes('ReportCompleted'), 
 assert(csproj.includes('net8.0-windows10.0.19041.0'), 'WinRT target SDK required');
 assert((manifest.build.extraResources||[]).some(x=>x.to==='windows-share/PFMWindowsShare.exe'),'Packaged Windows app must contain helper');
 assert(workflow.includes('dotnet publish desktop/windows-share/PFMWindowsShare.csproj'),'Windows CI must compile helper');
-assert(main.includes('shareSheetRequested:true'),'Electron must request WinRT share rather than show a fake dialog');
-assert(main.includes('spawn(helper,[previewPath]'),'Share the actual validated PDF path');
+assert(main.includes('shareSheetOpened:true')&&cs.includes('File.WriteAllText(statusPath, "OPENED")'), 'Electron must confirm Windows Share UI has actually opened');
+assert(main.includes('spawn(helper,[previewPath,statusFile]'), 'Share the actual validated PDF and receive status marker');
 assert(main.includes('manualShareFallback:true'),'Visible fallback only if native host unavailable');
+assert(main.includes('Windows Share UI did not open in 12 seconds'),'Process spawn alone must never be treated as confirmed sharing');
 assert(!main.includes("message:'تم إنشاء ملف PDF للتشارك.'"),'Remove misleading original pop-up');
 assert(pdf.includes('const marginBoxFooter=android;'),'Windows should never depend on unreliable background image in page margin');
 assert(pdf.includes('bottom:'+"'+(marginBoxFooter?'0':'-6mm')+'"+'!important') ||
