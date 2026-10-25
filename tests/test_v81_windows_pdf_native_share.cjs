@@ -1,0 +1,28 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const main=fs.readFileSync('desktop/main.cjs','utf8');
+const pdf=fs.readFileSync('www/pfm-v59-print-results.js','utf8');
+const cs=fs.readFileSync('desktop/windows-share/Program.cs','utf8');
+const csproj=fs.readFileSync('desktop/windows-share/PFMWindowsShare.csproj','utf8');
+const manifest=JSON.parse(fs.readFileSync('package.json','utf8'));
+const workflow=fs.readFileSync('.github/workflows/pfm-v81-three-platform-build-qa.yml','utf8');
+assert(cs.includes('DataTransferManagerInterop.GetForWindow(Handle)'), 'Share manager must bind to actual window handle');
+assert(cs.includes('DataTransferManagerInterop.ShowShareUIForWindow(Handle)'), 'Request real Windows Share Sheet');
+assert(cs.includes('StorageFile.GetFileFromPathAsync(filePath)'),'Share original PDF file attachment');
+assert(cs.includes('SetStorageItems(new List<IStorageItem> { file }, true)'), 'No sharing plain path text');
+assert(cs.includes('GetDeferral()')&&cs.includes('deferral.Complete()'), 'WinRT requires async file deferral');
+assert(cs.includes('TargetApplicationChosen')&&!cs.includes('ReportCompleted'), 'Target choice must not be reported as sent');
+assert(csproj.includes('net8.0-windows10.0.19041.0'), 'WinRT target SDK required');
+assert((manifest.build.extraResources||[]).some(x=>x.to==='windows-share/PFMWindowsShare.exe'),'Packaged Windows app must contain helper');
+assert(workflow.includes('dotnet publish desktop/windows-share/PFMWindowsShare.csproj'),'Windows CI must compile helper');
+assert(main.includes('shareSheetOpened:true')&&cs.includes('File.WriteAllText(statusPath, "OPENED")'), 'Electron must confirm Windows Share UI has actually opened');
+assert(main.includes('spawn(helper,[previewPath,statusFile]'), 'Share the actual validated PDF and receive status marker');
+assert(main.includes('manualShareFallback:true'),'Visible fallback only if native host unavailable');
+assert(main.includes('Windows Share UI did not open in 12 seconds'),'Process spawn alone must never be treated as confirmed sharing');
+assert(!main.includes("message:'تم إنشاء ملف PDF للتشارك.'"),'Remove misleading original pop-up');
+assert(pdf.includes('const marginBoxFooter=android;'),'Windows should never depend on unreliable background image in page margin');
+assert(pdf.includes('bottom:'+"'+(marginBoxFooter?'0':'-6mm')+'"+'!important') ||
+ pdf.includes("bottom:'+(marginBoxFooter?'0':'-6mm')+'!important"),'Real footer placed in reserved bottom margin');
+assert(pdf.includes('sourceLogoAsDataURI()') && pdf.includes('brandLogo||new URL'), 'Actual approved logo must be embedded');
+assert(pdf.includes('<span>Poultry Farm Management M.K™</span>'),'Brand beside the logo');
+console.log('PASS Windows sharing native attachment, bundled helper and original-logo PDF footer source contracts');

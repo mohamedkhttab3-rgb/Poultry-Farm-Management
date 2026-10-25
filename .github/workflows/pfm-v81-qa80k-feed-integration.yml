@@ -1,7 +1,7 @@
 name: PFM V8.1 — 80K Two Farm Integration QA
 on:
   push:
-    branches: ['feature/pfm-v81-qa-80k-feed-unification-20261022']
+    branches: ['feature/pfm-v81-qa-80k-feed-unification-20261022', 'feature/pfm-v81-windows-direct-pdf-share-20261022']
   workflow_dispatch:
 permissions:
   contents: read
@@ -32,6 +32,7 @@ jobs:
           node tests/test_v81_purchase_dom.cjs
           node tests/test_v81_qa80k_profile_dom.cjs
           node tests/test_v81_report_actions_dom.cjs
+          node tests/test_v81_windows_pdf_native_share.cjs
       - name: Broiler finance, inventory, all purchases and PDF regressions
         run: |
           set -euo pipefail

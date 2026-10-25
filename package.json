@@ -40,6 +40,10 @@
     "appId": "com.poultryfarm.manager",
     "productName": "Poultry Farm Management",
     "asar": true,
+    "extraResources": [
+      { "from": "desktop/windows-share/publish/PFMWindowsShare.exe",
+        "to": "windows-share/PFMWindowsShare.exe" }
+    ],
     "files": [
       "desktop/**/*",
       "www/**/*",

@@ -4,6 +4,7 @@ const {app,BrowserWindow,protocol,net,shell,session,ipcMain,dialog}=require('ele
 const path=require('node:path');
 const fs=require('node:fs');
 const crypto=require('node:crypto');
+const {spawn}=require('node:child_process');
 const {pathToFileURL}=require('node:url');
 const ROOT=path.resolve(__dirname,'..','www');
 const pendingPrintDocuments=new Map();
@@ -64,21 +65,57 @@ async function saveDesktopPDF(event,html,suggestedFileName,requestedAction='prev
   if(!Buffer.isBuffer(pdf)||pdf.length<800||pdf.subarray(0,5).toString()!=='%PDF-')throw new Error('PDF output validation failed');
   const fileName=String(suggestedFileName||'Poultry-Farm-Management-Report.pdf').replace(/[<>:"/\\|?*\u0000-\u001f]/g,'_').slice(0,140);
   if(choice.response===0||choice.response===4){
-    const previewDir=path.join(app.getPath('temp'),'PoultryFarmManagement-PrintPreview');
+    const previewDir=path.join(app.getPath('temp'),'PoultryFarmManagement-PrintPreview',nonce);
     await fs.promises.mkdir(previewDir,{recursive:true});
-    const previewPath=path.join(previewDir,nonce+'.pdf');
+    const previewPath=path.join(previewDir,fileName.toLowerCase().endsWith('.pdf')?fileName:fileName+'.pdf');
     await fs.promises.writeFile(previewPath,pdf);
     if(choice.response===4){
-      // Electron has no portable OS file-share sheet. Expose a REAL PDF file in
-      // Windows Explorer, then the user can invoke Windows "Share" from there.
-      shell.showItemInFolder(previewPath);
-      await dialog.showMessageBox(mainWindow,{
-       type:'info',title:'مشاركة تقرير PDF',
-       message:'تم إنشاء ملف PDF للتشارك.',
-       detail:'الملف محدد في مستكشف الملفات. اختر مشاركة من قائمة الملف في Windows. لا يتم الادعاء بإرساله حتى تختار التطبيق.',
-       buttons:['حسنًا']
-      });
-      return {ok:true,shareFileReady:true};
+      // Invoke the Windows 10/11 Share Sheet through a bundled, per-window
+      // DataTransferManagerInterop host. A file path alone is not a share.
+      const helper=app.isPackaged
+        ?path.join(process.resourcesPath,'windows-share','PFMWindowsShare.exe')
+        :path.join(__dirname,'windows-share','publish','PFMWindowsShare.exe');
+      try{
+        await fs.promises.access(helper,fs.constants.R_OK);
+        const statusFile=path.join(previewDir,nonce+'.share-status');
+        const child=spawn(helper,[previewPath,statusFile],{
+          windowsHide:false,detached:true,stdio:'ignore',shell:false
+        });
+        await new Promise((resolve,reject)=>{
+          let finished=false;
+          const stop=(error)=>{
+           if(finished)return;finished=true;clearInterval(poll);clearTimeout(timeout);
+           if(error)reject(error);else resolve();
+          };
+          const poll=setInterval(async()=>{
+           try{
+            const status=await fs.promises.readFile(statusFile,'utf8');
+            if(status.trim()==='OPENED'){
+             await fs.promises.unlink(statusFile).catch(()=>{});
+             stop();
+            }else if(status.startsWith('ERROR:'))stop(Error(status.slice(6)));
+           }catch(error){if(error.code!=='ENOENT')stop(error)}
+          },150);
+          const timeout=setTimeout(()=>stop(Error('Windows Share UI did not open in 12 seconds')),12000);
+          child.once('error',stop);
+          child.once('exit',code=>stop(Error('Share helper ended before opening ('+code+')')));
+        });
+        child.unref();
+        // Only the OS dialog opening has been confirmed. Sharing depends on
+        // the user's destination choice, which cannot be claimed as delivered.
+        return {ok:true,shareSheetOpened:true};
+      }catch(shareErr){
+        // Only fallback when native sharing is unavailable. Do not say the
+        // document was shared or show a misleading success popup.
+        shell.showItemInFolder(previewPath);
+        await dialog.showMessageBox(mainWindow,{
+          type:'warning',title:'مشاركة تقرير PDF',
+          message:'تعذر فتح نافذة مشاركة Windows مباشرة.',
+          detail:'تم تحديد ملف PDF في مستكشف الملفات حتى تتمكن من اختيار مشاركة يدويًا. السبب: '+String(shareErr.message||shareErr),
+          buttons:['حسنًا']
+        });
+        return {ok:true,manualShareFallback:true};
+      }
     }
     const viewerError=await shell.openPath(previewPath);
     if(viewerError)throw new Error('Could not open PDF viewer: '+viewerError+'; file: '+previewPath);

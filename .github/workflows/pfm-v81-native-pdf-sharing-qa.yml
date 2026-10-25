@@ -1,0 +1,60 @@
+name: PFM V8.1 — Native PDF sharing & full footer QA
+on:
+  push:
+    branches: ['feature/pfm-v81-windows-direct-pdf-share-20261022']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check source syntax and platform contracts
+        run: |
+          set -euo pipefail
+          node --check desktop/main.cjs
+          node --check www/pfm-v59-print-results.js
+          node --check www/pfm-v81-report-actions.js
+          node --check tests/test_v81_pdf_share_header_logo.cjs
+          node scripts/verify-source.cjs
+          node scripts/verify-native.cjs
+      - name: Test original logo and Windows Android Share contracts
+        run: |
+          set -euo pipefail
+          node tests/test_v81_pdf_share_header_logo.cjs
+          node tests/test_v8_pdf_footer_bounds.cjs
+          node tests/test_v81_windows_pdf_native_share.cjs
+          node tests/test_android_export_bridge.cjs
+          node tests/test_v8_logo_order_only.cjs
+      - name: Test all linked financial and 80K demo workflows
+        run: |
+          set -euo pipefail
+          node scripts/prepare-v81-qa80k.cjs www/pfm-v81-qa80k.json
+          node tests/test_v81_qa80k_feed_unification.cjs
+          node tests/test_v81_two_farms_80k.cjs
+          node tests/test_v81_purchases_medications.cjs
+          node tests/test_v81_weight_breed_pdf.cjs
+          npm install --no-save --ignore-scripts --no-audit --no-fund jsdom@26
+          node tests/test_v81_purchase_dom.cjs
+          node tests/test_v81_report_actions_dom.cjs
+  windows-share-build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build Windows WinRT IDataTransferManagerInterop helper
+        shell: pwsh
+        run: |
+          dotnet publish desktop/windows-share/PFMWindowsShare.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o desktop/windows-share/publish
+          if (-not (Test-Path desktop/windows-share/publish/PFMWindowsShare.exe)) { throw 'Share helper missing' }
+          $length=(Get-Item desktop/windows-share/publish/PFMWindowsShare.exe).Length
+          if ($length -lt 1000000) { throw 'Share helper unexpectedly small' }
+          Write-Host "Windows Share helper built: $length bytes"
