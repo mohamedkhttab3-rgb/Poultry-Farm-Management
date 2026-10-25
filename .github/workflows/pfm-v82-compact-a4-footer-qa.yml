@@ -25,6 +25,13 @@ jobs:
           node tests/test_v81_pdf_share_header_logo.cjs
           node tests/test_v8_pdf_footer_bounds.cjs
           node tests/test_v81_windows_pdf_native_share.cjs
+          node tests/test_v8_logo_order_only.cjs
+          node tests/test_v81_weight_breed_pdf.cjs
+          node tests/test_v81_purchases_medications.cjs
+          node tests/test_v81_five_fixes.cjs
+          node tests/test_v82_android_semantic_pdf_pages.cjs
+          node scripts/verify-source.cjs
+          node scripts/verify-native.cjs
       - name: Render 125-row legacy multipage report and dense real-world 13-column cycle
         run: |
           set -euo pipefail
@@ -53,6 +60,8 @@ jobs:
           node tests/test_v82_universal_pdf_dom.cjs
           node tests/test_v81_qa80k_profile_dom.cjs
           node tests/test_v81_navigation_integrity_dom.cjs
+          node tests/test_v81_purchase_dom.cjs
+          node tests/test_v81_report_actions_dom.cjs
           CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
           "$CHROME" --headless --no-sandbox --disable-dev-shm-usage --disable-gpu --no-pdf-header-footer \
             --print-to-pdf=/tmp/pfm82-daily.pdf file:///tmp/pfm82-daily.html
