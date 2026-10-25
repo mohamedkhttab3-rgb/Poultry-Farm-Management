@@ -260,7 +260,7 @@ function createToolbar(section){
     <label class="pfm57-field"><span data-pfm57-ar="③ العنبر" data-pfm57-en="③ House">③ العنبر</span><select data-pfm57-role="house" aria-label="العنبر"><option value="">كل العنابر</option></select></label>
     <label class="pfm57-field pfm57-search"><span data-pfm57-ar="البحث داخل هذه الشاشة" data-pfm57-en="Search this screen">البحث داخل هذه الشاشة</span><input data-pfm57-role="search" type="search" autocomplete="off" placeholder="ابحث بالاسم، التاريخ، رقم الدورة..."/></label>
     <button data-pfm57-role="start-search" class="btn primary pfm57-start-search" type="button">🔎 بحث</button>
-    <button data-pfm57-role="pdf" class="btn pfm57-pdf" type="button">🖨️ PDF</button>
+    <button data-pfm57-role="pdf" class="btn pfm57-pdf" type="button" title="تقرير PDF — طباعة / حفظ / مشاركة">📄 PDF</button>
     <button data-pfm57-role="excel" class="btn primary pfm57-excel" type="button">📊 Export Excel</button>
   </div><div class="pfm57-small"><span data-pfm57-role="count"></span><span data-pfm57-role="results" role="status"></span></div>`;
  const get=role=>tool.querySelector('[data-pfm57-role="'+role+'"]');
@@ -370,9 +370,12 @@ function exportScreenExcel(){try{
   trigger(diag.workbookFile(books),'PFM_'+view.id+'_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }catch(e){console.error('PFM screen XLSX:',e);alert(t('تعذر تصدير الشاشة: ','Could not export screen: ')+e.message);}}
 function printCurrentScreen(){
- if(typeof window.PFMPrintResults59==='function'){
-    applySearchAndScope();window.PFMPrintResults59();
- }else alert(t('وحدة طباعة النتائج غير متاحة','Print-results module is unavailable'));
+ // Toolbar PDF is a dedicated V8.2 data report. NEVER export a screenshot of
+ // the dashboard or reuse the old cycle-report styled DOM clone.
+ if(typeof window.PFMModernPDF?.open==='function'){
+   applySearchAndScope();
+   window.PFMModernPDF.open();
+ }else alert(t('وحدة تقرير PDF الجديد غير متاحة','Modern PDF report module is unavailable'));
 }
 function validateDb(next){
  if(!next||typeof next!=='object'||Array.isArray(next))throw Error('Invalid database');

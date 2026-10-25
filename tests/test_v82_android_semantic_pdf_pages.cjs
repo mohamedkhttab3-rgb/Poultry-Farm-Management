@@ -1,0 +1,21 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const java=fs.readFileSync('native-assets/android/PFMNativeExportPlugin.java','utf8');
+const pdf=fs.readFileSync('www/pfm-v82-universal-pdf.js','utf8');
+const idx=fs.readFileSync('www/index.html','utf8');
+const toolbar=fs.readFileSync('www/pfm-v57-data-controls.js','utf8');
+assert(pdf.includes('class="pfm82-page"'),'new global report owns A4 page DOM');
+assert(pdf.includes('class="pfm82-footer"'),'each sheet contains original logo and footer');
+assert(pdf.includes('meta name="pfm-report-engine"'));
+assert(pdf.includes("tr('المشتريات والمخزون','Purchases & Inventory')"));
+assert(toolbar.includes('window.PFMModernPDF.open()'),'top PDF routes to single modern engine');
+assert(idx.includes('pfm-v82-universal-pdf.js'));
+assert(java.includes('semanticPages:(function()'),'native Android must measure actual modern A4 boundaries');
+assert(java.includes('if(semanticPages!=null&&semanticPages.length()>0)'),
+  'Android save and share must render per-sheet instead of slicing screens');
+assert(java.includes('web.draw(canvas)'));
+assert(java.includes('canvas.translate(-x,-y)'), 'native export must offset each separate A4 sheet');
+assert(java.includes('pdf.finishPage(sheet)'));
+assert(java.includes('Intent.ACTION_SEND')&&java.includes('FileProvider.getUriForFile'));
+assert(!pdf.includes('cloneVisual('),'No screen computed style screenshot capture');
+console.log('PASS native Android V8.2: semantically paginated A4 pages, one logo per page, unchanged print/save/share bridge');
