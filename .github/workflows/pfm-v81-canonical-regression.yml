@@ -1,0 +1,36 @@
+name: PFM V8.1 — canonical 80K plus permanent menu regressions
+on:
+  push:
+    branches: ['feature/pfm-v81-baseline80k-nav-a4-regression-20261025']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare exact canonical 80K farm sample
+        run: |
+          set -euo pipefail
+          node scripts/prepare-v81-qa80k.cjs www/pfm-v81-qa80k.json
+          node --check www/pfm-v81-qa80k-profile.js
+          node --check www/pfm-v81-navigation-integrity.js
+          node --check www/pfm-v59-print-results.js
+          node scripts/verify-source.cjs
+          node scripts/verify-native.cjs
+      - name: Test accounting, stock, VAT and historical standards
+        run: |
+          set -euo pipefail
+          for f in tests/test_v81_qa80k_feed_unification.cjs tests/test_v81_two_farms_80k.cjs tests/test_v81_purchases_medications.cjs tests/test_v81_financial_close_integration.cjs tests/test_v81_broiler_full_lifecycle.cjs tests/test_v81_shared_costs_depreciation.cjs tests/test_v81_five_fixes.cjs tests/test_v81_weight_breed_pdf.cjs tests/test_v410_vat_contract.cjs tests/test_v8_pdf_footer_bounds.cjs tests/test_v8_logo_order_only.cjs tests/test_v81_windows_pdf_native_share.cjs tests/test_android_export_bridge.cjs; do node "$f"; done
+      - name: "Test real UI: canonical test reset and navigation after legacy moves"
+        run: |
+          npm install --no-save --ignore-scripts --no-audit --no-fund jsdom@26
+          node tests/test_v81_qa80k_profile_dom.cjs
+          node tests/test_v81_navigation_integrity_dom.cjs
+          node tests/test_v81_purchase_dom.cjs
+          node tests/test_v81_report_actions_dom.cjs

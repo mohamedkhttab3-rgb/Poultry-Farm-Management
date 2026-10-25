@@ -32,12 +32,21 @@ w.eval(fs.readFileSync('www/pfm-v81-qa80k-profile.js','utf8'));
  assert.equal(JSON.parse(w.localStorage.getItem('poultry_farm_manager_session_v32')).id,original.id);
  w.currentUser={id:'owner-test-uuid',role:'owner'};w.supabaseClient={connected:true};
  w.stopV8Realtime=()=>{w.__stoppedRealtime=true};
+ // Dirty old QA records or manual test farms must never survive the next
+ // canonical test round; only the QA storage key may be overwritten.
+ const qaKey='poultry_farm_management_v34_'+id;
+ w.localStorage.setItem(qaKey,JSON.stringify({farms:[{id:'manual'}],cycles:[],manualOnly:true}));
  const previousCount=snapshots.length;await api.enter();
- assert.equal(snapshots.length,previousCount,'re-enter must not overwrite existing QA invoices');
+ assert.equal(snapshots.length,previousCount+1,'re-entry must reset QA dataset from canonical 80K fixture');
+ const restored=JSON.parse(w.localStorage.getItem(qaKey));
+ assert.equal(restored.farms.length,2,'manual QA farms replaced by exactly two standard farms');
+ assert.equal(restored.cycles.length,4);
+ assert.equal(restored.manualOnly,undefined,'manual QA entries removed');
+ assert.equal(restored.v410.purchaseDocuments.length,34);
  assert.equal(JSON.parse(w.localStorage.getItem('poultry_farm_manager_session_v32')).id,id,
   'cloud owner enters only the synthetic local user, not a cloud farm');
  assert.equal(w.__stoppedRealtime,true,'cloud Realtime connection stopped before switching');
  clearInterval?.(w.__qaTimer);
  w.close();
- console.log('PASS DOM sandbox: preserve owner, isolate QA profile/80k data, restore owner, block Supabase');
+ console.log('PASS DOM sandbox: canonical two-farm baseline replaces only manual QA records; real owner unchanged, Supabase stopped');
 })().catch(e=>{console.error(e);w.close();process.exitCode=1});

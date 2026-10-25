@@ -104,7 +104,8 @@
    '<p class="muted">'+tr('بعد حفظ الفاتورة، اختر الصنف والدفعة وصرف الكمية للعنبر من هنا، بنفس الصفحة. تكلفة الدورة تُحسب وقت الصرف فقط.','After saving the invoice, select the purchased lot and issue a quantity to the house here on the same page. Cycle cost is charged only on issue.')+'</p>';
   invoice.after(wrapper);
   mountIssue('feed','صرف واستهلاك الأعلاف','Feed issue and consumption');
-  mountIssue('meds','صرف واستخدام الأدوية والتحصينات','Medicine and vaccine issue');
+  // Medicines and vaccination technical records stay in Daily Monitoring;
+  // the unified purchase invoice remains the only purchase cost writer.
   const ledger=$('pfm75-stock-lots');
   if(ledger){
    const d=document.createElement('details');d.className='pfm-v8-issue-section';
@@ -127,7 +128,7 @@
     '#pfm-v8-issues .pfm-v8-issue-section{border:1px solid #c8dcea;border-radius:9px;padding:12px;margin:10px 0;background:#fff}',
     '#pfm-v8-issues summary{cursor:pointer;font-size:15px;font-weight:700}',
     '#pfm-v8-issues .panel{margin-top:12px}',
-    '#v53-nav button[data-stage="7"],#v53-nav button[data-stage="8"]{display:none!important}',
+    '#v53-nav button[data-stage="7"]{display:none!important}',
     '#pfm-v8-issues .v410-direct-tax{display:none!important}',
     '#pfm75-house-consumption{display:none!important}',
     '#pfm-v8-issues .v410-lot-choice{display:block!important}'

@@ -42,7 +42,7 @@ assert(nav.includes("content:none!important"),'sidebar pseudo-title must not dup
 assert(nav.includes('btn.textContent=title'),'side menu has one title');
 assert(one.includes("if(page==='feed')page='inventory'"));
 assert(html.includes("if(window.PFMV8SingleEntryActive)return alert("),'legacy price writer must be blocked');
-assert(sandbox.includes("if(!localStorage.getItem(KEY))"),'never overwrite QA data on re-entry');
+assert(sandbox.includes('window.PFMV63.persist(QA_ID,KEY,baseline)'),'canonical QA reset must overwrite test profile on entry only');
 assert(sandbox.includes('persistLocal()'),'original account must be stored before switching');
 assert(sandbox.includes("stopV8Realtime()"),'cloud realtime must stop before local QA starts');
 assert(html.includes('if(hasRealSupabaseConfig()&&!inQAProfile)'), 'QA must skip Supabase startup');
