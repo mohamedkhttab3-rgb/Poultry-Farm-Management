@@ -27,7 +27,7 @@ jobs:
         run: |
           set -euo pipefail
           for f in tests/test_v81_qa80k_feed_unification.cjs tests/test_v81_two_farms_80k.cjs tests/test_v81_purchases_medications.cjs tests/test_v81_financial_close_integration.cjs tests/test_v81_broiler_full_lifecycle.cjs tests/test_v81_shared_costs_depreciation.cjs tests/test_v81_five_fixes.cjs tests/test_v81_weight_breed_pdf.cjs tests/test_v410_vat_contract.cjs tests/test_v8_pdf_footer_bounds.cjs tests/test_v8_logo_order_only.cjs tests/test_v81_windows_pdf_native_share.cjs tests/test_android_export_bridge.cjs; do node "$f"; done
-      - name: Test real UI: canonical test reset and navigation after legacy moves
+      - name: "Test real UI: canonical test reset and navigation after legacy moves"
         run: |
           npm install --no-save --ignore-scripts --no-audit --no-fund jsdom@26
           node tests/test_v81_qa80k_profile_dom.cjs
