@@ -199,7 +199,25 @@ let activePrint=null,activeFrame=null;
    const s=[...document.styleSheets].find(sheet=> (sheet.href&&/pfm-v59-print-results\.css(?:[?#]|$)/.test(sheet.href)) || (sheet.ownerNode?.textContent?.includes('V5.9 clean, results-only print styling')));
    try{return s?[...s.cssRules].map(r=>r.cssText).join('\n'):'';}catch(_){return '';}
  }
- function standalone(root){
+ async function sourceLogoAsDataURI(){
+  try{
+   const src=new URL('./pfm-logo.png',document.baseURI).toString();
+   const result=await fetch(src,{cache:'force-cache'});
+   if(!result.ok)throw Error('Logo unavailable');
+   const blob=await result.blob();
+   if(blob.size<100||blob.size>3_000_000)throw Error('Invalid original logo size');
+   return await new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onerror=()=>reject(reader.error||Error('Logo read failed'));
+    reader.onload=()=>resolve(String(reader.result||''));
+    reader.readAsDataURL(blob);
+   });
+  }catch(err){
+   console.warn('PDF logo embed fallback:',err);
+   return new URL('./pfm-logo.png',document.baseURI).href;
+  }
+ }
+ function standalone(root,brandLogo){
    const base=e(document.baseURI||'about:blank');
    const css=stylesheetText();
    const android=window.Capacitor?.isNativePlatform?.() && window.Capacitor.getPlatform?.()==='android';
@@ -210,7 +228,7 @@ let activePrint=null,activeFrame=null;
    // bottom of the protected print content box; verify against every page's rows.
    // Uses the app's ORIGINAL pfm-logo.png; never a generated substitute.
    const identityFooter='<div class="pfm-native-a4-footer" aria-label="Poultry Farm Management M.K™">'+
-     '<img src="./pfm-logo.png" alt="Poultry Farm Management"/>'+
+     '<img src="'+e(brandLogo||new URL('./pfm-logo.png',document.baseURI).href)+'" alt="Poultry Farm Management"/>'+
      '<span>Poultry Farm Management M.K™</span></div>';
    // Desktop Chromium and Android WebView: put the brand in the actual A4
    // print margin instead of laying a fixed element over report table rows.
@@ -232,7 +250,7 @@ let activePrint=null,activeFrame=null;
      'body.pfm59-printing #pfm59PrintRoot .pfm59-print-head .pfm59-print-brand{direction:ltr!important;justify-content:flex-end!important;}'+
      '#pfm59PrintRoot .pfm59-print-brand > div{direction:rtl!important;text-align:right!important;}'+
      '#pfm59PrintRoot .pfm59-print-brand img{display:block!important;width:34px!important;height:34px!important;flex:0 0 34px!important;object-fit:contain!important;}'+
-     'body.pfm59-printing > .pfm-native-a4-footer:not(#pfm59PrintRoot){position:fixed!important;display:flex!important;bottom:'+(marginBoxFooter?'0':'-15mm')+'!important;left:50%!important;right:auto!important;'+
+     'body.pfm59-printing > .pfm-native-a4-footer:not(#pfm59PrintRoot){position:fixed!important;display:flex!important;bottom:'+(marginBoxFooter?'0':'-6mm')+'!important;left:50%!important;right:auto!important;'+
      'transform:translateX(-50%)!important;display:flex!important;align-items:center!important;'+
      'justify-content:center!important;gap:1.8mm!important;direction:ltr!important;'+
      'width:max-content!important;max-width:95%!important;height:7mm!important;'+
@@ -259,10 +277,13 @@ let activePrint=null,activeFrame=null;
  // behind its print dialog. Keep the frame mounted until afterprint so Chrome
  // can complete long-page pagination before the document is released.
  let printPending=false;
- window.PFMPrintResults59=function(action='print'){
+ window.PFMPrintResults59=async function(action='print'){
   if(printPending)return;
+  printPending=true;
   try{
-    const root=build(),html=standalone(root);
+    const root=build();
+    const logo=await sourceLogoAsDataURI();
+    const html=standalone(root,logo);
     // Electron has no Chromium-style print preview: generate a real multi-page
     // PDF from this exact result-only snapshot, then show a native Save dialog.
     // Browser/Chrome continues using the original iframe printing path below.
