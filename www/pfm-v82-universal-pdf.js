@@ -180,74 +180,101 @@
   const heading=ctx.view.querySelector(':scope > h2')?.textContent;
   return txt(heading)||({dash:tr('لوحة التحكم الرئيسية','Main Dashboard'),inventory:tr('المشتريات والمخزون','Purchases & Inventory')}[ctx.view.id]||ctx.view.id);
  }
+
  function render(ctx,logo){
-  const tables=dataset(ctx);
-  if(!tables.length)tables.push(...semanticTables(ctx));
-  // When a specialist page has no DB adapter or structured table, include
-  // read-only brief result panels. Never inject live forms or SVG screenshots.
-  const stats=summary(ctx),e=escape;
-  const bar=ctx.bar;
+  // Physically paginated A4 sheets, NOT a CSS fixed footer: every page has
+  // a real original image + brand IN its own protected bottom area.
+  // This also avoids Chrome/Android/Windows page-margin footers disappearing.
+  const e=escape,rtl=en()?'ltr':'rtl';
+  const data=dataset(ctx);if(!data.length)data.push(...semanticTables(ctx));
+  const stats=summary(ctx),notes=readableSummary(ctx),bar=ctx.bar;
   const scope=k=>txt(bar?.querySelector('[data-pfm57-role="'+k+'"]')?.selectedOptions?.[0]?.textContent);
   const scopeText=[tr('الدورة','Cycle')+': '+(scope('cycle')||tr('الكل','All')),
-   tr('المزرعة','Farm')+': '+(scope('farm')||tr('الكل','All')),
-   tr('العنبر','House')+': '+(scope('house')||tr('الكل','All'))].join(' • ');
-  const count=tables.reduce((a,s)=>a+(ctx.filters.search?
-   s.rows.filter(row=>row.join(' ').toLocaleLowerCase().includes(ctx.filters.search)).length:s.rows.length),0);
-  const sections=tables.map(tab=>{
-   const rows=ctx.filters.search?
-    tab.rows.filter(row=>row.join(' ').toLocaleLowerCase().includes(ctx.filters.search)):tab.rows;
-   if(rows.length>12000)throw Error(tr('عدد الصفوف كبير جدًا للتصدير مرة واحدة؛ حدد دورة أو مزرعة.','Too many rows for one PDF; filter by farm or cycle.'));
-   const heading=({daily:tr('المتابعة اليومية','Daily Records'),weights:tr('الأوزان الأسبوعية','Weekly Weights'),
-    farms:tr('المزارع','Farms'),houses:tr('العنابر','Houses'),cycles:tr('دورات التربية','Cycles'),
-    feed:tr('استهلاك العلف','Feed Consumption'),meds:tr('العلاج والتحصينات','Health Records'),
-    invoices:tr('فواتير المشتريات','Purchase Invoices'),lots:tr('دفعات المخزون','Stock Lots'),
-    issues:tr('حركات صرف المخزون','Stock Issues'),sales:tr('المبيعات','Sales'),
-    'farm-status':tr('ملخص الإنتاج حسب المزرعة','Farm Production Overview'),
-    'daily-trends':tr('ملخص المتابعة اليومية','Daily Monitoring Summary')}[tab.key]||tab.key);
-   const head='<thead><tr>'+tab.headers.map(h=>'<th>'+e(h)+'</th>').join('')+'</tr></thead>';
-   const body=rows.length?rows.map(row=>'<tr>'+row.map(v=>'<td>'+e(v)+'</td>').join('')+'</tr>').join(''):
-    '<tr><td colspan="'+tab.headers.length+'" class="empty">'+tr('لا توجد سجلات في النطاق المحدد.','No records in selected scope.')+'</td></tr>';
-   return '<section class="report-section"><div class="section-heading"><h2>'+e(heading)+'</h2><span>'+rows.length+' '+tr('سجل','records')+'</span></div>'+
-    (tab.note?'<p class="note">'+e(tab.note)+'</p>':'')+
-    '<table>'+head+'<tbody>'+body+'</tbody></table></section>';
-  }).join('');
-  const boxes=stats.length?'<div class="metrics">'+stats.map(([name,value])=>
-   '<div class="metric"><div class="metric-label">'+e(name)+'</div><div class="metric-value">'+e(value)+'</div></div>').join('')+'</div>':'';
-  const narrative=readableSummary(ctx);
-  const narrativeHTML=narrative.length?'<section class="report-section"><div class="section-heading"><h2>'+
-   e(tr('مؤشرات وملخصات التقرير','Report indicators and summaries'))+'</h2></div>'+
-   '<div class="narrative">'+narrative.map(x=>'<p>'+e(x)+'</p>').join('')+'</div></section>':'';
-  const issueTime=new Date().toLocaleString(en()?'en-GB':'ar-EG');
-  const rtl=en()?'ltr':'rtl';
-  const body=(narrativeHTML+sections)||(!boxes?'<p class="empty">'+tr('لا توجد نتائج قابلة للتصدير في هذا النطاق.','No exportable results for this scope.')+'</p>':'');
-  const css='@page{size:A4 landscape;margin:14mm 13mm 24mm}'+
-   '*{box-sizing:border-box}html,body{padding:0;margin:0;background:#fff;color:#173653;font-family:Arial,Tahoma,sans-serif;direction:'+rtl+'}'+
-   'body{font-size:10pt;line-height:1.5}#pfm59PrintRoot{width:100%;padding:0;margin:0}'+
-   '.cover-head{border-bottom:2px solid #20456c;padding:0 0 14px;display:flex;align-items:center;justify-content:space-between;gap:16px;break-inside:avoid}'+
-   '.cover-head .brand{display:flex;align-items:center;gap:11px;min-width:0}.cover-head .brand img{width:44px;height:44px;object-fit:contain}'+
-   '.cover-head h1{font-size:19pt;margin:0 0 3px;color:#123657}.cover-head .subtitle{font-size:8pt;color:#56718b}'+
-   '.stamp{font-size:8pt;color:#536c83;white-space:nowrap;text-align:start}'+
-   '.scopes{margin:10px 0;background:#eef4f9;border:1px solid #d8e5ef;padding:8px 11px;border-radius:5px;font-size:9pt;break-inside:avoid}'+
-   '.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0 16px}.metric{min-width:0;border:1px solid #dce6ee;border-top:3px solid #20527f;border-radius:5px;padding:8px 11px;break-inside:avoid}'+
-   '.metric-label{font-size:8pt;color:#597188}.metric-value{font-weight:700;font-size:12pt;color:#173d64;overflow-wrap:anywhere}'+
-   '.report-section{margin:14px 0 18px;page-break-inside:auto}.section-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid #cddce9;padding-bottom:5px;margin-bottom:8px;break-after:avoid;break-inside:avoid}'+
-   '.section-heading h2{font-size:12pt;color:#173d64;margin:0}.section-heading span{font-size:8pt;color:#667b8d}.note{font-size:8pt;color:#526c83}'+
-   'table{border-collapse:collapse;width:100%;table-layout:auto;font-size:8.5pt}thead{display:table-header-group}tfoot{display:table-footer-group}'+
-   'th{background:#e9f1f8;color:#173d64;font-weight:700;text-align:start}th,td{padding:5px 7px;border:1px solid #d6e1eb;vertical-align:top;overflow-wrap:anywhere}'+
-   'tr{break-inside:avoid;page-break-inside:avoid}tbody tr:nth-child(even){background:#f8fbfd}.empty{text-align:center;color:#7b8794;padding:15px}'+
-   '.narrative{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.narrative p{border:1px solid #d6e1eb;border-radius:5px;padding:8px;margin:0;break-inside:avoid;font-size:9pt}'+
-   '.footer{position:fixed;bottom:-2mm;left:0;right:0;height:7mm;display:flex;gap:2mm;align-items:center;justify-content:center;direction:ltr;font-size:8pt;font-weight:700;color:#1a4169}'+
-   '.footer img{width:7mm;height:7mm;object-fit:contain}'+
-   '@media screen{body{max-width:1100px;margin:auto;padding:18px}.footer{display:none}}';
+    tr('المزرعة','Farm')+': '+(scope('farm')||tr('الكل','All')),
+    tr('العنبر','House')+': '+(scope('house')||tr('الكل','All'))].join(' • ');
+  const filtered=data.map(tab=>({...tab,rows:ctx.filters.search?tab.rows.filter(
+    row=>row.join(' ').toLocaleLowerCase().includes(ctx.filters.search)):tab.rows}));
+  const count=filtered.reduce((n,x)=>n+x.rows.length,0);
+  const formatDate=new Date().toLocaleString(en()?'en-GB':'ar-EG');
+  const brandFooter='<footer class="pfm82-footer">'+
+   '<img src="'+e(logo)+'" alt="M.K™"/><strong>Poultry Farm Management M.K™</strong></footer>';
+  const tables={
+   'farm-status':tr('ملخص الإنتاج حسب المزرعة','Farm Production Overview'),
+   'daily-trends':tr('ملخص المتابعة اليومية','Daily Monitoring Summary'),
+   farms:tr('المزارع','Farms'),houses:tr('العنابر','Houses'),
+   cycles:tr('دورات التربية','Cycles'),daily:tr('المتابعة اليومية','Daily Records'),
+   weights:tr('الأوزان الأسبوعية','Weekly Weights'),feed:tr('استهلاك العلف','Feed Consumption'),
+   meds:tr('العلاج والتحصينات','Health Records'),invoices:tr('فواتير المشتريات','Purchase Invoices'),
+   lots:tr('دفعات المخزون','Stock Lots'),issues:tr('حركات صرف المخزون','Stock Issues'),
+   sales:tr('المبيعات','Sales')
+  };
+  const cover='<div class="pfm82-head"><div class="pfm82-title"><img src="'+e(logo)+
+   '" alt="M.K™"/><div><h1>'+e(named(ctx))+'</h1><small>Poultry Farm Management · M.K™ — '+
+   e(tr('تقرير بيانات','Data Report'))+'</small></div></div><span>'+e(formatDate)+'</span></div>'+
+   '<div class="pfm82-scope">'+e(scopeText)+' • '+e(tr('إجمالي السجلات: ','Records: '))+count+'</div>'+
+   (stats.length?'<div class="pfm82-metrics">'+stats.slice(0,8).map(([k,v])=>
+    '<div class="pfm82-metric"><small>'+e(k)+'</small><strong>'+e(v)+'</strong></div>').join('')+'</div>':'');
+  const pages=[];
+  function appendPage(content,first=false){
+   if(pages.length>=160)throw Error(tr('تقرير أكبر من 160 صفحة؛ يرجى تحديد نطاق المزرعة أو الدورة.','Report exceeds 160 pages; filter by farm or cycle.'));
+   pages.push('<section class="pfm82-page" data-page="'+(pages.length+1)+'">'+
+    '<div class="pfm82-page-body">'+(first?cover:'<div class="pfm82-running">'+
+      '<strong>'+e(named(ctx))+'</strong><span>'+e(scopeText)+'</span></div>')+
+     content+'</div>'+brandFooter+'</section>');
+  }
+  // First sheet is the visual summary. Tables start on their own sheets so
+  // blank/partial table pages never collide with the header/metrics.
+  appendPage('',true);
+  if(notes.length){
+   for(let i=0;i<notes.length;i+=16){
+    const n=notes.slice(i,i+16);
+    appendPage('<div class="pfm82-section"><h2>'+e(tr('المؤشرات والملخصات','Indicators and summaries'))+
+     (i?' — '+e(tr('تابع','Continued')):'')+'</h2><div class="pfm82-notes">'+
+     n.map(x=>'<p>'+e(x)+'</p>').join('')+'</div></div>');
+   }
+  }
+  for(const tab of filtered){
+   const title=tables[tab.key]||tab.key;
+   const headers='<thead><tr>'+tab.headers.map(h=>'<th>'+e(h)+'</th>').join('')+'</tr></thead>';
+   const lines=tab.rows.length?tab.rows:[[tr('لا توجد بيانات في النطاق المحدد','No records in selected scope')]];
+   // At 8.5pt these caps leave 20+mm between the final row and footer, even
+   // with varied Arabic table text (no arbitrary clipping across A4 pages).
+   const perPage=Math.max(12,Math.min(20,Math.floor(30/Math.max(1,tab.headers.length/6))));
+   for(let start=0;start<lines.length;start+=perPage){
+    const slice=lines.slice(start,start+perPage);
+    const rows=slice.map(row=>'<tr>'+tab.headers.map((_,i)=>'<td>'+e(row[i]??'')+'</td>').join('')+'</tr>').join('');
+    const label=start?' · '+e(tr('تابع','Continued')):'';
+    const note=start===0&&tab.note?'<p class="pfm82-note">'+e(tab.note)+'</p>':'';
+    appendPage('<div class="pfm82-section"><div class="pfm82-section-title"><h2>'+e(title)+label+'</h2>'+
+     '<span>'+Math.min(start+perPage,tab.rows.length)+' / '+tab.rows.length+'</span></div>'+note+
+     '<table>'+headers+'<tbody>'+rows+'</tbody></table></div>');
+   }
+  }
+  if(!filtered.length&&!notes.length&&!stats.length){
+   appendPage('<p class="pfm82-empty">'+tr('لا توجد بيانات قابلة للتصدير في هذه الشاشة.','No exportable records for this screen.')+'</p>');
+  }
+  const css='@page{size:A4 landscape;margin:0}'+
+   '*{box-sizing:border-box}html,body{margin:0;padding:0;color:#153a5c;background:#fff;direction:'+rtl+';font:10pt/1.38 Arial,Tahoma,sans-serif}'+
+   '.pfm82-page{width:297mm;height:210mm;padding:12mm 13mm 23mm;margin:0;position:relative;page-break-after:always;break-after:page;overflow:hidden;background:#fff}'+
+   '.pfm82-page:last-child{page-break-after:auto;break-after:auto}'+
+   '.pfm82-page-body{width:100%;height:100%;overflow:hidden}'+
+   '.pfm82-head{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:2px solid #1c466c;padding-bottom:12px}'+
+   '.pfm82-title{display:flex;align-items:center;gap:12px}.pfm82-title img{width:40px;height:40px;object-fit:contain}.pfm82-title h1{font-size:19pt;margin:0;color:#13395c}.pfm82-title small,.pfm82-head span{font-size:8pt;color:#5c7082}'+
+   '.pfm82-scope{margin:11px 0 14px;padding:9px 11px;background:#f1f6fb;border:1px solid #dce8f2;border-radius:5px}'+
+   '.pfm82-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.pfm82-metric{border:1px solid #d6e4ee;border-top:3px solid #25547b;padding:12px;border-radius:6px;min-width:0}.pfm82-metric small{color:#6b8194;display:block;font-size:9pt}.pfm82-metric strong{font-size:15pt;display:block;overflow-wrap:anywhere}'+
+   '.pfm82-running{display:flex;justify-content:space-between;gap:20px;border-bottom:1px solid #cedeea;padding-bottom:7px;margin-bottom:12px;font-size:8pt;color:#586e84}'+
+   '.pfm82-section-title{display:flex;justify-content:space-between;align-items:center;gap:15px;margin:0 0 10px}.pfm82-section-title h2,.pfm82-section h2{font-size:12.5pt;margin:0;color:#1b456b}.pfm82-section-title span{font-size:9pt;color:#73889a}'+
+   '.pfm82-note{color:#536c81;font-size:8.5pt;margin:0 0 9px}'+
+   '.pfm82-notes{display:grid;grid-template-columns:1fr 1fr;gap:8px}.pfm82-notes p{border:1px solid #d9e6f0;border-radius:5px;padding:10px;margin:0;break-inside:avoid;min-height:24px;font-size:9pt}'+
+   'table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:8.5pt;line-height:1.25}th,td{border:1px solid #d8e3ed;padding:5px 7px;overflow-wrap:anywhere;word-break:break-word;vertical-align:top}th{background:#e9f2f9;color:#173d61;text-align:start}tr{break-inside:avoid}tbody tr:nth-child(even){background:#f8fbff}'+
+   '.pfm82-footer{position:absolute;bottom:10mm;left:12mm;right:12mm;height:8mm;display:flex;align-items:center;justify-content:center;gap:2mm;direction:ltr;color:#1b436b;font-size:8.4pt;border-top:1px solid #e4ecf4;padding-top:2mm}'+
+   '.pfm82-footer img{width:6.5mm;height:6.5mm;object-fit:contain}.pfm82-empty{padding:20px;text-align:center;color:#65798b}'+
+   '@media screen{html,body{background:#eef2f5}.pfm82-page{margin:14px auto;box-shadow:0 2px 18px #0002}}';
   return '<!DOCTYPE html><html dir="'+rtl+'" lang="'+(en()?'en':'ar')+'"><head><meta charset="utf-8"/>'+
-   '<meta name="viewport" content="width=device-width,initial-scale=1"/>'+
+   '<meta name="viewport" content="width=device-width, initial-scale=1"/>'+
    '<meta name="pfm-report-engine" content="V8.2-semantic"/>'+
    '<title>'+e(named(ctx))+' — Poultry Farm Management</title><style>'+css+'</style></head>'+
-   '<body class="pfm82-modern"><article id="pfm59PrintRoot"><div class="cover-head"><div class="brand">'+
-   '<img src="'+e(logo)+'" alt="M.K"/><div><h1>'+e(named(ctx))+'</h1><div class="subtitle">Poultry Farm Management · M.K™ — '+
-   e(tr('تقرير بيانات','Data Report'))+'</div></div></div><div class="stamp">'+e(issueTime)+'</div></div>'+
-   '<div class="scopes">'+e(scopeText)+' · '+e(tr('عدد السجلات: ','Records: '))+count+'</div>'+
-   boxes+body+'</article><div class="footer"><img src="'+e(logo)+'" alt="M.K"/><span>Poultry Farm Management M.K™</span></div></body></html>';
+   '<body class="pfm82-modern"><article id="pfm59PrintRoot">'+pages.join('')+'</article></body></html>';
  }
  async function logoData(){
   const src=new URL('./pfm-logo.png',document.baseURI).href;
