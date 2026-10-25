@@ -10,7 +10,7 @@ assert(pdf.includes('new FileReader()')&&pdf.includes('reader.readAsDataURL(blob
  'The original logo is embedded, not a broken relative remote image');
 assert(pdf.includes('standalone(root,logo)'), 'every report gets the same embedded logo');
 assert(pdf.includes('<span>Poultry Farm Management M.K™</span>'), 'footer brand must remain next to logo');
-assert(pdf.includes("marginBoxFooter?'0':'0mm'"), 'move footer into reserved page margin');
+assert(pdf.includes("marginBoxFooter?'0':'-2mm'"), 'move footer into reserved page margin');
 assert(desktop.includes('shareSheetOpened:true'),'desktop must ask native share OS');
 assert(desktop.includes("status.trim()==='OPENED'"),'opening dialog must be acknowledged');
 assert(native.includes('Intent.ACTION_SEND')&&native.includes('send.putExtra(Intent.EXTRA_STREAM,link)'));
