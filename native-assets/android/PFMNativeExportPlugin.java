@@ -363,6 +363,8 @@ public final class PFMNativeExportPlugin extends Plugin {
         +"height:auto!important;max-height:none!important;overflow:visible!important;"
         +"margin:0!important;box-sizing:border-box!important;}"
         +"#pfm59PrintRoot .pfm59-print-footer{display:none!important;}"
+        +"body.pfm82-modern .pfm82-page{width:1120px!important;height:792px!important;"
+        +"margin:0!important;box-shadow:none!important;}"
         +"#pfm59PrintRoot .pfm59-report,#pfm59PrintRoot .report,"
         +"#pfm59PrintRoot .pfm59-dashboard,#pfm59PrintRoot .pfm59-table-section"
         +"{height:auto!important;max-height:none!important;overflow:visible!important;}"
@@ -392,7 +394,7 @@ public final class PFMNativeExportPlugin extends Plugin {
       "var pending=0;var imgs=root.querySelectorAll('img');"+
       "for(var k=0;k<imgs.length;k++)if(!imgs[k].complete)pending++;"+
       "return JSON.stringify({height:Math.ceil(max+8),"+
-      "text:(root.textContent||'').trim().length,pending:pending,blocks:(function(){var a=[],els=root.querySelectorAll('.report-chart-wrap, .pfm-report-mortality-pair, .report-header, .signature-grid, .card, figure, svg, img, tr');for(var j=0;j<els.length&&j<1600;j++){var box=els[j].getBoundingClientRect();if(box.height>10)a.push([Math.floor(box.top+window.scrollY),Math.ceil(box.bottom+window.scrollY)]);}return a;})()});"+
+      "text:(root.textContent||'').trim().length,pending:pending,semanticPages:(function(){var a=[],els=root.querySelectorAll('.pfm82-page');for(var j=0;j<els.length;j++){var b=els[j].getBoundingClientRect();a.push([Math.floor(b.left),Math.floor(b.top+window.scrollY),Math.ceil(b.width),Math.ceil(b.height)]);}return a;})(),blocks:(function(){var a=[],els=root.querySelectorAll('.report-chart-wrap, .pfm-report-mortality-pair, .report-header, .signature-grid, .card, figure, svg, img, tr');for(var j=0;j<els.length&&j<1600;j++){var box=els[j].getBoundingClientRect();if(box.height>10)a.push([Math.floor(box.top+window.scrollY),Math.ceil(box.bottom+window.scrollY)]);}return a;})()});"+
       "}catch(e){return JSON.stringify({error:String(e&&e.message||e)});}})()";
     web.evaluateJavascript(js,result->{
       try{
@@ -482,6 +484,36 @@ public final class PFMNativeExportPlugin extends Plugin {
       RectF rect=new RectF(groupLeft,footerCenterY-logoSize/2f,
         groupLeft+logoSize,footerCenterY+logoSize/2f);
       web.scrollTo(0,0);
+      final JSONArray semanticPages=measured.optJSONArray("semanticPages");
+      if(semanticPages!=null&&semanticPages.length()>0){
+        // V8.2: content is already paginated into *independent* A4 sheets.
+        // Render exactly ONE source sheet per native PDF page. Its original
+        // logo/footer is inside the sheet; never stamp a second logo.
+        if(semanticPages.length()>160)
+          throw new Exception("Semantic PDF exceeds 160 A4 sheets");
+        for(int i=0;i<semanticPages.length();i++){
+          JSONArray bounds=semanticPages.optJSONArray(i);
+          if(bounds==null||bounds.length()<4)throw new Exception("Invalid A4 sheet bounds");
+          final float x=(float)bounds.optDouble(0),y=(float)bounds.optDouble(1),
+            w=(float)bounds.optDouble(2),h=(float)bounds.optDouble(3);
+          if(!Float.isFinite(x)||!Float.isFinite(y)||w<300||h<300||
+             y<0||w>4000||h>4000)throw new Exception("Invalid semantic A4 geometry");
+          PdfDocument.Page sheet=pdf.startPage(
+            new PdfDocument.PageInfo.Builder(PAGE_W,PAGE_H,i+1).create());
+          Canvas canvas=sheet.getCanvas();
+          canvas.drawColor(Color.WHITE);
+          final float factor=Math.min((PAGE_W-2f*PAGE_MARGIN)/w,
+            (PAGE_H-2f*PAGE_MARGIN)/h);
+          canvas.save();
+          canvas.clipRect(PAGE_MARGIN,PAGE_MARGIN,PAGE_W-PAGE_MARGIN,PAGE_H-PAGE_MARGIN);
+          canvas.translate((PAGE_W-w*factor)/2f,(PAGE_H-h*factor)/2f);
+          canvas.scale(factor,factor);
+          canvas.translate(-x,-y);
+          web.draw(canvas);
+          canvas.restore();
+          pdf.finishPage(sheet);
+        }
+      }else{
       int pageNo=0,start=0;
       while(start<height){
         if(++pageNo>160)throw new Exception("Report exceeds 160 A4 pages");
@@ -506,6 +538,7 @@ public final class PFMNativeExportPlugin extends Plugin {
         paper.drawText(footerText,groupLeft+logoSize+gap,footerCenterY+3f,footerPaint);
         pdf.finishPage(page);
         start=end;
+      }
       }
       try(OutputStream destination=new FileOutputStream(output)){
         pdf.writeTo(destination);
