@@ -250,7 +250,7 @@ let activePrint=null,activeFrame=null;
      'body.pfm59-printing #pfm59PrintRoot .pfm59-print-head .pfm59-print-brand{direction:ltr!important;justify-content:flex-end!important;}'+
      '#pfm59PrintRoot .pfm59-print-brand > div{direction:rtl!important;text-align:right!important;}'+
      '#pfm59PrintRoot .pfm59-print-brand img{display:block!important;width:34px!important;height:34px!important;flex:0 0 34px!important;object-fit:contain!important;}'+
-     'body.pfm59-printing > .pfm-native-a4-footer:not(#pfm59PrintRoot){position:fixed!important;display:flex!important;bottom:'+(marginBoxFooter?'0':'0mm')+'!important;left:50%!important;right:auto!important;'+
+     'body.pfm59-printing > .pfm-native-a4-footer:not(#pfm59PrintRoot){position:fixed!important;display:flex!important;bottom:'+(marginBoxFooter?'0':'-2mm')+'!important;left:50%!important;right:auto!important;'+
      'transform:translateX(-50%)!important;display:flex!important;align-items:center!important;'+
      'justify-content:center!important;gap:1.8mm!important;direction:ltr!important;'+
      'width:max-content!important;max-width:95%!important;height:7mm!important;'+
