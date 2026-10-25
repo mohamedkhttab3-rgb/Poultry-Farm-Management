@@ -155,6 +155,27 @@
   }
   return cards;
  }
+ function readableSummary(ctx){
+  // Scientific performance/finance/standard reports use purpose-built panels
+  // rather than ordinary tables. Export concise TEXT results, never editable
+  // forms or the layout/card screenshot.
+  const ids={performance:'performanceBox',compare:'comparisonBox',
+   reports:'printReport',finance:'financeBox',settings:'globalStandardPanel',
+   users:'membersBox'};
+  const source=$(ids[ctx.view.id]||'');
+  if(!source)return [];
+  const elements=[...source.querySelectorAll('h2,h3,h4,.report-meta p,.summary-value,.pfm53-kpi-title,.pfm53-kpi-value,.v52-indicator')];
+  const unique=new Set(),out=[];
+  for(const el of elements){
+   if(el.closest('.no-print,form,.actions,.pfm57-toolbar'))continue;
+   if(el.querySelector('button,input,select,textarea'))continue;
+   const text=txt(el.textContent);
+   if(text.length<3||text.length>200||unique.has(text))continue;
+   unique.add(text);out.push(text);
+   if(out.length>=65)break;
+  }
+  return out;
+ }
  function named(ctx){
   const heading=ctx.view.querySelector(':scope > h2')?.textContent;
   return txt(heading)||({dash:tr('لوحة التحكم الرئيسية','Main Dashboard'),inventory:tr('المشتريات والمخزون','Purchases & Inventory')}[ctx.view.id]||ctx.view.id);
@@ -192,9 +213,13 @@
   }).join('');
   const boxes=stats.length?'<div class="metrics">'+stats.map(([name,value])=>
    '<div class="metric"><div class="metric-label">'+e(name)+'</div><div class="metric-value">'+e(value)+'</div></div>').join('')+'</div>':'';
+  const narrative=readableSummary(ctx);
+  const narrativeHTML=narrative.length?'<section class="report-section"><div class="section-heading"><h2>'+
+   e(tr('مؤشرات وملخصات التقرير','Report indicators and summaries'))+'</h2></div>'+
+   '<div class="narrative">'+narrative.map(x=>'<p>'+e(x)+'</p>').join('')+'</div></section>':'';
   const issueTime=new Date().toLocaleString(en()?'en-GB':'ar-EG');
   const rtl=en()?'ltr':'rtl';
-  const body=sections||(!boxes?'<p class="empty">'+tr('لا توجد نتائج قابلة للتصدير في هذا النطاق.','No exportable results for this scope.')+'</p>':'');
+  const body=(narrativeHTML+sections)||(!boxes?'<p class="empty">'+tr('لا توجد نتائج قابلة للتصدير في هذا النطاق.','No exportable results for this scope.')+'</p>':'');
   const css='@page{size:A4 landscape;margin:14mm 13mm 24mm}'+
    '*{box-sizing:border-box}html,body{padding:0;margin:0;background:#fff;color:#173653;font-family:Arial,Tahoma,sans-serif;direction:'+rtl+'}'+
    'body{font-size:10pt;line-height:1.5}#pfm59PrintRoot{width:100%;padding:0;margin:0}'+
@@ -210,6 +235,7 @@
    'table{border-collapse:collapse;width:100%;table-layout:auto;font-size:8.5pt}thead{display:table-header-group}tfoot{display:table-footer-group}'+
    'th{background:#e9f1f8;color:#173d64;font-weight:700;text-align:start}th,td{padding:5px 7px;border:1px solid #d6e1eb;vertical-align:top;overflow-wrap:anywhere}'+
    'tr{break-inside:avoid;page-break-inside:avoid}tbody tr:nth-child(even){background:#f8fbfd}.empty{text-align:center;color:#7b8794;padding:15px}'+
+   '.narrative{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.narrative p{border:1px solid #d6e1eb;border-radius:5px;padding:8px;margin:0;break-inside:avoid;font-size:9pt}'+
    '.footer{position:fixed;bottom:-2mm;left:0;right:0;height:7mm;display:flex;gap:2mm;align-items:center;justify-content:center;direction:ltr;font-size:8pt;font-weight:700;color:#1a4169}'+
    '.footer img{width:7mm;height:7mm;object-fit:contain}'+
    '@media screen{body{max-width:1100px;margin:auto;padding:18px}.footer{display:none}}';
