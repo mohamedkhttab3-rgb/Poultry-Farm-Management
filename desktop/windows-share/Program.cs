@@ -16,7 +16,7 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
-        if (args.Length != 1 || !Path.IsPathFullyQualified(args[0]) ||
+        if (args.Length != 2 || !Path.IsPathFullyQualified(args[0]) || !Path.IsPathFullyQualified(args[1]) ||
             !File.Exists(args[0]) ||
             !string.Equals(Path.GetExtension(args[0]), ".pdf", StringComparison.OrdinalIgnoreCase))
             return;
@@ -24,7 +24,7 @@ internal static class Program
         {
             Application.SetHighDpiMode(HighDpiMode.SystemAware);
             Application.EnableVisualStyles();
-            Application.Run(new ShareHost(Path.GetFullPath(args[0])));
+            Application.Run(new ShareHost(Path.GetFullPath(args[0]), Path.GetFullPath(args[1])));
         }
         catch (Exception ex)
         {
@@ -37,12 +37,14 @@ internal static class Program
 internal sealed class ShareHost : Form
 {
     private readonly string filePath;
+    private readonly string statusPath;
     private DataTransferManager? manager;
     private readonly System.Windows.Forms.Timer keepAlive = new() { Interval = 180_000 };
 
-    public ShareHost(string file)
+    public ShareHost(string file, string status)
     {
         filePath = file;
+        statusPath = status;
         Text = "Poultry Farm Management — PDF Share";
         StartPosition = FormStartPosition.CenterScreen;
         Size = new Size(410, 145);
@@ -70,9 +72,13 @@ internal sealed class ShareHost : Form
             manager.TargetApplicationChosen += OnTargetApplicationChosen;
             keepAlive.Start();
             DataTransferManagerInterop.ShowShareUIForWindow(Handle);
+            // Electron checks this marker before reporting the OS share dialog
+            // opened. Spawning an EXE by itself is not proof of sharing.
+            File.WriteAllText(statusPath, "OPENED");
         }
         catch (Exception e)
         {
+            try { File.WriteAllText(statusPath, "ERROR:" + e.Message); } catch { }
             MessageBox.Show(this, "تعذر بدء مشاركة الملف: " + e.Message,
                 "مشاركة PDF", MessageBoxButtons.OK, MessageBoxIcon.Error);
             Close();
