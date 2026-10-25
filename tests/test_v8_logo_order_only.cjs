@@ -9,7 +9,7 @@ assert(shared.includes('body.pfm59-printing #pfm59PrintRoot .pfm59-print-head .p
 assert(shared.includes('#pfm59PrintRoot .pfm59-print-brand img{display:block!important'));
 assert(!printCss.includes('#pfm59PrintRoot .pfm59-print-brand img{display:none!important'));
 assert(!androidCss.includes('#pfm59PrintRoot .pfm59-print-brand img,'));
-const start=shared.indexOf(' function standalone(root){');
+const start=shared.indexOf(' function standalone(root,brandLogo){');
 const end=shared.indexOf(' // Use a full-sized printable document',start);
 assert(start>=0&&end>start);
 const build=new Function('document','window','e','stylesheetText',
@@ -22,11 +22,12 @@ for(const platform of ['android','windows','ios']){
  {Capacitor:{isNativePlatform:()=>platform!=='windows',getPlatform:()=>platform}},String,()=>'.pfm59-print-footer{display:none!important}');
  const footer=html.match(/<div class="pfm-native-a4-footer"[^>]*>([\s\S]*?)<\/div>/);
  assert(footer,platform+' missing footer');
- assert(/^<img src="\.\/pfm-logo\.png"[^>]*><span>Poultry Farm Management M\.K™<\/span>$/.test(footer[1]),platform+' logo must appear LEFT of footer text');
+ assert(/^<img src="pfm:\/\/app\/pfm-logo\.png"[^>]*><span>Poultry Farm Management M\.K™<\/span>$/.test(footer[1]),platform+' original logo must appear LEFT of footer text');
  assert(html.includes('.pfm59-print-brand img{display:block!important'),platform+' top logo must be visible');
  assert(html.includes('.pfm59-print-brand{direction:ltr!important'),platform+' top logo must precede the title');
  assert(html.includes('margin:11mm 11mm 24mm;'),platform+' footer positioning changed');
- if(platform!=='ios')assert(html.includes('@bottom-center{'),platform+' must place brand in physical A4 footer margin');
+ if(platform==='android')assert(html.includes('@bottom-center{'),platform+' must retain its A4 margin fallback');
+ else assert(!html.includes('@bottom-center{'),platform+' relies on the original repeated IMG instead of print-engine background');
 }
 const leftNative=native.indexOf('paper.drawBitmap(logo,null,rect,footerPaint);');
 const rightNative=native.indexOf('paper.drawText(footerText,groupLeft+logoSize+gap,footerCenterY+3f,footerPaint);');
