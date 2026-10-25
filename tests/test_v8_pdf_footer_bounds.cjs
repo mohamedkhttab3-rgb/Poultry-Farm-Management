@@ -48,7 +48,7 @@ for(const mode of ['android','windows']){
  assert(html.includes('@bottom-center{'),mode+' must use the protected A4 page-margin footer');
  assert(html.includes('margin:11mm 11mm 24mm;'),mode+' footer margin absent');
  assert(html.includes('background-image:url("pfm://app/pfm-logo.png")'),mode+' margin logo missing');
- assert(html.includes('bottom:'+(mode==='android'?'0':'-10mm')+'!important'),mode+' reserved footer-band placement missing');
+ assert(html.includes('bottom:0!important'),mode+' hidden fallback must be inside A4 page geometry');
  assert(html.includes('font:600 8pt Arial'),mode+' footer brand font is not reduced');
  assert(html.includes('width:7mm!important;height:7mm!important'),mode+' footer logo is not reduced');
  assert.equal(html.split('class="pfm-native-a4-footer"').length,2,mode+' footer duplicated');
