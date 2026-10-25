@@ -3,6 +3,8 @@ package com.poultryfarm.manager;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ResolveInfo;
+import android.content.pm.PackageManager;
 import android.content.ClipData;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -560,13 +562,28 @@ public final class PFMNativeExportPlugin extends Plugin {
         Intent send=new Intent(Intent.ACTION_SEND);
         send.setType(PDF);
         send.putExtra(Intent.EXTRA_STREAM,link);
+        send.putExtra(Intent.EXTRA_SUBJECT,"Poultry Farm Management — PDF");
         send.setClipData(ClipData.newRawUri(filename,link));
         send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        // Pass the grant on BOTH send and chooser intents. Several Android
-        // recipient apps access the FileProvider URI from the chooser's clipData.
+        // Some share targets read URI permissions from their own package grant
+        // rather than from the chooser's CLIPDATA alone. Grant only candidate
+        // receivers of this PDF Intent; no broad public storage permission.
+        try{
+          for(ResolveInfo ri:getContext().getPackageManager().queryIntentActivities(
+              send,PackageManager.MATCH_DEFAULT_ONLY)){
+            if(ri.activityInfo!=null&&ri.activityInfo.packageName!=null)
+              getContext().grantUriPermission(ri.activityInfo.packageName,link,
+                  Intent.FLAG_GRANT_READ_URI_PERMISSION);
+          }
+        }catch(Exception ignored){
+          // Android 11+ package visibility can restrict this query. The chooser
+          // still holds the grant for the selected app.
+        }
         Intent chooser=Intent.createChooser(send,"مشاركة تقرير PDF");
         chooser.setClipData(ClipData.newRawUri(filename,link));
         chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        // This must run on the Activity/UI thread; deliverPdf is dispatched
+        // from the verified PDF callback on the main looper.
         getActivity().startActivity(chooser);
         busy.set(false);
         // This means the system chooser opened, not that the recipient completed
