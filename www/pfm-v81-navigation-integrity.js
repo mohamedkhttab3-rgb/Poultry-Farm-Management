@@ -32,14 +32,19 @@
     if(button.getAttribute('aria-label')!==expected)button.setAttribute('aria-label',expected);
     button.dataset.noTranslate='1';
     button.dataset.pfmNavOwner=route.group;
-    button.hidden=false;
+    if(button.hidden)button.hidden=false;
    }
    // Keep the correct within-group order: daily, weights, medicines.
    for(const group of ['nutrition','daily']){
     const dest=destinations[group];
-    for(const stage of routes.filter(x=>x.group===group).map(x=>x.stage)){
-     const el=dest.querySelector('button[data-stage="'+stage+'"]');
-     if(el&&el!==dest.lastElementChild)dest.appendChild(el);
+    const expected=routes.filter(x=>x.group===group).map(x=>x.stage);
+    const actual=[...dest.querySelectorAll(':scope > button')].filter(x=>expected.includes(x.dataset.stage))
+      .map(x=>x.dataset.stage);
+    if(actual.join('|')!==expected.join('|')){
+     for(const stage of expected){
+      const el=dest.querySelector('button[data-stage="'+stage+'"]');
+      if(el)dest.appendChild(el);
+     }
     }
    }
    // Old independent Feed purchasing is retired; records remain accessible
