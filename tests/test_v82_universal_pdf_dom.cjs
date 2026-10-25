@@ -51,7 +51,7 @@ const write=async(screen)=>{
  view.querySelector('[data-pfm57-role="search"]').value='NoSuchDate-ABC';
  html=await write('search');
  assert(!html.includes('بيانات دورة اختبارية وليست سجلات مزرعة حقيقية'));
- assert(html.includes('لا توجد سجلات'));
+ assert(html.includes('لا توجد بيانات في النطاق المحدد'),'Filtered PDF must visibly state zero matching records');
  view.querySelector('[data-pfm57-role="search"]').value='';
  view.id='inventory';html=await write('purchases');
  assert(html.includes('34 / 34'),'34 original source purchase documents');
