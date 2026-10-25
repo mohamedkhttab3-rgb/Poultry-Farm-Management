@@ -77,16 +77,33 @@ async function saveDesktopPDF(event,html,suggestedFileName,requestedAction='prev
         :path.join(__dirname,'windows-share','publish','PFMWindowsShare.exe');
       try{
         await fs.promises.access(helper,fs.constants.R_OK);
-        const child=spawn(helper,[previewPath],{
+        const statusFile=path.join(previewDir,nonce+'.share-status');
+        const child=spawn(helper,[previewPath,statusFile],{
           windowsHide:false,detached:true,stdio:'ignore',shell:false
         });
-        const launched=await new Promise((resolve,reject)=>{
-          child.once('error',reject);
-          child.once('spawn',()=>resolve(true));
+        await new Promise((resolve,reject)=>{
+          let finished=false;
+          const stop=(error)=>{
+           if(finished)return;finished=true;clearInterval(poll);clearTimeout(timeout);
+           if(error)reject(error);else resolve();
+          };
+          const poll=setInterval(async()=>{
+           try{
+            const status=await fs.promises.readFile(statusFile,'utf8');
+            if(status.trim()==='OPENED'){
+             await fs.promises.unlink(statusFile).catch(()=>{});
+             stop();
+            }else if(status.startsWith('ERROR:'))stop(Error(status.slice(6)));
+           }catch(error){if(error.code!=='ENOENT')stop(error)}
+          },150);
+          const timeout=setTimeout(()=>stop(Error('Windows Share UI did not open in 12 seconds')),12000);
+          child.once('error',stop);
+          child.once('exit',code=>stop(Error('Share helper ended before opening ('+code+')')));
         });
-        if(!launched)throw Error('Windows sharing helper did not start');
         child.unref();
-        return {ok:true,shareSheetRequested:true};
+        // Only the OS dialog opening has been confirmed. Sharing depends on
+        // the user's destination choice, which cannot be claimed as delivered.
+        return {ok:true,shareSheetOpened:true};
       }catch(shareErr){
         // Only fallback when native sharing is unavailable. Do not say the
         // document was shared or show a misleading success popup.
