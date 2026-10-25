@@ -48,8 +48,8 @@ for(const mode of ['android','windows']){
  else assert(!html.includes('@bottom-center{'),'Windows must use real image element, not background-only print margin');
  assert(html.includes('margin:11mm 11mm 24mm;'),mode+' footer margin absent');
  if(mode==='android')assert(html.includes('background-image:url("./pfm-logo.png")'),'Android margin fallback image missing');
- else assert(html.includes('bottom:-2mm!important'),'Windows original image must fit in protected page margin');
- assert(html.includes('bottom:'+(mode==='android'?'0':'-2mm')+'!important'),mode+' reserved footer-band placement missing');
+ else assert(html.includes('bottom:-10mm!important'),'Windows original image must fit in protected page margin');
+ assert(html.includes('bottom:'+(mode==='android'?'0':'-10mm')+'!important'),mode+' reserved footer-band placement missing');
  assert(html.includes('font:600 8pt Arial'),mode+' footer brand font is not reduced');
  assert(html.includes('width:7mm!important;height:7mm!important'),mode+' footer logo is not reduced');
  assert.equal(html.split('class="pfm-native-a4-footer"').length,2,mode+' footer duplicated');
