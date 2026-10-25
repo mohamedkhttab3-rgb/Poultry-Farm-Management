@@ -20,8 +20,8 @@ assert(main.includes('spawn(helper,[previewPath]'),'Share the actual validated P
 assert(main.includes('manualShareFallback:true'),'Visible fallback only if native host unavailable');
 assert(!main.includes("message:'تم إنشاء ملف PDF للتشارك.'"),'Remove misleading original pop-up');
 assert(pdf.includes('const marginBoxFooter=android;'),'Windows should never depend on unreliable background image in page margin');
-assert(pdf.includes('bottom:'+"'+(marginBoxFooter?'0':'-15mm')+'"+'!important') ||
- pdf.includes("bottom:'+(marginBoxFooter?'0':'-15mm')+'!important"),'Real footer placed in reserved bottom margin');
-assert(pdf.includes('<img src="./pfm-logo.png"'),'Actual approved logo required');
+assert(pdf.includes('bottom:'+"'+(marginBoxFooter?'0':'-6mm')+'"+'!important') ||
+ pdf.includes("bottom:'+(marginBoxFooter?'0':'-6mm')+'!important"),'Real footer placed in reserved bottom margin');
+assert(pdf.includes('sourceLogoAsDataURI()') && pdf.includes('brandLogo||new URL'), 'Actual approved logo must be embedded');
 assert(pdf.includes('<span>Poultry Farm Management M.K™</span>'),'Brand beside the logo');
 console.log('PASS Windows sharing native attachment, bundled helper and original-logo PDF footer source contracts');
