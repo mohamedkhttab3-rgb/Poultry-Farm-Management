@@ -50,7 +50,10 @@
    // Old independent Feed purchasing is retired; records remain accessible
    // through invoice/lot movements, but duplicate UI entry cannot reopen.
    const obsolete=nav.querySelector('button[data-stage="7"]');
-   if(obsolete){obsolete.hidden=true;obsolete.setAttribute('aria-hidden','true');}
+   if(obsolete){
+    if(!obsolete.hidden)obsolete.hidden=true;
+    if(obsolete.getAttribute('aria-hidden')!=='true')obsolete.setAttribute('aria-hidden','true');
+   }
    const stockHeading=document.querySelector('#inventory > h2');
    if(stockHeading){
     const desired=english?'Purchases & Inventory':'المشتريات والمخزون';
