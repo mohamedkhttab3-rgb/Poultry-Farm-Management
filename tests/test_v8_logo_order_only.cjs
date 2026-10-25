@@ -26,8 +26,7 @@ for(const platform of ['android','windows','ios']){
  assert(html.includes('.pfm59-print-brand img{display:block!important'),platform+' top logo must be visible');
  assert(html.includes('.pfm59-print-brand{direction:ltr!important'),platform+' top logo must precede the title');
  assert(html.includes('margin:11mm 11mm 24mm;'),platform+' footer positioning changed');
- if(platform==='android')assert(html.includes('@bottom-center{'),platform+' must retain its A4 margin fallback');
- else assert(!html.includes('@bottom-center{'),platform+' relies on the original repeated IMG instead of print-engine background');
+ assert(html.includes('@bottom-center{'),platform+' protected A4 margin brand is mandatory');
 }
 const leftNative=native.indexOf('paper.drawBitmap(logo,null,rect,footerPaint);');
 const rightNative=native.indexOf('paper.drawText(footerText,groupLeft+logoSize+gap,footerCenterY+3f,footerPaint);');
