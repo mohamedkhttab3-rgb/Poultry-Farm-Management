@@ -26,7 +26,7 @@ const write=async(screen)=>{
  assert(html.includes('data:image/png;base64,'),'Original PNG must be embedded');
  assert(html.includes('Poultry Farm Management M.K™'));
  assert(html.includes('size:A4 landscape'));
- assert(html.includes('class="footer"'),'All pages must include PDF footer');
+ assert(html.includes('class="pfm82-footer"'),'All pages must have independent physical footer');
  assert(!html.includes('<canvas'),'Do not copy dashboard canvas');
  assert(!html.includes('pfm53-chart'),'Do not export screenshot dashboard CSS');
  fs.mkdirSync('/tmp',{recursive:true});
@@ -47,15 +47,15 @@ const write=async(screen)=>{
  const view=w.document.querySelector('main>section');
  view.id='daily';view.querySelector('#v53-overview')?.remove();
  html=await write('daily');
- assert.equal((html.match(/<tr>/g)||[]).length,169,'168 daily rows plus one table header');
+ assert.equal((html.match(/بيانات دورة اختبارية وليست سجلات مزرعة حقيقية/g)||[]).length,168,'all 168 read-only daily rows preserved across sheets');
  view.querySelector('[data-pfm57-role="search"]').value='NoSuchDate-ABC';
  html=await write('search');
  assert(!html.includes('بيانات دورة اختبارية وليست سجلات مزرعة حقيقية'));
  assert(html.includes('لا توجد سجلات'));
  view.querySelector('[data-pfm57-role="search"]').value='';
  view.id='inventory';html=await write('purchases');
- assert(html.includes('34 سجل'),'34 original source purchase documents');
- assert(html.includes('32 سجل'),'32 actual purchased-lot issues');
+ assert(html.includes('34 / 34'),'34 original source purchase documents');
+ assert(html.includes('32 / 32'),'32 actual purchased-lot issues');
  assert(html.includes('دفعات المخزون'),'lot balances section');
  assert(html.includes('INV-')||html.includes('QA-RENT'),'purchase invoice numbers present');
  w.document.documentElement.lang='en';
