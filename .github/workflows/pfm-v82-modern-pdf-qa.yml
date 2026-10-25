@@ -1,7 +1,7 @@
 name: PFM V8.2 — modern global PDF verification
 on:
   push:
-    branches: ['feature/pfm-v82-global-semantic-pdf-20261025']
+    branches: ['feature/pfm-v82-global-semantic-pdf-20261025', 'feature/pfm-v82-compact-a4-20261025']
   workflow_dispatch:
 permissions:
   contents: read
