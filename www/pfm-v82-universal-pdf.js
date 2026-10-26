@@ -315,7 +315,15 @@
   try{
    const ctx=env();
    const originalLogo=await logoData();
-   const html=render(ctx,originalLogo);
+   // Print the live V5.3 dashboard layout; leave the approved save/share data report intact.
+   let html;
+   if(action==='print'&&ctx.view.id==='dash'){
+    const visual=window.PFM59PrintDiagnostics;
+    if(!visual?.build||!visual?.standalone||!visual?.clean)
+     throw Error('Dashboard visual print engine unavailable');
+    try{html=visual.standalone(visual.build(),originalLogo);}
+    finally{visual.clean();}
+   }else html=render(ctx,originalLogo);
    const name='PFM-'+ctx.view.id+'-'+new Date().toISOString().slice(0,10)+'.pdf';
    if(window.Capacitor?.isNativePlatform?.()&&window.Capacitor?.getPlatform?.()==='android'){
     const native=window.PFMAndroidExport;
