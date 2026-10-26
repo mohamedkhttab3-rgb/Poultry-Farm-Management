@@ -1,4 +1,4 @@
-name: PFM V8.2 Compact A4 — Android Windows iOS QA builds
+name: PFM V8.2 Dashboard Print Fix — Android Windows iOS QA builds
 # Build request 2026-10-26: latest approved V8.2, Android APK, Windows EXE, iOS Xcode source.
 # V8.2 compact A4: physical all-page footer and dense cycle report verified by QA run 40182142528.
 on:
@@ -39,6 +39,8 @@ jobs:
           npm install --no-audit --no-fund
         env:
           ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - name: Verify dashboard print regression
+        run: node tests/test_v82_dashboard_visual_print.cjs
       - name: Generate and compile V8.1 Android app
         run: |
           node scripts/prepare-v81-qa80k.cjs www/pfm-v81-qa80k.json
