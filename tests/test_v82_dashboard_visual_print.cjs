@@ -1,0 +1,12 @@
+'use strict';
+const fs=require('node:fs'),assert=require('node:assert/strict');
+const pdf=fs.readFileSync('www/pfm-v82-universal-pdf.js','utf8');
+const printer=fs.readFileSync('www/pfm-v59-print-results.js','utf8');
+const chunk=pdf.slice(pdf.indexOf('async function exportPDF(action)'),pdf.indexOf('function close()'));
+assert(chunk.includes("if(ctx.view.id==='dash')"),'Dashboard print must use a dedicated visual route');
+assert(chunk.includes('visual.standalone(visual.build(),originalLogo)'),'Dashboard must preserve cards/charts with visual snapshot');
+assert(chunk.includes('finally{visual.clean();}'),'Snapshot must not mutate the displayed screen');
+assert(chunk.includes('else html=render(ctx,originalLogo)'),'Other screens must stay on the approved semantic report route');
+assert(printer.includes("const overview=$('v53-overview')"),'Visual printer must take actual dashboard tiles/charts');
+assert(printer.includes('size:A4 landscape'),'Visual printer must retain A4 page sizing');
+console.log('PASS: Dashboard print/save/share use visible A4 cards and charts; other screens stay unchanged');

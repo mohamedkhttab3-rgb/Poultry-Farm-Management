@@ -1,0 +1,70 @@
+name: PFM V8.2 QA — Safe A4 Footer and Compact Reports
+on:
+  push:
+    branches: ['feature/pfm-v82-compact-a4-footer-safe-20261025']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  physical-pdf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate application code and baseline QA ledger
+        run: |
+          set -euo pipefail
+          node --check www/pfm-v59-print-results.js
+          node --check www/pfm-v82-universal-pdf.js
+          node scripts/prepare-v81-qa80k.cjs www/pfm-v81-qa80k.json
+          node tests/test_v81_qa80k_feed_unification.cjs
+          node tests/test_v81_two_farms_80k.cjs
+          node tests/test_v81_pdf_share_header_logo.cjs
+          node tests/test_v8_pdf_footer_bounds.cjs
+          node tests/test_v81_windows_pdf_native_share.cjs
+          node tests/test_v8_logo_order_only.cjs
+          node tests/test_v81_weight_breed_pdf.cjs
+          node tests/test_v81_purchases_medications.cjs
+          node tests/test_v81_five_fixes.cjs
+          node tests/test_v82_android_semantic_pdf_pages.cjs
+          node scripts/verify-source.cjs
+          node scripts/verify-native.cjs
+      - name: Render 125-row legacy multipage report and dense real-world 13-column cycle
+        run: |
+          set -euo pipefail
+          node tests/build_v81_pdf_footer_fixture.cjs /tmp/pfm-legacy.html
+          node tests/build_v82_compact_cycle_fixture.cjs /tmp/pfm-cycle.html
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          test -n "$CHROME"
+          for scenario in legacy cycle; do
+            "$CHROME" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --no-pdf-header-footer \
+              --print-to-pdf=/tmp/pfm-$scenario.pdf file:///tmp/pfm-$scenario.html
+            test -s /tmp/pfm-$scenario.pdf
+          done
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq poppler-utils
+          for scenario in legacy cycle; do
+            pdfinfo /tmp/pfm-$scenario.pdf | grep -E 'Pages:|Page size:'
+            pdftotext -bbox /tmp/pfm-$scenario.pdf /tmp/pfm-$scenario.xml
+            pdfimages -list /tmp/pfm-$scenario.pdf > /tmp/pfm-$scenario-images.txt
+          done
+          node tests/verify_v81_pdf_footer_bbox.cjs /tmp/pfm-legacy.xml /tmp/pfm-legacy-images.txt 125
+          node tests/verify_v81_pdf_footer_bbox.cjs /tmp/pfm-cycle.xml /tmp/pfm-cycle-images.txt 80
+      - name: Verify modern PDF compaction with real 80k farms and all 168 daily rows
+        run: |
+          set -euo pipefail
+          npm install --no-save --ignore-scripts --no-audit --no-fund jsdom@26
+          node tests/test_v82_universal_pdf_dom.cjs
+          node tests/test_v81_qa80k_profile_dom.cjs
+          node tests/test_v81_navigation_integrity_dom.cjs
+          node tests/test_v81_purchase_dom.cjs
+          node tests/test_v81_report_actions_dom.cjs
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$CHROME" --headless --no-sandbox --disable-dev-shm-usage --disable-gpu --no-pdf-header-footer \
+            --print-to-pdf=/tmp/pfm82-daily.pdf file:///tmp/pfm82-daily.html
+          pdftotext -bbox /tmp/pfm82-daily.pdf /tmp/pfm82-daily.xml
+          pdfimages -list /tmp/pfm82-daily.pdf > /tmp/pfm82-daily-images.txt
+          node tests/verify_v82_modern_pdf_bbox.cjs /tmp/pfm82-daily.xml /tmp/pfm82-daily-images.txt

@@ -20,9 +20,10 @@ assert(main.includes('spawn(helper,[previewPath,statusFile]'), 'Share the actual
 assert(main.includes('manualShareFallback:true'),'Visible fallback only if native host unavailable');
 assert(main.includes('Windows Share UI did not open in 12 seconds'),'Process spawn alone must never be treated as confirmed sharing');
 assert(!main.includes("message:'تم إنشاء ملف PDF للتشارك.'"),'Remove misleading original pop-up');
-assert(pdf.includes('const marginBoxFooter=android;'),'Windows should never depend on unreliable background image in page margin');
-assert(pdf.includes('bottom:'+"'+(marginBoxFooter?'0':'-2mm')+'"+'!important') ||
- pdf.includes("bottom:'+(marginBoxFooter?'0':'-2mm')+'!important"),'Real footer placed in reserved bottom margin');
+assert(pdf.includes('const marginBoxFooter=true;'),'Windows brand must live inside protected A4 margin, not over table rows');
+assert(pdf.includes('background-image:url("\'+e(brandLogo||new URL'),'Original logo must be embedded in repeated A4 margin');
+assert(pdf.includes('bottom:'+"'+(marginBoxFooter?'0':'-10mm')+'"+'!important') ||
+ pdf.includes("bottom:'+(marginBoxFooter?'0':'-10mm')+'!important"),'Real footer placed in reserved bottom margin');
 assert(pdf.includes('sourceLogoAsDataURI()') && pdf.includes('brandLogo||new URL'), 'Actual approved logo must be embedded');
 assert(pdf.includes('<span>Poultry Farm Management M.K™</span>'),'Brand beside the logo');
 console.log('PASS Windows sharing native attachment, bundled helper and original-logo PDF footer source contracts');

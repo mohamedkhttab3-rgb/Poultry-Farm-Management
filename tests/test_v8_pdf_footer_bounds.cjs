@@ -12,7 +12,8 @@ assert(shared.includes('sourceLogoAsDataURI()') && shared.includes('brandLogo||n
 assert(shared.includes("printCopy.outerHTML+identityFooter+'</body></html>'"),'Shared footer not appended to each print document');
 assert(shared.includes('body.pfm59-printing > .pfm-native-a4-footer:not(#pfm59PrintRoot)'), 'Legacy print hide rule still hides the shared footer');
 assert(shared.includes('@bottom-center{'),'Android fallback footer must retain original margin rule');
-assert(shared.includes('const marginBoxFooter=android;'),'Windows must use fixed real image, not unsupported margin-box background');
+assert(shared.includes('const marginBoxFooter=true;'),'All platforms must use real A4 page margin boxes to prevent row overlap');
+assert(shared.includes('background-image:url("\'+e(brandLogo||new URL'), 'Original embedded logo must appear inside A4 margin box');
 assert(shared.includes('margin:11mm 11mm 24mm;'),'Printable footer strip not reserved');
 // Native WebView uses this same HTML and allows the footer style at the page bottom.
 const footer=nativeCss.match(/\.pfm-native-a4-footer\{position:fixed[^}]*\}/)?.[0]||'';
@@ -44,12 +45,10 @@ for(const mode of ['android','windows']){
  assert(html.includes('<img src="pfm://app/pfm-logo.png"'),mode+' original logo source absent');
  assert(html.includes('</article><div class="pfm-native-a4-footer"'),mode+' footer is hidden inside report root');
  assert(html.includes('body.pfm59-printing > .pfm-native-a4-footer:not(#pfm59PrintRoot)'),mode+' legacy hide-rule override absent');
- if(mode==='android')assert(html.includes('@bottom-center{'),'Android source margin logo CSS missing');
- else assert(!html.includes('@bottom-center{'),'Windows must use real image element, not background-only print margin');
+ assert(html.includes('@bottom-center{'),mode+' must use the protected A4 page-margin footer');
  assert(html.includes('margin:11mm 11mm 24mm;'),mode+' footer margin absent');
- if(mode==='android')assert(html.includes('background-image:url("./pfm-logo.png")'),'Android margin fallback image missing');
- else assert(html.includes('bottom:-2mm!important'),'Windows original image must fit in protected page margin');
- assert(html.includes('bottom:'+(mode==='android'?'0':'-2mm')+'!important'),mode+' reserved footer-band placement missing');
+ assert(html.includes('background-image:url("pfm://app/pfm-logo.png")'),mode+' margin logo missing');
+ assert(html.includes('bottom:0!important'),mode+' hidden fallback must be inside A4 page geometry');
  assert(html.includes('font:600 8pt Arial'),mode+' footer brand font is not reduced');
  assert(html.includes('width:7mm!important;height:7mm!important'),mode+' footer logo is not reduced');
  assert.equal(html.split('class="pfm-native-a4-footer"').length,2,mode+' footer duplicated');
