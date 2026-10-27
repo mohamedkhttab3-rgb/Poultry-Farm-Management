@@ -315,9 +315,9 @@
   try{
    const ctx=env();
    const originalLogo=await logoData();
-   // Print the live V5.3 dashboard layout; leave the approved save/share data report intact.
+   // All Dashboard PDF actions must use the same visible cards/charts, never a semantic substitute.
    let html;
-   if(action==='print'&&ctx.view.id==='dash'){
+   if(ctx.view.id==='dash'){
     const visual=window.PFM59PrintDiagnostics;
     if(!visual?.build||!visual?.standalone||!visual?.clean)
      throw Error('Dashboard visual print engine unavailable');
