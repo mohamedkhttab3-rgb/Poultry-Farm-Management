@@ -1,4 +1,4 @@
-name: PFM V8.2 Dashboard Print Fix — Android Windows iOS QA builds
+name: PFM V8.2 Home Visual PDF — Android Windows iOS QA builds
 # Build request 2026-10-26: latest approved V8.2, Android APK, Windows EXE, iOS Xcode source.
 # V8.2 compact A4: physical all-page footer and dense cycle report verified by QA run 40182142528.
 on:
