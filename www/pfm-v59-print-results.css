@@ -134,3 +134,21 @@
  #pfm59PrintRoot .pfm53-kpi-value,#pfm59PrintRoot .pfm53-mini-value{font-size:17px!important;margin-top:3px!important}
  #pfm59PrintRoot .pfm53-panel{padding:7px!important;min-height:84px!important}
 }
+
+/* V8.2 home dashboard: fit the ACTUAL V5.3 dashboard cards/charts on A4,
+   not a replacement semantic data report. Print-only; no live UI changes. */
+@media print {
+ #pfm59PrintRoot .pfm59-dashboard{width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;padding:0!important;display:block!important;break-inside:auto!important}
+ #pfm59PrintRoot .pfm59-dashboard .pfm53-kpi-row{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:5px!important}
+ #pfm59PrintRoot .pfm59-dashboard .pfm53-second-row{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important}
+ #pfm59PrintRoot .pfm59-dashboard .pfm53-chart-row,
+ #pfm59PrintRoot .pfm59-dashboard .pfm53-bottom-row{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;margin:5px 0!important}
+ #pfm59PrintRoot .pfm59-dashboard .pfm53-kpi,
+ #pfm59PrintRoot .pfm59-dashboard .pfm53-mini{min-width:0!important;min-height:54px!important;padding:5px!important}
+ #pfm59PrintRoot .pfm59-dashboard .pfm53-panel{min-width:0!important;min-height:0!important;padding:6px!important;overflow:visible!important;break-inside:avoid!important}
+ #pfm59PrintRoot .pfm59-dashboard svg{max-width:100%!important;height:auto!important;max-height:125px!important}
+ #pfm59PrintRoot .pfm59-dashboard .pfm53-kpi-value,
+ #pfm59PrintRoot .pfm59-dashboard .pfm53-mini-value{font-size:15px!important;line-height:1.12!important}
+ #pfm59PrintRoot .pfm59-dashboard .pfm53-kpi-title,
+ #pfm59PrintRoot .pfm59-dashboard .pfm53-mini-title{font-size:9px!important}
+}
